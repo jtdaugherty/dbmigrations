@@ -1,0 +1,15 @@
+Name:                dbmigrations
+Version:             0.1
+Synopsis:            An implementation of relational database "migrations"
+Description:         A library and collection of programs for the
+                     creation, management, and installation of schema
+                     updates ("migrations") into a relational
+                     database.  Currently supports any HDBC-supported
+                     database.
+Category:            Database
+Author:              Jonathan Daugherty
+Maintainer:          Jonathan Daugherty <drcygnus@gmail.com>
+Build-Type:          Simple
+
+Build-Depends:
+    base
