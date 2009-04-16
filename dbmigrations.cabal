@@ -17,7 +17,8 @@ Library
     base,
     HDBC,
     time >= 1.1,
-    random >= 1.0
+    random >= 1.0,
+    containers >= 0.2
 
   Hs-Source-Dirs:    src
   Exposed-Modules:
