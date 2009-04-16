@@ -10,6 +10,18 @@ Category:            Database
 Author:              Jonathan Daugherty
 Maintainer:          Jonathan Daugherty <drcygnus@gmail.com>
 Build-Type:          Simple
+Cabal-Version:       >= 1.2
 
-Build-Depends:
-    base
+Library
+  Build-Depends:
+    base,
+    HDBC,
+    time >= 1.1,
+    random >= 1.0
+
+  Hs-Source-Dirs:    src
+  Exposed-Modules:
+          Database.Schema.Migrations.Dependencies
+          Database.Schema.Migrations.Migration
+          Database.Schema.Migrations.Backend
+          Database.Schema.Migrations.Store
