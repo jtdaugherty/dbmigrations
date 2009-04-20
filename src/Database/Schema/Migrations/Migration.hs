@@ -8,34 +8,32 @@ where
 import Database.Schema.Migrations.Dependencies
 
 import System.Random ( Random(randomIO) )
+
+import Data.Time () -- for UTCTime Show instance
 import Data.Time.Clock.POSIX ( getPOSIXTime )
 import Data.Time.Clock ( UTCTime, getCurrentTime )
 
-type MigrationID = Int
+type MigrationID = String
 
 data Migration = Migration { mTimestamp :: UTCTime
                            , mId :: MigrationID
                            , mDesc :: Maybe String
                            , mApply :: String
-                           , mRevert :: String
+                           , mRevert :: Maybe String
                            , mDeps :: [Migration]
                            }
-               deriving (Eq)
+               deriving (Eq, Show)
 
 instance Dependable Migration where
     depsOf = mDeps
 
-makeMigrationId :: IO MigrationID
-makeMigrationId = randomIO
-
-newMigration :: IO Migration
-newMigration = do
+newMigration :: MigrationID -> IO Migration
+newMigration theId = do
   curTime <- getCurrentTime
-  id <- makeMigrationId
   return $ Migration { mTimestamp = curTime
-                     , mId = id
+                     , mId = theId
                      , mDesc = Nothing
                      , mApply = ""
-                     , mRevert = ""
+                     , mRevert = Nothing
                      , mDeps = []
                      }
