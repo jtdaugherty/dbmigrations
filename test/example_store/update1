@@ -1,0 +1,10 @@
+Description: Add another meaningless column to test.
+Created: 2009-04-15 10:04:31 UTC
+Depends: root
+Apply:
+
+  ALTER TABLE test ADD b int;
+
+Revert:
+
+  ALTER TABLE test DROP COLUMN b;

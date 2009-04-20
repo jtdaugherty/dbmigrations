@@ -1,0 +1,10 @@
+Description: Add a constraint on test.b.
+Created: 2009-04-15 11:36:49 UTC
+Depends: update1
+Apply:
+
+  CREATE UNIQUE INDEX test_b_idx ON test(b);
+
+Revert:
+
+  DROP INDEX test_b_idx;
