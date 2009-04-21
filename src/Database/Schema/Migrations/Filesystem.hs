@@ -52,8 +52,7 @@ dirFiles path = do
   contents <- getDirectoryContents path
   let withPath = map (path </>) nonSpecial
       nonSpecial = [ f | f <- contents, not (f `elem` [".", ".."]) ]
-  files <- liftIO $ filterM doesFileExist withPath
-  return files
+  liftIO $ filterM doesFileExist withPath
 
 loadMigrations :: FilePath -> StateT MigrationMap IO ()
 loadMigrations fp = (liftIO $ dirFiles fp) >>= mapM_ loadSingle
