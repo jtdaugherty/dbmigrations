@@ -55,7 +55,7 @@ dirFiles path = do
   liftIO $ filterM doesFileExist withPath
 
 loadMigrations :: FilePath -> StateT MigrationMap IO ()
-loadMigrations fp = (liftIO $ dirFiles fp) >>= mapM_ loadSingle
+loadMigrations path = (liftIO $ dirFiles path) >>= mapM_ loadSingle
 
 migrationIdFromPath :: FilePath -> MigrationID
 migrationIdFromPath = takeFileName
@@ -84,16 +84,16 @@ loadSingle path = do
                         put $ Map.insert (mId m) newM newMap
 
 migrationFromFile :: FilePath -> IO (Maybe (Migration, [MigrationID]))
-migrationFromFile fp = do
-  contents <- readFile fp
-  let migrationId = migrationIdFromPath fp
-  case parse migrationParser fp contents of
-    Left e -> fail $ "Could not parse migration file " ++ fp
+migrationFromFile path = do
+  contents <- readFile path
+  let migrationId = migrationIdFromPath path
+  case parse migrationParser path contents of
+    Left e -> fail $ "Could not parse migration file " ++ path
     Right (fields, depIds) ->
         do
           newM <- newMigration ""
           case migrationFromFields newM fields of
-            Nothing -> fail $ "Unrecognized field in migration " ++ (show fp)
+            Nothing -> fail $ "Unrecognized field in migration " ++ (show path)
             Just m -> return $ Just (m { mId = migrationId }, depIds)
 
 migrationFromFields :: Migration -> [(FieldName, String)] -> Maybe Migration
