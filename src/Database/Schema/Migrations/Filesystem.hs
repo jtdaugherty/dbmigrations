@@ -71,12 +71,7 @@ loadSingle path = do
          case result of
            Nothing -> fail ("Could not load migration from file " ++ path)
            Just (m, depIds) -> do
-                        -- iterate over depIds and load them recursively
                         mapM_ (\p -> loadSingle $ parent </> p) depIds
-                        -- Load the deps from the map and use them to
-                        -- update the deps list for m; take the
-                        -- resulting map, insert m, and return the new
-                        -- map
                         newMap <- get
                         let newM = m { mDeps = loadedDeps }
                             loadedDeps = catMaybes $ map (\i -> Map.lookup i newMap) depIds
