@@ -1,5 +1,11 @@
 module Database.Schema.Migrations.Filesystem
-    (
+    ( newFilesystemStore
+
+    , FilesystemStore
+    , storePath
+    , migrationMap
+
+    , MigrationMap
     )
 where
 
