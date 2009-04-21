@@ -4,17 +4,20 @@ module Database.Schema.Migrations.Filesystem
 where
 
 import System.Directory ( getDirectoryContents, doesFileExist )
+import System.FilePath ( takeDirectory, takeFileName, (</>) )
+import System.IO ( putStrLn )
+
 import qualified Data.Map as Map
 import Data.Time.Clock ( UTCTime )
 import Data.Time () -- for UTCTime Show instance
 import Data.Maybe ( catMaybes )
+import Data.Maybe ( isNothing, isJust )
+
 import Text.ParserCombinators.Parsec
+
 import Control.Monad ( filterM, when, mapM_ )
 import Control.Monad.Trans ( liftIO )
-import System.FilePath ( takeDirectory, takeFileName, (</>) )
-import Data.Maybe ( isNothing, isJust )
 import Control.Monad.State ( StateT, get, put, execStateT )
-import System.IO ( putStrLn )
 
 import Database.Schema.Migrations.Migration
     ( Migration(..)
