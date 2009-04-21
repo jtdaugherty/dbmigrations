@@ -47,15 +47,15 @@ newFilesystemStore path = do
   return $ FSStore { storePath = path
                    , migrationMap = migrations }
 
-dirFiles :: FilePath -> IO [FilePath]
-dirFiles path = do
+filesInDirectory :: FilePath -> IO [FilePath]
+filesInDirectory path = do
   contents <- getDirectoryContents path
   let withPath = map (path </>) nonSpecial
       nonSpecial = [ f | f <- contents, not (f `elem` [".", ".."]) ]
   liftIO $ filterM doesFileExist withPath
 
 loadMigrations :: FilePath -> StateT MigrationMap IO ()
-loadMigrations path = (liftIO $ dirFiles path) >>= mapM_ loadSingle
+loadMigrations path = (liftIO $ filesInDirectory path) >>= mapM_ loadSingle
 
 migrationIdFromPath :: FilePath -> MigrationID
 migrationIdFromPath = takeFileName
