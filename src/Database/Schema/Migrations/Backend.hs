@@ -16,10 +16,11 @@ class (IConnection a) => Backend a where
     -- backend to another.
     getBootstrapMigration :: a -> IO Migration
     getBootstrapMigration _ = do
-      m <- newMigration
+      m <- newMigration "root"
+      -- XXX this should either call other functions in the class to
+      -- get the appropriate SQL or this function should not have a
+      -- default implementation
       return $ m { mDesc = Just "An initial migration to bootstrap the database"
-                 , mApply = ""
-                 , mRevert = ""
                  }
 
     applyMigration :: a -> Migration -> IO ()
