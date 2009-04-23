@@ -55,13 +55,13 @@ filesInDirectory path = do
   liftIO $ filterM doesFileExist withPath
 
 loadMigrations :: FilePath -> StateT MigrationMap IO ()
-loadMigrations path = (liftIO $ filesInDirectory path) >>= mapM_ loadSingle
+loadMigrations path = (liftIO $ filesInDirectory path) >>= mapM_ loadWithDeps
 
 migrationIdFromPath :: FilePath -> MigrationID
 migrationIdFromPath = takeFileName
 
-loadSingle :: FilePath -> StateT MigrationMap IO ()
-loadSingle path = do
+loadWithDeps :: FilePath -> StateT MigrationMap IO ()
+loadWithDeps path = do
   let parent = takeDirectory path
       mid = migrationIdFromPath path
   currentMap <- get
@@ -71,7 +71,7 @@ loadSingle path = do
          case result of
            Nothing -> fail ("Could not load migration from file " ++ path)
            Just (m, depIds) -> do
-                        mapM_ (\p -> loadSingle $ parent </> p) depIds
+                        mapM_ (\p -> loadWithDeps $ parent </> p) depIds
                         newMap <- get
                         let newM = m { mDeps = loadedDeps }
                             loadedDeps = catMaybes $ map (\i -> Map.lookup i newMap) depIds
