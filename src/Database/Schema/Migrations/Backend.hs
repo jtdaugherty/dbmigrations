@@ -15,14 +15,6 @@ class (IConnection a) => Backend a where
     -- connection interface.  This might differ slightly from one
     -- backend to another.
     getBootstrapMigration :: a -> IO Migration
-    getBootstrapMigration _ = do
-      m <- newMigration "root"
-      -- XXX this should either call other functions in the class to
-      -- get the appropriate SQL or this function should not have a
-      -- default implementation
-      return $ m { mDesc = Just "An initial migration to bootstrap the database"
-                 }
-
     applyMigration :: a -> Migration -> IO ()
     revertMigration :: a -> Migration -> IO ()
     getMigrations :: a -> IO [MigrationID]
