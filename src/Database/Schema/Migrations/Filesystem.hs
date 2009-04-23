@@ -41,12 +41,16 @@ type FieldProcessor = String -> Migration -> Maybe Migration
 data FilesystemStore = FSStore { storePath :: FilePath
                                , migrationMap :: MigrationMap }
 
+-- |Create a new filesystem store by loading all migrations at the
+-- specified filesystem path.
 newFilesystemStore :: FilePath -> IO FilesystemStore
 newFilesystemStore path = do
   migrations <- execStateT (loadMigrations path) Map.empty
   return $ FSStore { storePath = path
                    , migrationMap = migrations }
 
+-- |Given a directory path, return a list of all files in the
+-- directory, not including the special directories "." and "..".
 filesInDirectory :: FilePath -> IO [FilePath]
 filesInDirectory path = do
   contents <- getDirectoryContents path
@@ -54,12 +58,18 @@ filesInDirectory path = do
       nonSpecial = [ f | f <- contents, not (f `elem` [".", ".."]) ]
   liftIO $ filterM doesFileExist withPath
 
+-- |Load migrations recursively from the specified path into the
+-- MigrationMap state.
 loadMigrations :: FilePath -> StateT MigrationMap IO ()
 loadMigrations path = (liftIO $ filesInDirectory path) >>= mapM_ loadWithDeps
 
+-- |Given a file path, return its corresponding migration ID.
 migrationIdFromPath :: FilePath -> MigrationID
 migrationIdFromPath = takeFileName
 
+-- |Given a file path, load the migration at the specified path and,
+-- if necessary, recursively load its dependencies into the
+-- MigrationMap state.
 loadWithDeps :: FilePath -> StateT MigrationMap IO ()
 loadWithDeps path = do
   let parent = takeDirectory path
@@ -78,6 +88,9 @@ loadWithDeps path = do
 
                         put $ Map.insert (mId m) newM newMap
 
+-- |Given a file path, read and parse the migration at the specified
+-- path and, if successful, return the migration and its claimed
+-- dependencies.
 migrationFromFile :: FilePath -> IO (Maybe (Migration, [MigrationID]))
 migrationFromFile path = do
   contents <- readFile path
@@ -91,6 +104,8 @@ migrationFromFile path = do
             Nothing -> fail $ "Unrecognized field in migration " ++ (show path)
             Just m -> return $ Just (m { mId = migrationId }, depIds)
 
+-- |Given a migration and a list of parsed migration fields, update
+-- the migration from the field values for recognized fields.
 migrationFromFields :: Migration -> [(FieldName, String)] -> Maybe Migration
 migrationFromFields m [] = Just m
 migrationFromFields m ((name, value):rest) = do
@@ -128,6 +143,8 @@ setApply apply m = Just $ m { mApply = apply }
 setRevert :: FieldProcessor
 setRevert revert m = Just $ m { mRevert = Just revert }
 
+-- |Parse a migration document and return a list of parsed fields and
+-- a list of claimed dependencies.
 migrationParser :: Parser ([(FieldName, String)], [MigrationID])
 migrationParser = do
   fields <- many parseField
