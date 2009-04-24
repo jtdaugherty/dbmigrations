@@ -2,6 +2,7 @@ module Database.Schema.Migrations.Backend.Sqlite
     ()
 where
 
+import Database.HDBC ( quickQuery, fromSql )
 import Database.HDBC.Sqlite3 ( Connection )
 import Database.Schema.Migrations.Migration
     ( Migration(..)
@@ -24,11 +25,13 @@ instance Backend Connection where
                      , mDesc = Just "Migration table installation"
                      }
 
-    applyMigration conn m = do
-      undefined
+    applyMigration conn m = quickQuery conn (mApply m) [] >> return ()
 
-    revertMigration conn m = do
-      undefined
+    revertMigration conn m =
+        case mRevert m of
+          Nothing -> return ()
+          Just query -> quickQuery conn query [] >> return ()
 
     getMigrations conn = do
-      undefined
+      results <- quickQuery conn "SELECT migration_id FROM installed_migrations" []
+      return $ map (\(h:_) -> fromSql h) results
