@@ -16,6 +16,7 @@ Library
   Build-Depends:
     base,
     HDBC,
+    HDBC-sqlite3,
     time >= 1.1,
     random >= 1.0,
     containers >= 0.2
@@ -25,4 +26,5 @@ Library
           Database.Schema.Migrations.Dependencies
           Database.Schema.Migrations.Migration
           Database.Schema.Migrations.Backend
+          Database.Schema.Migrations.Backend.Sqlite
           Database.Schema.Migrations.Store
