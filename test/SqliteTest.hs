@@ -10,7 +10,7 @@ import Database.Schema.Migrations.Backend ( Backend(..) )
 import Database.HDBC.Sqlite3 ( Connection, connectSqlite3 )
 import Database.HDBC ( IConnection(..) )
 
-import System.IO ( openTempFile )
+import System.IO ( openTempFile, hClose )
 import System.Directory ( removeFile )
 
 import Control.Exception ( finally )
@@ -22,7 +22,8 @@ tests = sequence [
 
 withTempDb :: (Connection -> IO Test) -> IO Test
 withTempDb act = do
-  (path, _) <- openTempFile "/tmp" "sqlite3test.tmp"
+  (path, h) <- openTempFile "/tmp" "sqlite3test.tmp"
+  hClose h
   conn <- connectSqlite3 path
   result <- act conn `finally` (disconnect conn >>
                                 removeFile path)
