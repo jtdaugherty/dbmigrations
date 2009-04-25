@@ -13,7 +13,7 @@ import Database.Schema.Migrations.Backend
     ( Backend(..) )
 
 createSql = "CREATE TABLE installed_migrations (\
-            \migration_id VARCHAR(255))"
+            \migration_id TEXT)"
 revertSql = "DROP TABLE installed_migrations"
 
 instance Backend Connection where
