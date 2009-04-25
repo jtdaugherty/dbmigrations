@@ -25,9 +25,7 @@ withTempDb act = do
   (path, h) <- openTempFile "/tmp" "sqlite3test.tmp"
   hClose h
   conn <- connectSqlite3 path
-  result <- act conn `finally` (disconnect conn >>
-                                removeFile path)
-  return result
+  act conn `finally` removeFile path
 
 bootstrapTest :: IO Test
 bootstrapTest =
