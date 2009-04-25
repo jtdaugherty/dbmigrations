@@ -3,9 +3,13 @@ import Test.HUnit
 import System.Exit
 import System.IO ( stderr )
 
+import qualified SqliteTest
+
 loadTests :: IO [Test]
 loadTests = sequence
-        [
+        [ do
+          tests <- SqliteTest.tests
+          return $ "Sqlite" ~: test tests
         ]
 
 main :: IO ()
