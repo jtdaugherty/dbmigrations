@@ -2,7 +2,7 @@ module Database.Schema.Migrations.Backend.Sqlite
     ()
 where
 
-import Database.HDBC ( quickQuery, fromSql )
+import Database.HDBC ( quickQuery, fromSql, SqlValue(SqlString), IConnection(commit) )
 import Database.HDBC.Sqlite3 ( Connection )
 import Database.Schema.Migrations.Migration
     ( Migration(..)
@@ -25,7 +25,10 @@ instance Backend Connection where
                      , mDesc = Just "Migration table installation"
                      }
 
-    applyMigration conn m = quickQuery conn (mApply m) [] >> return ()
+    applyMigration conn m = do
+      quickQuery conn (mApply m) []
+      quickQuery conn "INSERT INTO installed_migrations (migration_id) VALUES (?)" [SqlString $ mId m]
+      return ()
 
     revertMigration conn m =
         case mRevert m of

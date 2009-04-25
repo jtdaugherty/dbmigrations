@@ -6,6 +6,7 @@ where
 import Test.HUnit
 
 import Database.Schema.Migrations.Backend.Sqlite
+import Database.Schema.Migrations.Migration ( Migration(..) )
 import Database.Schema.Migrations.Backend ( Backend(..) )
 import Database.HDBC.Sqlite3 ( Connection, connectSqlite3 )
 import Database.HDBC ( IConnection(..) )
@@ -28,9 +29,11 @@ withTempDb act = do
   act conn `finally` removeFile path
 
 bootstrapTest :: IO Test
-bootstrapTest =
+bootstrapTest = do
     withTempDb $ \conn -> do
       bs <- getBootstrapMigration conn
       applyMigration conn bs
       tables <- getTables conn
-      return $ test $ ["installed_migrations"] ~=? tables
+      installed <- getMigrations conn
+      return $ test $ [ [mId bs] ~=? installed
+                      , ["installed_migrations"] ~=? tables ]
