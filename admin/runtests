@@ -1,0 +1,6 @@
+#!/bin/bash
+
+HERE=$(dirname $0)
+ROOT=$HERE/..
+
+runghc -itest -isrc $ROOT/test/TestDriver.hs
