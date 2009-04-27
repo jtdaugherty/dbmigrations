@@ -1,8 +1,9 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Database.Schema.Migrations.Backend.Sqlite
     ()
 where
 
-import Database.HDBC ( quickQuery, fromSql, SqlValue(SqlString), IConnection(commit) )
+import Database.HDBC ( quickQuery, fromSql, SqlValue(SqlString) )
 import Database.HDBC.Sqlite3 ( Connection )
 import Database.Schema.Migrations.Migration
     ( Migration(..)
@@ -11,12 +12,15 @@ import Database.Schema.Migrations.Migration
 import Database.Schema.Migrations.Backend
     ( Backend(..) )
 
+createSql :: String
 createSql = "CREATE TABLE installed_migrations (\
             \migration_id TEXT)"
+
+revertSql :: String
 revertSql = "DROP TABLE installed_migrations"
 
 instance Backend Connection where
-    getBootstrapMigration conn =
+    getBootstrapMigration _ =
         do
           m <- newMigration "root"
           return $ m { mApply = createSql

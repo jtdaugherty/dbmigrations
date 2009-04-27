@@ -6,10 +6,7 @@ where
 
 import Database.Schema.Migrations.Dependencies
 
-import System.Random ( Random(randomIO) )
-
 import Data.Time () -- for UTCTime Show instance
-import Data.Time.Clock.POSIX ( getPOSIXTime )
 import Data.Time.Clock ( UTCTime, getCurrentTime )
 
 data Migration = Migration { mTimestamp :: UTCTime

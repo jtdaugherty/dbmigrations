@@ -5,9 +5,7 @@ where
 
 import Database.HDBC ( IConnection )
 import Database.Schema.Migrations.Migration
-    ( Migration(..)
-    , newMigration
-    )
+    ( Migration(..) )
 
 class (IConnection a) => Backend a where
     -- |The migration necessary to bootstrap a database with this
