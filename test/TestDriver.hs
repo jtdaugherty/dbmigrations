@@ -7,9 +7,8 @@ import qualified SqliteTest
 
 loadTests :: IO [Test]
 loadTests = sequence
-        [ do
-          tests <- SqliteTest.tests
-          return $ "Sqlite" ~: test tests
+        [ do tests <- SqliteTest.tests
+             return $ "Sqlite" ~: test tests
         ]
 
 main :: IO ()

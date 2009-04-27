@@ -1,6 +1,5 @@
 module Database.Schema.Migrations.Migration
     ( Migration(..)
-    , MigrationID
     , newMigration
     )
 where
@@ -13,21 +12,20 @@ import Data.Time () -- for UTCTime Show instance
 import Data.Time.Clock.POSIX ( getPOSIXTime )
 import Data.Time.Clock ( UTCTime, getCurrentTime )
 
-type MigrationID = String
-
 data Migration = Migration { mTimestamp :: UTCTime
-                           , mId :: MigrationID
+                           , mId :: String
                            , mDesc :: Maybe String
                            , mApply :: String
                            , mRevert :: Maybe String
-                           , mDeps :: [Migration]
+                           , mDeps :: [String]
                            }
-               deriving (Eq, Show)
+               deriving (Eq, Show, Ord)
 
 instance Dependable Migration where
     depsOf = mDeps
+    depId = mId
 
-newMigration :: MigrationID -> IO Migration
+newMigration :: String -> IO Migration
 newMigration theId = do
   curTime <- getCurrentTime
   return $ Migration { mTimestamp = curTime

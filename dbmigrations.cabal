@@ -19,12 +19,18 @@ Library
     HDBC-sqlite3,
     time >= 1.1,
     random >= 1.0,
-    containers >= 0.2
+    containers >= 0.2,
+    mtl >= 1.1,
+    parsec == 2.1.0.*,
+    filepath == 1.1.*,
+    directory == 1.0.*
 
   Hs-Source-Dirs:    src
   Exposed-Modules:
+          Database.Schema.Migrations
           Database.Schema.Migrations.Dependencies
           Database.Schema.Migrations.Migration
+          Database.Schema.Migrations.Filesystem
           Database.Schema.Migrations.Backend
           Database.Schema.Migrations.Backend.Sqlite
           Database.Schema.Migrations.Store

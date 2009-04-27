@@ -27,14 +27,13 @@ import Control.Monad.State ( StateT, get, put, execStateT )
 
 import Database.Schema.Migrations.Migration
     ( Migration(..)
-    , MigrationID
     , newMigration
     )
 
 -- |Code for parsing and serializing Migrations to disk files, and an
 -- instance of MigrationStore for filesystem-backed migrations.
 
-type MigrationMap = Map.Map MigrationID Migration
+type MigrationMap = Map.Map String Migration
 type FieldName = String
 type FieldProcessor = String -> Migration -> Maybe Migration
 
@@ -64,7 +63,7 @@ loadMigrations :: FilePath -> StateT MigrationMap IO ()
 loadMigrations path = (liftIO $ filesInDirectory path) >>= mapM_ loadWithDeps
 
 -- |Given a file path, return its corresponding migration ID.
-migrationIdFromPath :: FilePath -> MigrationID
+migrationIdFromPath :: FilePath -> String
 migrationIdFromPath = takeFileName
 
 -- |Given a file path, load the migration at the specified path and,
@@ -80,29 +79,26 @@ loadWithDeps path = do
          result <- liftIO $ migrationFromFile path
          case result of
            Nothing -> fail ("Could not load migration from file " ++ path)
-           Just (m, depIds) -> do
-                        mapM_ (\p -> loadWithDeps $ parent </> p) depIds
-                        newMap <- get
-                        let newM = m { mDeps = loadedDeps }
-                            loadedDeps = catMaybes $ map (\i -> Map.lookup i newMap) depIds
-
-                        put $ Map.insert (mId m) newM newMap
+           Just m -> do
+                      mapM_ (\p -> loadWithDeps $ parent </> p) $ mDeps m
+                      newMap <- get
+                      put $ Map.insert (mId m) m newMap
 
 -- |Given a file path, read and parse the migration at the specified
 -- path and, if successful, return the migration and its claimed
 -- dependencies.
-migrationFromFile :: FilePath -> IO (Maybe (Migration, [MigrationID]))
+migrationFromFile :: FilePath -> IO (Maybe Migration)
 migrationFromFile path = do
   contents <- readFile path
   let migrationId = migrationIdFromPath path
   case parse migrationParser path contents of
     Left e -> fail $ "Could not parse migration file " ++ path
-    Right (fields, depIds) ->
+    Right fields ->
         do
           newM <- newMigration ""
           case migrationFromFields newM fields of
             Nothing -> fail $ "Unrecognized field in migration " ++ (show path)
-            Just m -> return $ Just (m { mId = migrationId }, depIds)
+            Just m -> return $ Just $ m { mId = migrationId }
 
 -- |Given a migration and a list of parsed migration fields, update
 -- the migration from the field values for recognized fields.
@@ -118,11 +114,8 @@ fieldProcessors = [ ("Created", setTimestamp )
                   , ("Description", setDescription )
                   , ("Apply", setApply )
                   , ("Revert", setRevert )
-                  , ("Depends", nullFieldProcessor)
+                  , ("Depends", setDepends )
                   ]
-
-nullFieldProcessor :: FieldProcessor
-nullFieldProcessor _ m = Just m
 
 setTimestamp :: FieldProcessor
 setTimestamp value m = do
@@ -143,20 +136,18 @@ setApply apply m = Just $ m { mApply = apply }
 setRevert :: FieldProcessor
 setRevert revert m = Just $ m { mRevert = Just revert }
 
+setDepends :: FieldProcessor
+setDepends depString m = do
+  case parse parseDepsList "-" depString of
+    Left _ -> Nothing
+    Right depIds -> Just $ m { mDeps = depIds }
+
 -- |Parse a migration document and return a list of parsed fields and
 -- a list of claimed dependencies.
-migrationParser :: Parser ([(FieldName, String)], [MigrationID])
-migrationParser = do
-  fields <- many parseField
-  depIds <- case lookup "Depends" fields of
-              Nothing -> fail "'Depends' field missing from migration file"
-              Just f -> do
-                    case parse parseDepsList "-" f of
-                      Left e -> fail $ show e
-                      Right ids -> return ids
-  return (fields, depIds)
+migrationParser :: Parser ([(FieldName, String)])
+migrationParser = many parseField
 
-parseDepsList :: Parser [MigrationID]
+parseDepsList :: Parser [String]
 parseDepsList = sepBy parseMID whitespace
     where
       parseMID = many1 (alphaNum <|> oneOf "-._")

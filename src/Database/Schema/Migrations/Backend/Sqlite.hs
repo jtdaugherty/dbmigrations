@@ -6,7 +6,6 @@ import Database.HDBC ( quickQuery, fromSql, SqlValue(SqlString), IConnection(com
 import Database.HDBC.Sqlite3 ( Connection )
 import Database.Schema.Migrations.Migration
     ( Migration(..)
-    , MigrationID
     , newMigration
     )
 import Database.Schema.Migrations.Backend

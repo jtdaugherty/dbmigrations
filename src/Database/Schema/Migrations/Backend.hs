@@ -6,7 +6,6 @@ where
 import Database.HDBC ( IConnection )
 import Database.Schema.Migrations.Migration
     ( Migration(..)
-    , MigrationID
     , newMigration
     )
 
@@ -17,4 +16,4 @@ class (IConnection a) => Backend a where
     getBootstrapMigration :: a -> IO Migration
     applyMigration :: a -> Migration -> IO ()
     revertMigration :: a -> Migration -> IO ()
-    getMigrations :: a -> IO [MigrationID]
+    getMigrations :: a -> IO [String]
