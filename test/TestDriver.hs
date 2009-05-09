@@ -4,12 +4,15 @@ import System.Exit
 import System.IO ( stderr )
 
 import qualified SqliteTest
+import qualified DependencyTest
 
 loadTests :: IO [Test]
-loadTests = sequence
-        [ do tests <- SqliteTest.tests
-             return $ "Sqlite" ~: test tests
-        ]
+loadTests = do
+  ioTests <- sequence
+             [ do tests <- SqliteTest.tests
+                  return $ "Sqlite" ~: test tests
+             ]
+  return $ ioTests ++ DependencyTest.tests
 
 main :: IO ()
 main = do

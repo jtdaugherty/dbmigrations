@@ -1,8 +1,7 @@
 module Database.Schema.Migrations.Dependencies
     ( Dependable(..)
-    , DependencyGraph(..)
-    , mkDepGraph
-    , fullReverseDeps
+    , DependencyInfo(..)
+    , depInfo
     )
 where
 
@@ -13,20 +12,16 @@ class (Eq a, Ord a) => Dependable a where
     depsOf :: a -> [String]
     depId :: a -> String
 
-data DependencyGraph = DepGraph { forwardDeps :: Map.Map String [String]
+data DependencyInfo a = DepInfo { forwardDeps :: Map.Map String [String]
                                 , reverseDeps :: Map.Map String [String]
+                                , contents :: Map.Map String a
                                 }
+                      deriving (Show, Eq)
 
-mkDepGraph :: (Dependable a) => [a] -> DependencyGraph
-mkDepGraph objects = DepGraph fd rd
+depInfo :: (Dependable a) => [a] -> DependencyInfo a
+depInfo objects = DepInfo fd rd c
     where
+      c = Map.fromList [ (depId obj, obj) | obj <- objects ]
       fd = Map.fromList [ (depId obj, depsOf obj) | obj <- objects ]
       rd = Map.fromList [ (depId obj, rDeps obj fd) | obj <- objects ]
       rDeps obj deps = [ k | (k, vs) <- Map.toList deps, depId obj `elem` vs ]
-
-fullReverseDeps :: String -> DependencyGraph -> Maybe [String]
-fullReverseDeps objId graph = do
-  reverseDepList <- Map.lookup objId $ reverseDeps graph
-  recursedRdeps <- mapM (\k -> fullReverseDeps k graph) reverseDepList
-  thisRdeps <- Map.lookup objId $ reverseDeps graph
-  return $ (concat recursedRdeps) ++ thisRdeps
