@@ -13,12 +13,6 @@
   document I'm going to lay out some formalisms for generalizing the notion
   of objects with dependency relationships.
 
-  Ultimately, I'd aim to implement these formalisms in the <em|Haskell>
-  programming language. Haskell's type system is rich enough to provide a
-  foundation for a generic representation of object dependencies, so you can
-  decide what ``a depends on b'' means. I assume a relatively simple model of
-  dependency here; in some cases,\ 
-
   To discuss these concepts I'll use some terms to refer to parts of the
   object-dependency system:
 
@@ -133,7 +127,21 @@
 
 <\references>
   <\collection>
-    <associate|auto-1|<tuple|1|?>>
-    <associate|auto-2|<tuple|2|?>>
+    <associate|auto-1|<tuple|1|1>>
+    <associate|auto-2|<tuple|2|1>>
   </collection>
 </references>
+
+<\auxiliary>
+  <\collection>
+    <\associate|toc>
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|Introduction>
+      <datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.2fn>.<space|0.2fn>>>>>|<htab|5mm>>
+      <no-break><pageref|auto-1><vspace|0.5fn>
+
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|Definitions>
+      <datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.2fn>.<space|0.2fn>>>>>|<htab|5mm>>
+      <no-break><pageref|auto-2><vspace|0.5fn>
+    </associate>
+  </collection>
+</auxiliary>
