@@ -23,7 +23,8 @@ Library
     mtl >= 1.1,
     parsec == 2.1.0.*,
     filepath == 1.1.*,
-    directory == 1.0.*
+    directory == 1.0.*,
+    fgl == 5.4.2.*
 
   Hs-Source-Dirs:    src
   Exposed-Modules:
