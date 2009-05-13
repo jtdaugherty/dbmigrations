@@ -46,8 +46,10 @@ bootstrapTest = do
       applyMigration conn bs
       tables <- getTables conn
       installed <- getMigrations conn
-      return $ test $ [ [mId bs] ~=? installed
-                      , ["installed_migrations"] ~=? tables ]
+      return $ test $ [ "successfully bootstrapped" ~:
+                          [mId bs] ~=? installed
+                      , "installed_migrations table exists" ~:
+                          ["installed_migrations"] ~=? tables ]
 
 ignoreSqlExceptions :: IO a -> IO (Maybe a)
 ignoreSqlExceptions act = (act >>= return . Just) `catchSql`
@@ -70,7 +72,7 @@ applyMigrationFailure =
 
       -- Check that none of the migrations were installed
       installed <- getMigrations conn
-      return $ ["root"] ~=? installed
+      return $ "successfully roll back failed apply" ~: ["root"] ~=? installed
 
 -- revertMigrationSuccess :: IO Test
 -- revertMigrationSuccess = do
