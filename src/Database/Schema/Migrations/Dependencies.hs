@@ -25,8 +25,8 @@ instance Eq DependencyGraph where
 instance Show DependencyGraph where
     show g = "(" ++ (show $ nodes g) ++ ", " ++ (show $ edges g) ++ ")"
 
-mkDepGraph :: (Dependable a) => [a] -> DependencyGraph
-mkDepGraph objects = mkGraph n e
+mkDepGraph :: (Dependable a) => [a] -> Either String DependencyGraph
+mkDepGraph objects = Right $ mkGraph n e
     where
       n = [ (fromJust $ lookup o ids, depId o) | o <- objects ]
       e = [ ( fromJust $ lookup o ids

@@ -20,15 +20,15 @@ instance Dependable TestDependable where
     depId = tdId
     depsOf = tdDeps
 
-type DepGraphTestCase = ([TestDependable], DependencyGraph)
+type DepGraphTestCase = ([TestDependable], Either String DependencyGraph)
 
 depGraphTestCases :: [DepGraphTestCase]
 depGraphTestCases = [ ( []
-                     , empty
+                     , Right $ empty
                       )
                     , ( [first, second]
-                      , mkGraph [(1, "first"), (2, "second")]
-                                   [(2, 1, "first -> second")]
+                      , Right $ mkGraph [(1, "first"), (2, "second")]
+                                  [(2, 1, "first -> second")]
                       )
                     ]
     where
