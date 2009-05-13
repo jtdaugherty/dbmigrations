@@ -12,32 +12,21 @@ import Database.Schema.Migrations.Backend ( Backend(..) )
 import Database.HDBC.Sqlite3 ( Connection, connectSqlite3 )
 import Database.HDBC ( IConnection(..), catchSql, withTransaction )
 
-import System.IO ( openTempFile, hClose )
-import System.Directory ( removeFile )
-
-import Control.Exception ( finally )
-
 tests :: IO [Test]
 tests = sequence [ bootstrapTest
                  , applyMigrationFailure
                  ]
 
 withTempDb :: (Connection -> IO Test) -> IO Test
-withTempDb act = do
-  (tempPath, h) <- openTempFile "/tmp" "sqlite3test.tmp"
-  hClose h
-  conn <- connectSqlite3 tempPath
-  act conn `finally` removeFile tempPath
+withTempDb act = connectSqlite3 ":memory:" >>= act
 
 withBootstrappedTempDb :: (Connection -> IO Test) -> IO Test
 withBootstrappedTempDb act = do
-  (tempPath, h) <- openTempFile "/tmp" "sqlite3test.tmp"
-  hClose h
-  conn <- connectSqlite3 tempPath
+  conn <- connectSqlite3 ":memory:"
   bs <- getBootstrapMigration conn
   applyMigration conn bs
   commit conn
-  act conn `finally` removeFile tempPath
+  act conn
 
 bootstrapTest :: IO Test
 bootstrapTest = do
