@@ -10,7 +10,7 @@ import Data.Graph.Inductive.PatriciaTree ( Gr )
 import Database.Schema.Migrations.Dependencies
 
 tests :: [Test]
-tests = depGraphTests ++ mkCycleTests
+tests = depGraphTests ++ mkCycleTests ++ dependencyTests
 
 data TestDependable = TD { tdId :: String
                          , tdDeps :: [String]
@@ -21,15 +21,16 @@ instance Dependable TestDependable where
     depId = tdId
     depsOf = tdDeps
 
-type DepGraphTestCase = ([TestDependable], Either String DependencyGraph)
+type DepGraphTestCase = ([TestDependable], Either String (DependencyGraph TestDependable))
 
 depGraphTestCases :: [DepGraphTestCase]
 depGraphTestCases = [ ( []
-                     , Right $ empty
+                     , Right $ DG [] [] empty
                       )
                     , ( [first, second]
-                      , Right $ mkGraph [(1, "first"), (2, "second")]
-                                  [(2, 1, "first -> second")]
+                      , Right $ DG [(first,1),(second,2)]
+                                  [("first",1),("second",2)] (mkGraph [(1, "first"), (2, "second")]
+                                                              [(2, 1, "first -> second")])
                       )
                     , ( [cycleFirst, cycleSecond]
                       , Left "Invalid dependency graph; cycle detected")
@@ -82,3 +83,29 @@ mkCycleTests :: [Test]
 mkCycleTests = map mkCycleTest cycleTests
     where
       mkCycleTest (g, expected) = expected ~=? hasCycle g
+
+data Direction = Forward | Reverse deriving (Show)
+type DependencyTestCase = ([TestDependable], String, Direction, [String])
+
+dependencyTestCases :: [DependencyTestCase]
+dependencyTestCases = [ ([TD "first" []], "first", Forward, [])
+                      , ([TD "first" []], "first", Reverse, [])
+
+                      , ([TD "first" ["second"], TD "second" []], "first", Forward, ["second"])
+                      , ([TD "first" ["second"], TD "second" []], "second", Reverse, ["first"])
+                      , ([TD "first" ["second"], TD "second" ["third"], TD "third" []], "first", Forward, ["second", "third"])
+                      ]
+
+fromRight :: Either a b -> b
+fromRight (Left _) = error "Got a Left value"
+fromRight (Right v) = v
+
+mkDependencyTest :: DependencyTestCase -> Test
+mkDependencyTest testCase@(deps, a, dir, expected) =
+    let f = case dir of
+              Forward -> dependencies
+              Reverse -> reverseDependencies
+    in (show testCase) ~: expected ~=? f (fromRight $ mkDepGraph deps) a
+
+dependencyTests :: [Test]
+dependencyTests = map mkDependencyTest dependencyTestCases

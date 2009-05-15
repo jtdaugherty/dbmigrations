@@ -1,15 +1,17 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 module Database.Schema.Migrations.Dependencies
     ( Dependable(..)
-    , DependencyGraph
+    , DependencyGraph(..)
     , mkDepGraph
     , hasCycle
+    , dependencies
+    , reverseDependencies
     )
 where
 
 import Data.Maybe ( fromJust )
 
-import Data.Graph.Inductive.Graph ( Graph(..), nodes, edges, Node, suc', indeg )
+import Data.Graph.Inductive.Graph ( Graph(..), nodes, edges, Node, suc', indeg, suc, pre, lab )
 import Data.Graph.Inductive.PatriciaTree ( Gr )
 
 class (Eq a, Ord a) => Dependable a where
@@ -17,14 +19,17 @@ class (Eq a, Ord a) => Dependable a where
     depsOf :: a -> [String]
     depId :: a -> String
 
-type DependencyGraph = Gr String String
+data DependencyGraph a = DG { objectMap :: [(a, Int)] -- Map from object to its graph index
+                            , nameMap :: [(String, Int)] -- Map from object depid to its graph index
+                            , graph :: Gr String String
+                            }
 
-instance Eq DependencyGraph where
-    g1 == g2 = (nodes g1 == nodes g2 &&
-                edges g1 == edges g2)
+instance (Eq a) => Eq (DependencyGraph a) where
+    g1 == g2 = ((nodes $ graph g1) == (nodes $ graph g2) &&
+                (edges $ graph g1) == (edges $ graph g2))
 
-instance Show DependencyGraph where
-    show g = "(" ++ (show $ nodes g) ++ ", " ++ (show $ edges g) ++ ")"
+instance (Show a) => Show (DependencyGraph a) where
+    show g = "(" ++ (show $ nodes $ graph g) ++ ", " ++ (show $ edges $ graph g) ++ ")"
 
 -- Return True if the specified graph contains a cycle.
 hasCycle :: Graph g => g a b -> Bool
@@ -55,10 +60,11 @@ hasCycle' g visited (v:vs) =
                       then True
                       else hasCycle' g (v:visited) ([ e | e <- suc' c, not (e `elem` vs) ] ++ vs)
 
-mkDepGraph :: (Dependable a) => [a] -> Either String DependencyGraph
+-- XXX: provide details about detected cycles
+mkDepGraph :: (Dependable a) => [a] -> Either String (DependencyGraph a)
 mkDepGraph objects = if hasCycle depGraph
                      then Left "Invalid dependency graph; cycle detected"
-                     else Right depGraph
+                     else Right $ DG { objectMap = ids, graph = depGraph, nameMap = names }
     where
       depGraph = mkGraph n e
       n = [ (fromJust $ lookup o ids, depId o) | o <- objects ]
@@ -69,3 +75,21 @@ mkDepGraph objects = if hasCycle depGraph
 
       objMap = map (\o -> (depId o, o)) objects
       ids = zip objects [1..]
+      names = map (\(o,i) -> (depId o, i)) ids
+
+type NextNodesFunc = Gr String String -> Node -> [Node]
+
+dependencies :: (Dependable d) => DependencyGraph d -> String -> [String]
+dependencies = dependenciesWith suc
+
+reverseDependencies :: (Dependable d) => DependencyGraph d -> String -> [String]
+reverseDependencies = dependenciesWith pre
+
+dependenciesWith :: (Dependable d) => NextNodesFunc -> DependencyGraph d -> String -> [String]
+dependenciesWith nextNodes dg@(DG _ nMap theGraph) name =
+    let lookupId = fromJust $ lookup name nMap
+        depNodes = nextNodes theGraph lookupId
+        recurse theNodes = map (dependenciesWith nextNodes dg) theNodes
+        getLabel node = fromJust $ lab theGraph node
+        labels = map getLabel depNodes
+    in labels ++ (concat $ recurse labels)
