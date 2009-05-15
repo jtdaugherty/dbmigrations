@@ -3,7 +3,7 @@ module Database.Schema.Migrations.Backend.Sqlite
     ()
 where
 
-import Database.HDBC ( quickQuery, fromSql, SqlValue(SqlString) )
+import Database.HDBC ( quickQuery, fromSql, SqlValue(SqlString), IConnection(getTables) )
 import Database.HDBC.Sqlite3 ( Connection )
 import Database.Schema.Migrations.Migration
     ( Migration(..)
@@ -20,6 +20,12 @@ revertSql :: String
 revertSql = "DROP TABLE installed_migrations"
 
 instance Backend Connection where
+    isBootstrapped conn = do
+      -- if 'installed_migrations' is in the list of tables,
+      -- bootstrapping has been performed.
+      tables <- getTables conn
+      return $ "installed_migrations" `elem` tables
+
     getBootstrapMigration _ =
         do
           m <- newMigration "root"

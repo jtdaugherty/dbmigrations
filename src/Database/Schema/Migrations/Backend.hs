@@ -12,6 +12,7 @@ class (IConnection a) => Backend a where
     -- connection interface.  This might differ slightly from one
     -- backend to another.
     getBootstrapMigration :: a -> IO Migration
+    isBootstrapped :: a -> IO Bool
     applyMigration :: a -> Migration -> IO ()
     revertMigration :: a -> Migration -> IO ()
     getMigrations :: a -> IO [String]

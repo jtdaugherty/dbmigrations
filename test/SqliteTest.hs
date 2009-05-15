@@ -15,6 +15,8 @@ import Database.HDBC ( IConnection(..), catchSql, withTransaction )
 tests :: IO [Test]
 tests = sequence [ bootstrapTest
                  , applyMigrationFailure
+                 , isBootstrappedTrueTest
+                 , isBootstrappedFalseTest
                  ]
 
 withTempDb :: (Connection -> IO Test) -> IO Test
@@ -39,6 +41,18 @@ bootstrapTest = do
                           [mId bs] ~=? installed
                       , "installed_migrations table exists" ~:
                           ["installed_migrations"] ~=? tables ]
+
+isBootstrappedTrueTest :: IO Test
+isBootstrappedTrueTest = do
+  withBootstrappedTempDb $ \conn -> do
+    result <- isBootstrapped conn
+    return $ test $ True ~=? result
+
+isBootstrappedFalseTest :: IO Test
+isBootstrappedFalseTest = do
+  withTempDb $ \conn -> do
+    result <- isBootstrapped conn
+    return $ test $ False ~=? result
 
 ignoreSqlExceptions :: IO a -> IO (Maybe a)
 ignoreSqlExceptions act = (act >>= return . Just) `catchSql`
