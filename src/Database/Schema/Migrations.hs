@@ -1,16 +1,20 @@
 module Database.Schema.Migrations
-    ()
+    ( missingMigrations
+    )
 where
 
-import Database.Schema.Migrations.Migration
-import Database.Schema.Migrations.Store
-import Database.Schema.Migrations.Backend
+import qualified Data.Set as Set
+
+import qualified Database.Schema.Migrations.Store as MS
+import qualified Database.Schema.Migrations.Backend as B
 import Database.Schema.Migrations.Dependencies
 
-migrate :: (Backend b, MigrationStore s) => b -> s -> Migration -> IO ()
-migrate = undefined
+missingMigrations :: (B.Backend b, MS.MigrationStore s) => b -> s -> IO [String]
+missingMigrations backend store = do
+  sm <- MS.getMigrations store
+  let storeMigrations = map depId sm
+  backendMigrations <- B.getMigrations backend
 
-revert :: (Backend b, MigrationStore s) => b -> s -> Migration -> IO ()
-revert = undefined
-         -- given a migration, recursively revert all migrations in
-         -- the backend that depend on m, then revert m
+  return $ Set.toList $ Set.difference
+         (Set.fromList storeMigrations)
+         (Set.fromList backendMigrations)

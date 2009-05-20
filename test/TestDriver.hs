@@ -5,12 +5,15 @@ import System.IO ( stderr )
 
 import qualified SqliteTest
 import qualified DependencyTest
+import qualified MigrationsTest
 
 loadTests :: IO [Test]
 loadTests = do
   ioTests <- sequence
-             [ do tests <- SqliteTest.tests
-                  return $ "Sqlite" ~: test tests
+             [ do sqliteTests <- SqliteTest.tests
+                  return $ "Sqlite" ~: test sqliteTests
+             , do mTests <- MigrationsTest.tests
+                  return $ "Migrations" ~: test mTests
              ]
   return $ ioTests ++ DependencyTest.tests
 

@@ -1,5 +1,5 @@
 module Database.Schema.Migrations.Store
-    ( MigrationStore
+    ( MigrationStore(..)
     )
 where
 
