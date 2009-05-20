@@ -3,4 +3,4 @@
 HERE=$(dirname $0)
 ROOT=$HERE/..
 
-runghc -itest -isrc -Wall -Werror $ROOT/test/TestDriver.hs
+runghc -i$ROOT/test -i$ROOT/src -Wall -Werror $ROOT/test/TestDriver.hs

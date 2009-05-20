@@ -24,7 +24,8 @@ Library
     parsec == 2.1.0.*,
     filepath == 1.1.*,
     directory == 1.0.*,
-    fgl == 5.4.2.*
+    fgl == 5.4.2.*,
+    template-haskell
 
   Hs-Source-Dirs:    src
   Exposed-Modules:
