@@ -20,7 +20,7 @@ import System.FilePath ( takeDirectory, takeFileName, (</>) )
 import qualified Data.Map as Map
 import Data.Time.Clock ( UTCTime )
 import Data.Time () -- for UTCTime Show instance
-import Data.Maybe ( isNothing )
+import Data.Maybe ( isNothing, catMaybes )
 
 import Text.ParserCombinators.Parsec
 
@@ -83,8 +83,8 @@ loadWithDeps path = do
        do
          result <- liftIO $ migrationFromFile path
          case result of
-           Nothing -> fail ("Could not load migration from file " ++ path)
-           Just m -> do
+           Left e -> fail ("Could not load migration from file " ++ path ++ ": " ++ e)
+           Right m -> do
                       mapM_ (\p -> loadWithDeps $ parent </> p) $ mDeps m
                       newMap <- get
                       put $ Map.insert (mId m) m newMap
@@ -92,18 +92,28 @@ loadWithDeps path = do
 -- |Given a file path, read and parse the migration at the specified
 -- path and, if successful, return the migration and its claimed
 -- dependencies.
-migrationFromFile :: FilePath -> IO (Maybe Migration)
+migrationFromFile :: FilePath -> IO (Either String Migration)
 migrationFromFile path = do
   contents <- readFile path
   let migrationId = migrationIdFromPath path
   case parse migrationParser path contents of
-    Left _ -> fail $ "Could not parse migration file " ++ path
+    Left _ -> return $ Left $ "Could not parse migration file " ++ path
     Right fields ->
         do
-          newM <- newMigration ""
-          case migrationFromFields newM fields of
-            Nothing -> fail $ "Unrecognized field in migration " ++ (show path)
-            Just m -> return $ Just $ m { mId = migrationId }
+          let missing = missingFields fields
+          case length missing of
+            0 -> do
+              newM <- newMigration ""
+              case migrationFromFields newM fields of
+                Nothing -> return $ Left $ "Unrecognized field in migration " ++ (show path)
+                Just m -> return $ Right $ m { mId = migrationId }
+            _ -> return $ Left $ "Missing required field(s) in migration " ++ (show path) ++ ": " ++ (show missing)
+
+missingFields :: FieldSet -> [FieldName]
+missingFields fs =
+    [ k | (k, _) <- fieldProcessors, not (k `elem` inputFieldNames) ]
+    where
+      inputFieldNames = [ n | (n, _) <- fs ]
 
 -- |Given a migration and a list of parsed migration fields, update
 -- the migration from the field values for recognized fields.
@@ -149,8 +159,10 @@ setDepends depString m = do
 
 -- |Parse a migration document and return a list of parsed fields and
 -- a list of claimed dependencies.
-migrationParser :: Parser FieldSet
-migrationParser = many parseField
+migrationParser :: Parser [Field]
+migrationParser = do
+  result <- many (parseField <|> parseComment <|> parseEmptyLine)
+  return $ catMaybes result
 
 parseDepsList :: Parser [String]
 parseDepsList = sepBy parseMID whitespace
@@ -172,7 +184,18 @@ requiredWhitespace = many1 whitespace
 parseFieldName :: Parser FieldName
 parseFieldName = many1 (alphaNum <|> char '-')
 
-parseField :: Parser Field
+parseComment :: Parser (Maybe Field)
+parseComment = do
+  discard $ do
+    many whitespace
+    char '#'
+    manyTill anyChar eol
+  return Nothing
+
+parseEmptyLine :: Parser (Maybe Field)
+parseEmptyLine = newline >> return Nothing
+
+parseField :: Parser (Maybe Field)
 parseField = do
   name <- parseFieldName
   char ':'
@@ -180,7 +203,7 @@ parseField = do
   rest <- manyTill anyChar eol
   otherLines <- otherContentLines
   let value = rest ++ (concat otherLines)
-  return (name, value)
+  return $ Just (name, value)
 
 otherContentLines :: Parser [String]
 otherContentLines =
