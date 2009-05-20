@@ -8,18 +8,10 @@ import Data.Graph.Inductive.Graph ( Graph(..) )
 import Data.Graph.Inductive.PatriciaTree ( Gr )
 
 import Database.Schema.Migrations.Dependencies
+import Common
 
 tests :: [Test]
 tests = depGraphTests ++ mkCycleTests ++ dependencyTests
-
-data TestDependable = TD { tdId :: String
-                         , tdDeps :: [String]
-                         }
-                      deriving (Show, Eq, Ord)
-
-instance Dependable TestDependable where
-    depId = tdId
-    depsOf = tdDeps
 
 type DepGraphTestCase = ([TestDependable], Either String (DependencyGraph TestDependable))
 
