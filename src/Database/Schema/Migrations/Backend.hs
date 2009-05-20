@@ -3,11 +3,10 @@ module Database.Schema.Migrations.Backend
     )
 where
 
-import Database.HDBC ( IConnection )
 import Database.Schema.Migrations.Migration
     ( Migration(..) )
 
-class (IConnection a) => Backend a where
+class Backend a where
     -- |The migration necessary to bootstrap a database with this
     -- connection interface.  This might differ slightly from one
     -- backend to another.
