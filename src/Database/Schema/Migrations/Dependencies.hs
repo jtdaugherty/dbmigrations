@@ -15,8 +15,9 @@ import Data.Graph.Inductive.Graph ( Graph(..), nodes, edges, Node, suc', indeg, 
 import Data.Graph.Inductive.PatriciaTree ( Gr )
 
 class (Eq a, Ord a) => Dependable a where
-    -- |The identifiers of the objects on which a depends.
+    -- |The identifiers of the objects on which 'a' depends.
     depsOf :: a -> [String]
+    -- |The identifier of a Dependable object.
     depId :: a -> String
 
 data DependencyGraph a = DG { objectMap :: [(a, Int)] -- Map from object to its graph index
