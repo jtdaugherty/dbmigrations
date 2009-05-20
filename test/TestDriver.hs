@@ -6,6 +6,7 @@ import System.IO ( stderr )
 import qualified SqliteTest
 import qualified DependencyTest
 import qualified MigrationsTest
+import qualified FilesystemTest
 
 loadTests :: IO [Test]
 loadTests = do
@@ -14,6 +15,8 @@ loadTests = do
                   return $ "Sqlite" ~: test sqliteTests
              , do mTests <- MigrationsTest.tests
                   return $ "Migrations" ~: test mTests
+             , do fsTests <- FilesystemTest.tests
+                  return $ "Filesystem" ~: test fsTests
              ]
   return $ ioTests ++ DependencyTest.tests
 

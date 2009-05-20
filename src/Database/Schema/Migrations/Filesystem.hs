@@ -6,18 +6,21 @@ module Database.Schema.Migrations.Filesystem
     , migrationMap
 
     , MigrationMap
+    , migrationParser
+    , migrationFromFile
+    , FieldName
+    , Field
+    , FieldSet
     )
 where
 
 import System.Directory ( getDirectoryContents, doesFileExist )
 import System.FilePath ( takeDirectory, takeFileName, (</>) )
-import System.IO ( putStrLn )
 
 import qualified Data.Map as Map
 import Data.Time.Clock ( UTCTime )
 import Data.Time () -- for UTCTime Show instance
-import Data.Maybe ( catMaybes )
-import Data.Maybe ( isNothing, isJust )
+import Data.Maybe ( isNothing )
 
 import Text.ParserCombinators.Parsec
 
@@ -35,6 +38,8 @@ import Database.Schema.Migrations.Migration
 
 type MigrationMap = Map.Map String Migration
 type FieldName = String
+type Field = (FieldName, String)
+type FieldSet = [Field]
 type FieldProcessor = String -> Migration -> Maybe Migration
 
 data FilesystemStore = FSStore { storePath :: FilePath
@@ -92,7 +97,7 @@ migrationFromFile path = do
   contents <- readFile path
   let migrationId = migrationIdFromPath path
   case parse migrationParser path contents of
-    Left e -> fail $ "Could not parse migration file " ++ path
+    Left _ -> fail $ "Could not parse migration file " ++ path
     Right fields ->
         do
           newM <- newMigration ""
@@ -102,7 +107,7 @@ migrationFromFile path = do
 
 -- |Given a migration and a list of parsed migration fields, update
 -- the migration from the field values for recognized fields.
-migrationFromFields :: Migration -> [(FieldName, String)] -> Maybe Migration
+migrationFromFields :: Migration -> FieldSet -> Maybe Migration
 migrationFromFields m [] = Just m
 migrationFromFields m ((name, value):rest) = do
   processor <- lookup name fieldProcessors
@@ -121,7 +126,7 @@ setTimestamp :: FieldProcessor
 setTimestamp value m = do
   ts <- case readTimestamp value of
           [(t, _)] -> return t
-          _ -> fail "expected only one parse"
+          _ -> fail "expected one valid parse"
   return $ m { mTimestamp = ts }
 
 readTimestamp :: String -> [(UTCTime, String)]
@@ -144,7 +149,7 @@ setDepends depString m = do
 
 -- |Parse a migration document and return a list of parsed fields and
 -- a list of claimed dependencies.
-migrationParser :: Parser ([(FieldName, String)])
+migrationParser :: Parser FieldSet
 migrationParser = many parseField
 
 parseDepsList :: Parser [String]
@@ -158,16 +163,16 @@ discard = (>> return ())
 eol :: Parser ()
 eol = (discard newline) <|> (discard eof)
 
-whitespace :: Parser ()
-whitespace = discard $ oneOf " \t"
+whitespace :: Parser Char
+whitespace = oneOf " \t"
 
-requiredWhitespace :: Parser ()
-requiredWhitespace = discard $ many1 whitespace
+requiredWhitespace :: Parser String
+requiredWhitespace = many1 whitespace
 
 parseFieldName :: Parser FieldName
 parseFieldName = many1 (alphaNum <|> char '-')
 
-parseField :: Parser (FieldName, String)
+parseField :: Parser Field
 parseField = do
   name <- parseFieldName
   char ':'
@@ -179,6 +184,8 @@ parseField = do
 
 otherContentLines :: Parser [String]
 otherContentLines =
-    many $ try $ do
-      requiredWhitespace
-      manyTill anyChar eol >>= return . (" " ++)
+    many $ try $ (discard newline >> return "") <|> do
+      ws <- requiredWhitespace
+      rest <- manyTill anyChar eol
+      -- Retain leading whitespace and trailing newline
+      return $ ws ++ rest ++ "\n"
