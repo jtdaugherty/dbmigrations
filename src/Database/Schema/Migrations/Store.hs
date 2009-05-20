@@ -10,5 +10,5 @@ import Database.Schema.Migrations.Migration
 class MigrationStore a where
     createMigration :: a -> Migration -> IO ()
     saveMigration :: a -> Migration -> IO ()
-    loadMigration :: a -> Int -> IO (Maybe Migration)
+    loadMigration :: a -> String -> IO (Maybe Migration)
     getMigrations :: a -> IO [Migration]
