@@ -29,6 +29,7 @@ import Database.Schema.Migrations.Migration
     , newMigration
     )
 import Database.Schema.Migrations.Filesystem.Parse
+import Database.Schema.Migrations.Store
 
 -- |Code for parsing and serializing Migrations to disk files, and an
 -- instance of MigrationStore for filesystem-backed migrations.
@@ -38,6 +39,13 @@ type FieldProcessor = String -> Migration -> Maybe Migration
 
 data FilesystemStore = FSStore { storePath :: FilePath
                                , migrationMap :: MigrationMap }
+
+instance MigrationStore FilesystemStore where
+    getMigrations s = return $ Map.elems $ migrationMap s
+
+    -- saveMigration s m = do
+    --   let filename = storePath s </> mId m
+    --   writeFile filename $ serializeMigration m
 
 -- |Create a new filesystem store by loading all migrations at the
 -- specified filesystem path.
