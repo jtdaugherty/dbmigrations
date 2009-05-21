@@ -97,7 +97,7 @@ migrationFromFile path = do
   contents <- readFile path
   let migrationId = migrationIdFromPath path
   case parse migrationParser path contents of
-    Left _ -> return $ Left $ "Could not parse migration file " ++ path
+    Left _ -> return $ Left $ "Could not parse migration file " ++ (show path)
     Right fields ->
         do
           let missing = missingFields fields
