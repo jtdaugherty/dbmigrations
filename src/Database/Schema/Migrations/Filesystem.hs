@@ -111,7 +111,7 @@ migrationFromFile path = do
 
 missingFields :: FieldSet -> [FieldName]
 missingFields fs =
-    [ k | (k, _) <- fieldProcessors, not (k `elem` inputFieldNames) ]
+    [ k | k <- requiredFields, not (k `elem` inputFieldNames) ]
     where
       inputFieldNames = [ n | (n, _) <- fs ]
 
@@ -123,6 +123,13 @@ migrationFromFields m ((name, value):rest) = do
   processor <- lookup name fieldProcessors
   newM <- processor value m
   migrationFromFields newM rest
+
+requiredFields :: [FieldName]
+requiredFields = [ "Created"
+                 , "Description"
+                 , "Apply"
+                 , "Depends"
+                 ]
 
 fieldProcessors :: [(FieldName, FieldProcessor)]
 fieldProcessors = [ ("Created", setTimestamp )
