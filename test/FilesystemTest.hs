@@ -40,6 +40,9 @@ migrationParsingTestCases = [ (fp "valid_full", Right valid_full)
                             , (fp "invalid_deps_list"
                               , Left $ "Unrecognized field in migration " ++
                                          (show $ fp "invalid_deps_list"))
+                            , (fp "invalid_field_name"
+                              , Left $ "Unrecognized field in migration " ++
+                                         (show $ fp "invalid_field_name"))
                             ]
 
 mkParsingTest :: MigrationParsingTestCase -> IO Test
