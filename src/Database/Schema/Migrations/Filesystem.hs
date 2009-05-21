@@ -126,7 +126,6 @@ migrationFromFields m ((name, value):rest) = do
 
 requiredFields :: [FieldName]
 requiredFields = [ "Created"
-                 , "Description"
                  , "Apply"
                  , "Depends"
                  ]

@@ -35,6 +35,8 @@ migrationParsingTestCases = [ (fp "valid_full", Right valid_full)
                               , Right (valid_full { mId = "valid_with_comments" }))
                             , (fp "valid_no_depends"
                               , Right (valid_full { mId = "valid_no_depends", mDeps = [] }))
+                            , (fp "valid_no_desc"
+                              , Right (valid_full { mId = "valid_no_desc", mDesc = Nothing }))
                             , (fp "valid_no_revert"
                               , Right (valid_full { mId = "valid_no_revert", mRevert = Nothing }))
                             , (fp "invalid_missing_required_fields"
