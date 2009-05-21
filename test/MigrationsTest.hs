@@ -28,9 +28,6 @@ instance Backend TestBackend where
     getMigrations b = return $ map depId b
 
 instance MigrationStore TestStore where
-    createMigration _ _ = undefined
-    saveMigration _ _ = undefined
-    loadMigration _ _ = undefined
     getMigrations b = do
       (sequence $ map mkMigration b) >>= return
           where
