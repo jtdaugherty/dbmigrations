@@ -165,9 +165,12 @@ migrationParser = do
   return $ catMaybes result
 
 parseDepsList :: Parser [String]
-parseDepsList = sepBy parseMID whitespace
-    where
-      parseMID = many1 (alphaNum <|> oneOf "-._")
+parseDepsList =
+    let parseMID = many1 (alphaNum <|> oneOf "-._")
+    in do
+      deps <- sepBy parseMID whitespace
+      eol
+      return deps
 
 discard :: Parser a -> Parser ()
 discard = (>> return ())

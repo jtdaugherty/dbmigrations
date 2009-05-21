@@ -37,6 +37,9 @@ migrationParsingTestCases = [ (fp "valid_full", Right valid_full)
                               , Left $ "Missing required field(s) in migration " ++
                                          (show $ fp "invalid_missing_required_fields") ++
                                          ": [\"Created\",\"Depends\"]")
+                            , (fp "invalid_deps_list"
+                              , Left $ "Unrecognized field in migration " ++
+                                         (show $ fp "invalid_deps_list"))
                             ]
 
 mkParsingTest :: MigrationParsingTestCase -> IO Test
