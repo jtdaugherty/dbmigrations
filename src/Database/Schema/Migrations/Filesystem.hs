@@ -6,13 +6,7 @@ module Database.Schema.Migrations.Filesystem
     , migrationMap
 
     , MigrationMap
-    , migrationParser
     , migrationFromFile
-    , FieldName
-    , Field
-    , FieldSet
-
-    , serializeMigration
     )
 where
 
@@ -22,27 +16,24 @@ import System.FilePath ( takeDirectory, takeFileName, (</>) )
 import qualified Data.Map as Map
 import Data.Time.Clock ( UTCTime )
 import Data.Time () -- for UTCTime Show instance
-import Data.Maybe ( isNothing, catMaybes )
-import Data.List ( intercalate )
-
-import Text.ParserCombinators.Parsec
+import Data.Maybe ( isNothing )
 
 import Control.Monad ( filterM, when, mapM_ )
 import Control.Monad.Trans ( liftIO )
 import Control.Monad.State ( StateT, get, put, execStateT )
 
+import Text.ParserCombinators.Parsec ( parse )
+
 import Database.Schema.Migrations.Migration
     ( Migration(..)
     , newMigration
     )
+import Database.Schema.Migrations.Filesystem.Parse
 
 -- |Code for parsing and serializing Migrations to disk files, and an
 -- instance of MigrationStore for filesystem-backed migrations.
 
 type MigrationMap = Map.Map String Migration
-type FieldName = String
-type Field = (FieldName, String)
-type FieldSet = [Field]
 type FieldProcessor = String -> Migration -> Maybe Migration
 
 data FilesystemStore = FSStore { storePath :: FilePath
@@ -165,119 +156,3 @@ setDepends depString m = do
   case parse parseDepsList "-" depString of
     Left _ -> Nothing
     Right depIds -> Just $ m { mDeps = depIds }
-
--- |Parse a migration document and return a list of parsed fields and
--- a list of claimed dependencies.
-migrationParser :: Parser [Field]
-migrationParser = do
-  result <- many (parseField <|> parseComment <|> parseEmptyLine)
-  return $ catMaybes result
-
-parseDepsList :: Parser [String]
-parseDepsList =
-    let parseMID = many1 (alphaNum <|> oneOf "-._")
-    in do
-      deps <- sepBy parseMID whitespace
-      eol
-      return deps
-
-discard :: Parser a -> Parser ()
-discard = (>> return ())
-
-eol :: Parser ()
-eol = (discard newline) <|> (discard eof)
-
-whitespace :: Parser Char
-whitespace = oneOf " \t"
-
-requiredWhitespace :: Parser String
-requiredWhitespace = many1 whitespace
-
-parseFieldName :: Parser FieldName
-parseFieldName = many1 (alphaNum <|> char '-')
-
-parseComment :: Parser (Maybe Field)
-parseComment = do
-  discard $ do
-    many whitespace
-    char '#'
-    manyTill anyChar eol
-  return Nothing
-
-parseEmptyLine :: Parser (Maybe Field)
-parseEmptyLine = newline >> return Nothing
-
-parseField :: Parser (Maybe Field)
-parseField = do
-  name <- parseFieldName
-  char ':'
-  many whitespace
-  rest <- manyTill anyChar eol
-  otherLines <- otherContentLines
-  let value = rest ++ (concat otherLines)
-  return $ Just (name, value)
-
-otherContentLines :: Parser [String]
-otherContentLines =
-    many $ try $ (discard newline >> return "") <|> do
-      ws <- requiredWhitespace
-      rest <- manyTill anyChar eol
-      -- Retain leading whitespace and trailing newline
-      return $ ws ++ rest ++ "\n"
-
-type FieldSerializer = Migration -> Maybe String
-
-fieldSerializers :: [FieldSerializer]
-fieldSerializers = [ serializeDesc
-                   , serializeTimestamp
-                   , serializeDepends
-                   , serializeApply
-                   , serializeRevert
-                   ]
-
-serializeDesc :: FieldSerializer
-serializeDesc m =
-    case mDesc m of
-      Nothing -> Nothing
-      Just desc -> Just $ "Description: " ++ desc
-
-serializeTimestamp :: FieldSerializer
-serializeTimestamp m = Just $ "Created: " ++ (show $ mTimestamp m)
-
-serializeDepends :: FieldSerializer
-serializeDepends m = Just $ "Depends: " ++ (intercalate " " $ mDeps m)
-
-serializeRevert :: FieldSerializer
-serializeRevert m =
-    case mRevert m of
-      Nothing -> Nothing
-      Just revert -> Just $ "Revert:\n" ++
-                     (serializeMultiline revert)
-
-serializeApply :: FieldSerializer
-serializeApply m = Just $ "Apply:\n" ++ (serializeMultiline $ mApply m)
-
-commonPrefix :: String -> String -> String
-commonPrefix a b = map fst $ takeWhile (uncurry (==)) (zip a b)
-
-commonPrefixLines :: [String] -> String
-commonPrefixLines [] = ""
-commonPrefixLines theLines = foldl1 commonPrefix theLines
-
-serializeMultiline :: String -> String
-serializeMultiline s =
-    let sLines = lines s
-        prefix = case commonPrefixLines sLines of
-                   -- If the lines already have a common prefix that
-                   -- begins with whitespace, no new prefix is
-                   -- necessary.
-                   (' ':_) -> ""
-                   -- Otherwise, use a new prefix of two spaces.
-                   _ -> "  "
-
-    in unlines $ map (prefix ++) sLines
-
-serializeMigration :: Migration -> String
-serializeMigration m = intercalate "\n" fields
-    where
-      fields = catMaybes [ f m | f <- fieldSerializers ]
