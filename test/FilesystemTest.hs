@@ -33,6 +33,8 @@ migrationParsingTestCases :: [MigrationParsingTestCase]
 migrationParsingTestCases = [ (fp "valid_full", Right valid_full)
                             , (fp "valid_with_comments"
                               , Right (valid_full { mId = "valid_with_comments" }))
+                            , (fp "valid_no_depends"
+                              , Right (valid_full { mId = "valid_no_depends", mDeps = [] }))
                             , (fp "invalid_missing_required_fields"
                               , Left $ "Missing required field(s) in migration " ++
                                          (show $ fp "invalid_missing_required_fields") ++
