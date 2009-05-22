@@ -12,6 +12,10 @@ Maintainer:          Jonathan Daugherty <drcygnus@gmail.com>
 Build-Type:          Simple
 Cabal-Version:       >= 1.2
 
+Flag testing
+    Description:     Build for testing
+    Default:         False
+
 Library
   Build-Depends:
     base,
@@ -38,3 +42,25 @@ Library
           Database.Schema.Migrations.Backend
           Database.Schema.Migrations.Backend.Sqlite
           Database.Schema.Migrations.Store
+
+Executable test
+  Build-Depends:
+    base,
+    HDBC,
+    HDBC-sqlite3,
+    time >= 1.1,
+    random >= 1.0,
+    containers >= 0.2,
+    mtl >= 1.1,
+    parsec == 2.1.0.*,
+    filepath == 1.1.*,
+    directory == 1.0.*,
+    fgl == 5.4.2.*,
+    template-haskell,
+    HUnit == 1.2.*
+
+  if !flag(testing)
+    Buildable:     False
+  end
+  Hs-Source-Dirs:  src,test
+  Main-is:         TestDriver.hs
