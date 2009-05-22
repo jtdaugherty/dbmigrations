@@ -64,3 +64,7 @@ Executable test
   end
   Hs-Source-Dirs:  src,test
   Main-is:         TestDriver.hs
+
+Executable initstore-fs
+  Hs-Source-Dirs:  src
+  Main-is:         InitFS.hs
