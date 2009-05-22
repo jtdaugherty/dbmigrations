@@ -1,15 +1,17 @@
 module Database.Schema.Migrations.Migration
     ( Migration(..)
     , newMigration
+
+    , MonadMigration(..)
     )
 where
 
 import Database.Schema.Migrations.Dependencies
 
 import Data.Time () -- for UTCTime Show instance
-import Data.Time.Clock ( UTCTime, getCurrentTime )
+import qualified Data.Time.Clock as Clock
 
-data Migration = Migration { mTimestamp :: UTCTime
+data Migration = Migration { mTimestamp :: Clock.UTCTime
                            , mId :: String
                            , mDesc :: Maybe String
                            , mApply :: String
@@ -22,7 +24,13 @@ instance Dependable Migration where
     depsOf = mDeps
     depId = mId
 
-newMigration :: String -> IO Migration
+class (Monad m) => MonadMigration m where
+    getCurrentTime :: m Clock.UTCTime
+
+instance MonadMigration IO where
+    getCurrentTime = Clock.getCurrentTime
+
+newMigration :: (MonadMigration m) => String -> m Migration
 newMigration theId = do
   curTime <- getCurrentTime
   return $ Migration { mTimestamp = curTime

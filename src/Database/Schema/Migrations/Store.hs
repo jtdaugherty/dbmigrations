@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
 module Database.Schema.Migrations.Store
     ( MigrationStore(..)
     )
@@ -7,5 +8,5 @@ import Database.Schema.Migrations.Migration
     ( Migration
     )
 
-class MigrationStore a where
-    getMigrations :: a -> IO [Migration]
+class (Monad m) => MigrationStore s m where
+    getMigrations :: s -> m [Migration]

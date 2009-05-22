@@ -14,12 +14,14 @@ loadTests = do
   ioTests <- sequence
              [ do sqliteTests <- SqliteTest.tests
                   return $ "Sqlite" ~: test sqliteTests
-             , do mTests <- MigrationsTest.tests
-                  return $ "Migrations" ~: test mTests
              , do fspTests <- FilesystemParseTest.tests
                   return $ "Filesystem Parsing" ~: test fspTests
              ]
-  return $ ioTests ++ DependencyTest.tests ++ FilesystemSerializeTest.tests
+  return $ concat [ ioTests
+                  , DependencyTest.tests
+                  , FilesystemSerializeTest.tests
+                  , MigrationsTest.tests
+                  ]
 
 main :: IO ()
 main = do

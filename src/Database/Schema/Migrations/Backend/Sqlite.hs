@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Database.Schema.Migrations.Backend.Sqlite
     ()
@@ -19,7 +20,7 @@ createSql = "CREATE TABLE installed_migrations (\
 revertSql :: String
 revertSql = "DROP TABLE installed_migrations"
 
-instance Backend Connection where
+instance Backend Connection IO where
     isBootstrapped conn = do
       -- if 'installed_migrations' is in the list of tables,
       -- bootstrapping has been performed.

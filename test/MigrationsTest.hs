@@ -1,11 +1,11 @@
-{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeSynonymInstances,GeneralizedNewtypeDeriving,MultiParamTypeClasses #-}
 module MigrationsTest
     ( tests
     )
 where
 
 import Test.HUnit
-import Control.Monad ( sequence )
+import Control.Monad.Identity ( runIdentity, Identity )
 
 import Database.Schema.Migrations
 import Database.Schema.Migrations.Dependencies
@@ -14,20 +14,25 @@ import Database.Schema.Migrations.Backend
 import Database.Schema.Migrations.Store
 import Common
 
-tests :: IO [Test]
+tests :: [Test]
 tests = missingMigrationsTests
 
 type TestBackend = [TestDependable]
 type TestStore = [TestDependable]
 
-instance Backend TestBackend where
+newtype TestM a = TestM (Identity a) deriving (Monad)
+
+instance MonadMigration TestM where
+    getCurrentTime = undefined
+
+instance Backend TestBackend TestM where
     getBootstrapMigration _ = undefined
     isBootstrapped _ = return True
     applyMigration _ _ = undefined
     revertMigration _ _ = undefined
     getMigrations b = return $ map depId b
 
-instance MigrationStore TestStore where
+instance MigrationStore TestStore TestM where
     getMigrations b = do
       (sequence $ map mkMigration b) >>= return
           where
@@ -45,10 +50,11 @@ missingMigrationsTestcases =  [ ([], [], [])
                               , ([TD "one" []], [TD "two" []], ["two"])
                               ]
 
-mkTest :: MissingMigrationTestCase -> IO Test
-mkTest (b, s, expected) = do
-  result <- missingMigrations b s
-  return $ expected ~=? result
+mkTest :: MissingMigrationTestCase -> Test
+mkTest (b, s, expected) =
+  let result = runIdentity act
+      TestM act = missingMigrations b s
+  in expected ~=? result
 
-missingMigrationsTests :: IO [Test]
-missingMigrationsTests = sequence $ map mkTest missingMigrationsTestcases
+missingMigrationsTests :: [Test]
+missingMigrationsTests = map mkTest missingMigrationsTestcases

@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
 module Database.Schema.Migrations.Filesystem
     ( newFilesystemStore
 
@@ -40,7 +41,7 @@ type FieldProcessor = String -> Migration -> Maybe Migration
 data FilesystemStore = FSStore { storePath :: FilePath
                                , migrationMap :: MigrationMap }
 
-instance MigrationStore FilesystemStore where
+instance MigrationStore FilesystemStore IO where
     getMigrations s = return $ Map.elems $ migrationMap s
 
     -- saveMigration s m = do
