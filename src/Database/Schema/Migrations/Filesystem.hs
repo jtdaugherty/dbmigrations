@@ -30,6 +30,7 @@ import Database.Schema.Migrations.Migration
     , newMigration
     )
 import Database.Schema.Migrations.Filesystem.Parse
+import Database.Schema.Migrations.Filesystem.Serialize
 import Database.Schema.Migrations.Store
 
 -- |Code for parsing and serializing Migrations to disk files, and an
@@ -44,9 +45,9 @@ data FilesystemStore = FSStore { storePath :: FilePath
 instance MigrationStore FilesystemStore IO where
     getMigrations s = return $ Map.elems $ migrationMap s
 
-    -- saveMigration s m = do
-    --   let filename = storePath s </> mId m
-    --   writeFile filename $ serializeMigration m
+    saveMigration s m = do
+      let filename = storePath s </> mId m
+      writeFile filename $ serializeMigration m
 
 -- |Create a new filesystem store by loading all migrations at the
 -- specified filesystem path.

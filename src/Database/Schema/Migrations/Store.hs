@@ -10,3 +10,4 @@ import Database.Schema.Migrations.Migration
 
 class (Monad m) => MigrationStore s m where
     getMigrations :: s -> m [Migration]
+    saveMigration :: s -> Migration -> m ()
