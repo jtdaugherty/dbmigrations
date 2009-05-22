@@ -6,11 +6,14 @@ where
 import System.Environment ( getArgs )
 import System.Exit ( exitWith, ExitCode(..) )
 
-import Database.HDBC.Sqlite3 ( connectSqlite3 )
+import Control.Exception ( bracket )
+
+import Database.HDBC.Sqlite3 ( connectSqlite3, Connection )
+import Database.HDBC ( IConnection(commit, disconnect) )
 
 import Database.Schema.Migrations.Filesystem
-import Database.Schema.Migrations.Backend ( Backend, getBootstrapMigration )
-import Database.Schema.Migrations.Store ( MigrationStore, saveMigration )
+import Database.Schema.Migrations.Backend ( Backend, getBootstrapMigration, applyMigration )
+import Database.Schema.Migrations.Store ( MigrationStore, saveMigration, getMigration )
 import Database.Schema.Migrations.Backend.Sqlite()
 
 initStore :: (Backend b IO) => b -> FilesystemStore -> IO ()
@@ -22,6 +25,9 @@ usage :: IO ()
 usage = do
   putStrLn "Usage: initstore-fs <init> [...]"
 
+withConnection :: FilePath -> (Connection -> IO a) -> IO a
+withConnection dbPath act = bracket (connectSqlite3 dbPath) disconnect act
+
 main :: IO ()
 main = do
   (command:args) <- getArgs
@@ -30,8 +36,24 @@ main = do
     "init" -> do
          let [fsPath, dbPath] = args
          store <- newFilesystemStore fsPath
-         conn <- connectSqlite3 dbPath
-         initStore conn store
+         withConnection dbPath $ \conn ->
+             initStore conn store
+
+    "apply" -> do
+         let [fsPath, dbPath, migrationId] = args
+         store <- newFilesystemStore fsPath
+         theMigration <- getMigration store migrationId
+
+         withConnection dbPath $ \conn -> do
+                 case theMigration of
+                   Nothing -> do
+                     putStrLn $ "No such migration: " ++ migrationId
+                     exitWith (ExitFailure 1)
+                   Just m -> do
+                     applyMigration conn m
+                     commit conn
+                     putStrLn $ "Successfully applied migration: " ++ migrationId
+
     _ -> do
          putStrLn $ "Unrecognized command: " ++ command
          usage
