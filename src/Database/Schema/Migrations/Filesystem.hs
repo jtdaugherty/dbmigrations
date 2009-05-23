@@ -12,7 +12,6 @@ import Data.Time.Clock ( UTCTime )
 import Data.Time () -- for UTCTime Show instance
 
 import Control.Monad ( filterM )
-import Control.Monad.Trans ( liftIO )
 
 import Text.ParserCombinators.Parsec ( parse )
 
@@ -42,7 +41,9 @@ instance MigrationStore FilesystemStore IO where
     getMigrations s = do
       contents <- getDirectoryContents $ storePath s
       let nonSpecial = [ f | f <- contents, not (f `elem` [".", ".."]) ]
-      liftIO $ filterM doesFileExist nonSpecial
+          fullPaths = [ (f, storePath s </> f) | f <- nonSpecial ]
+      existing <- filterM (\(_, full) -> doesFileExist full) fullPaths
+      return [ short | (short, _) <- existing ]
 
     saveMigration s m = do
       let filename = storePath s </> mId m

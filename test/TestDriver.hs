@@ -8,6 +8,7 @@ import qualified DependencyTest
 import qualified MigrationsTest
 import qualified FilesystemSerializeTest
 import qualified FilesystemParseTest
+import qualified FilesystemTest
 
 loadTests :: IO [Test]
 loadTests = do
@@ -16,6 +17,8 @@ loadTests = do
                   return $ "Sqlite" ~: test sqliteTests
              , do fspTests <- FilesystemParseTest.tests
                   return $ "Filesystem Parsing" ~: test fspTests
+             , do fsTests <- FilesystemTest.tests
+                  return $ "Filesystem general" ~: test fsTests
              ]
   return $ concat [ ioTests
                   , DependencyTest.tests
