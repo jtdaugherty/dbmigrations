@@ -4,15 +4,14 @@ module Database.Schema.Migrations
 where
 
 import qualified Data.Set as Set
+import qualified Data.Map as Map
 
-import qualified Database.Schema.Migrations.Store as MS
 import qualified Database.Schema.Migrations.Backend as B
-import Database.Schema.Migrations.Migration ( mId )
+import Database.Schema.Migrations.Migration ( MigrationMap )
 
-missingMigrations :: (B.Backend b m, MS.MigrationStore s m) => b -> s -> m [String]
-missingMigrations backend store = do
-  sm <- MS.getMigrations store
-  let storeMigrations = map mId sm
+missingMigrations :: (B.Backend b m) => b -> MigrationMap -> m [String]
+missingMigrations backend storeMigrationMap = do
+  let storeMigrations = Map.keys storeMigrationMap
   backendMigrations <- B.getMigrations backend
 
   return $ Set.toList $ Set.difference

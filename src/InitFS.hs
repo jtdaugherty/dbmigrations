@@ -8,12 +8,14 @@ import System.Exit ( exitWith, ExitCode(..) )
 
 import Control.Exception ( bracket )
 
+import qualified Data.Map as Map
+
 import Database.HDBC.Sqlite3 ( connectSqlite3, Connection )
 import Database.HDBC ( IConnection(commit, disconnect) )
 
 import Database.Schema.Migrations.Filesystem
 import Database.Schema.Migrations.Backend ( Backend, getBootstrapMigration, applyMigration )
-import Database.Schema.Migrations.Store ( MigrationStore, saveMigration, getMigration )
+import Database.Schema.Migrations.Store ( MigrationStore, saveMigration, loadMigrations )
 import Database.Schema.Migrations.Backend.Sqlite()
 
 initStore :: (Backend b IO) => b -> FilesystemStore -> IO ()
@@ -35,14 +37,15 @@ main = do
   case command of
     "init" -> do
          let [fsPath, dbPath] = args
-         store <- newFilesystemStore fsPath
+             store = FSStore { storePath = fsPath }
          withConnection dbPath $ \conn ->
              initStore conn store
 
     "apply" -> do
          let [fsPath, dbPath, migrationId] = args
-         store <- newFilesystemStore fsPath
-         theMigration <- getMigration store migrationId
+             store = FSStore { storePath = fsPath }
+         mapping <- loadMigrations store
+         let theMigration = Map.lookup migrationId mapping
 
          withConnection dbPath $ \conn -> do
                  case theMigration of

@@ -3,11 +3,13 @@ module Database.Schema.Migrations.Migration
     , newMigration
 
     , MonadMigration(..)
+    , MigrationMap
     )
 where
 
 import Database.Schema.Migrations.Dependencies
 
+import qualified Data.Map as Map
 import Data.Time () -- for UTCTime Show instance
 import qualified Data.Time.Clock as Clock
 
@@ -19,6 +21,8 @@ data Migration = Migration { mTimestamp :: Clock.UTCTime
                            , mDeps :: [String]
                            }
                deriving (Eq, Show, Ord)
+
+type MigrationMap = Map.Map String Migration
 
 instance Dependable Migration where
     depsOf = mDeps
