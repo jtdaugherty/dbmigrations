@@ -1,0 +1,47 @@
+
+- make InitFS support recursive adding/reverting (partially done)
+
+- make InitFS refuse to apply a migration that is already installed or
+  revert one that is not installed (partially done)
+
+- add tests for new depGraphFromStore function
+
+- factor most of the logic in InitFS out into a module in the library
+  so tools are easier to build and extend
+
+- handle SQLErrors gracefully in InitFS
+
+- make filesystem store operations die if they find a migration name
+  with no corresponding disk file (require that Monads used with
+  MigrationStore must also be MonadErrors? That would Just Work for IO
+  since it already supplies an instance for MonadError using IOError)
+
+- clean up code formatting (too many long lines)
+
+- since bootstrapping is actually special, consider making it special
+  (and not storing a bootstrapping migration in the store)
+
+- detect whether a store has already been initialized (presence of
+  a *parsable* root migration?)
+
+  - add a magic file/something to a store so we know if it's a store
+
+- possibly limit how big a migration file can be to prevent tarpits (1
+  MB?)
+
+- how best (easiest for user) to tell tools how to access migration
+  store and backend?  environment variables? configuration file?
+  command-line arguments?  probably not *required* args, since you
+  need to be able to invoke the tools quickly and easily
+
+- command-line tool to connect to a database and interactively prompt
+  to revert or apply, or to take a migration id on the command line
+
+  - read config files of different types (django, rails, etc) or a way
+    to convert configs to some normalized form (environment variables,
+    etc) or at least a way to just take a DSN on the command line for
+    starters
+
+- postgres support
+
+  - postgres tests
