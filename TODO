@@ -21,6 +21,8 @@
 - since bootstrapping is actually special, consider making it special
   (and not storing a bootstrapping migration in the store)
 
+- tool / flag to show dependency hierarchy
+
 - detect whether a store has already been initialized (presence of
   a *parsable* root migration?)
 
