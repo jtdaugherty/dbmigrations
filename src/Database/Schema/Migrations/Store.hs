@@ -2,6 +2,7 @@
 module Database.Schema.Migrations.Store
     ( MigrationStore(..)
     , loadMigrations
+    , depGraphFromStore
     )
 where
 
@@ -11,6 +12,10 @@ import qualified Data.Map as Map
 import Database.Schema.Migrations.Migration
     ( Migration(..)
     , MigrationMap
+    )
+import Database.Schema.Migrations.Dependencies
+    ( DependencyGraph(..)
+    , mkDepGraph
     )
 
 class (Monad m) => MigrationStore s m where
@@ -30,3 +35,10 @@ loadMigrations store = do
   migrations <- getMigrations store
   loaded <- mapM (\name -> loadMigration store name) migrations
   return $ Map.fromList $ [ (mId e, e) | e <- catMaybes $ loaded ]
+
+depGraphFromStore :: (MigrationStore s m) => s -> m (Either String (DependencyGraph Migration))
+depGraphFromStore store = do
+  migrationIds <- getMigrations store
+  migrations <- mapM (loadMigration store) migrationIds
+  let loaded = catMaybes migrations
+  return $ mkDepGraph loaded
