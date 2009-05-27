@@ -17,11 +17,15 @@ import Data.List ( intercalate )
 import Database.HDBC.Sqlite3 ( connectSqlite3, Connection )
 import Database.HDBC ( IConnection(commit, disconnect) )
 
-import Database.Schema.Migrations ( missingMigrations, createNewMigration )
+import Database.Schema.Migrations
+    ( missingMigrations
+    , createNewMigration
+    , ensureBootstrappedBackend
+    )
 import Database.Schema.Migrations.Filesystem
 import Database.Schema.Migrations.Dependencies ( dependencies )
 import Database.Schema.Migrations.Migration ( Migration(..) )
-import Database.Schema.Migrations.Backend ( Backend, getBootstrapMigration, isBootstrapped, applyMigration )
+import Database.Schema.Migrations.Backend ( Backend, getBootstrapMigration, applyMigration )
 import Database.Schema.Migrations.Store ( MigrationStore(..), loadMigrations, depGraphFromStore )
 import Database.Schema.Migrations.Backend.Sqlite()
 
@@ -29,16 +33,6 @@ initStore :: (Backend b IO) => b -> FilesystemStore -> IO ()
 initStore backend store = do
   getBootstrapMigration backend >>= saveMigration store
   putStrLn $ "Filesystem store initialized at " ++ (storePath store)
-
-ensureBootstrappedBackend :: (Backend b IO) => b -> IO ()
-ensureBootstrappedBackend backend = do
-  bsStatus <- isBootstrapped backend
-  case bsStatus of
-    True -> return ()
-    False -> do
-      putStrLn "Database bootstrapping required; installing..."
-      getBootstrapMigration backend >>= applyMigration backend
-      putStrLn "Done."
 
 usage :: IO ()
 usage = do

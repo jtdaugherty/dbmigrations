@@ -1,6 +1,7 @@
 module Database.Schema.Migrations
     ( missingMigrations
     , createNewMigration
+    , ensureBootstrappedBackend
     )
 where
 
@@ -40,3 +41,10 @@ createNewMigration store name = do
                                 }
       S.saveMigration store newWithDefaults
       return $ Right ()
+
+ensureBootstrappedBackend :: (B.Backend b m) => b -> m ()
+ensureBootstrappedBackend backend = do
+  bsStatus <- B.isBootstrapped backend
+  case bsStatus of
+    True -> return ()
+    False -> B.getBootstrapMigration backend >>= B.applyMigration backend
