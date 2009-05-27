@@ -9,24 +9,23 @@
 - InitFS: add a "--test" option to apply/revert operations which
   ROLLBACK instead of COMMIT when finished
 
-- add tests for new depGraphFromStore function
+- InitFS: add optparse support instead of pattern-matching/breaking on
+  args
 
-- factor most of the logic in InitFS out into a module in the library
-  so tools are easier to build and extend
+- add tests for new depGraphFromMapping function
 
 - handle SQLErrors gracefully in InitFS
 
 - make filesystem store operations die if they find a migration name
-  with no corresponding disk file (require that Monads used with
-  MigrationStore must also be MonadErrors? That would Just Work for IO
-  since it already supplies an instance for MonadError using IOError)
+  with no corresponding disk file
 
-- clean up code formatting (too many long lines)
+- clean up code formatting (too many long lines, not enough
+  decomposition)
 
 - since bootstrapping is actually special, consider making it special
   (and not storing a bootstrapping migration in the store)
 
-- tool / flag to show dependency hierarchy
+- tool to show dependency hierarchy
 
 - detect whether a store has already been initialized (presence of
   a *parsable* root migration?)
