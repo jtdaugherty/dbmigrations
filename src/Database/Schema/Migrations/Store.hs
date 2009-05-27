@@ -28,6 +28,12 @@ class (Monad m) => MigrationStore s m where
     -- Return a list of all available migrations' names
     getMigrations :: s -> m [String]
 
+    -- Return the full representation of a given migration name;
+    -- mostly for filesystem stores, where the "full" representation
+    -- includes the store path.
+    fullMigrationName :: s -> String -> m String
+    fullMigrationName _ name = return name
+
 -- |Load migrations recursively from the specified path into the
 -- MigrationMap state.
 loadMigrations :: (MigrationStore s m) => s -> m MigrationMap

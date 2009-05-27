@@ -32,6 +32,8 @@ data FilesystemStore = FSStore { storePath :: FilePath }
 
 instance MigrationStore FilesystemStore IO where
 
+    fullMigrationName s name = return $ storePath s </> name
+
     loadMigration s theId = do
       result <- migrationFromFile s theId
       return $ case result of
