@@ -4,6 +4,11 @@
 - make InitFS refuse to apply a migration that is already installed or
   revert one that is not installed (partially done)
 
+- add test for createNewMigration
+
+- InitFS: add a "--test" option to apply/revert operations which
+  ROLLBACK instead of COMMIT when finished
+
 - add tests for new depGraphFromStore function
 
 - factor most of the logic in InitFS out into a module in the library
