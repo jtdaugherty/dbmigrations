@@ -17,10 +17,10 @@ import Data.List ( intercalate )
 import Database.HDBC.Sqlite3 ( connectSqlite3, Connection )
 import Database.HDBC ( IConnection(commit, disconnect) )
 
-import Database.Schema.Migrations ( missingMigrations )
+import Database.Schema.Migrations ( missingMigrations, createNewMigration )
 import Database.Schema.Migrations.Filesystem
 import Database.Schema.Migrations.Dependencies ( dependencies )
-import Database.Schema.Migrations.Migration ( Migration(..), newMigration )
+import Database.Schema.Migrations.Migration ( Migration(..) )
 import Database.Schema.Migrations.Backend ( Backend, getBootstrapMigration, isBootstrapped, applyMigration )
 import Database.Schema.Migrations.Store ( MigrationStore(..), loadMigrations, depGraphFromStore )
 import Database.Schema.Migrations.Backend.Sqlite()
@@ -62,20 +62,10 @@ main = do
          let [fsPath, migrationId] = args
              store = FSStore { storePath = fsPath }
              fullPath = storePath store </> migrationId
-         available <- getMigrations store
-         case migrationId `elem` available of
-           True -> do
-                 putStrLn $ "Migration already exists: " ++ (show fullPath)
-                 exitWith (ExitFailure 1)
-           False -> do
-                 new <- newMigration migrationId
-                 -- Set some instructive defaults.
-                 let newWithDefaults = new { mDesc = Just "(Description here.)"
-                                           , mApply = "(Apply SQL here.)"
-                                           , mRevert = Just "(Revert SQL here.)"
-                                           }
-                 saveMigration store newWithDefaults
-                 putStrLn $ "New migration generated at " ++ (show fullPath)
+         status <- createNewMigration store migrationId
+         case status of
+           Left e -> putStrLn e >> (exitWith (ExitFailure 1))
+           Right _ -> putStrLn $ "Migration created successfully: " ++ (show fullPath)
 
     "apply" -> do
          let [fsPath, dbPath, migrationId] = args
