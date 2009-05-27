@@ -2,7 +2,7 @@
 module Database.Schema.Migrations.Store
     ( MigrationStore(..)
     , loadMigrations
-    , depGraphFromStore
+    , depGraphFromMapping
     )
 where
 
@@ -42,9 +42,5 @@ loadMigrations store = do
   loaded <- mapM (\name -> loadMigration store name) migrations
   return $ Map.fromList $ [ (mId e, e) | e <- catMaybes $ loaded ]
 
-depGraphFromStore :: (MigrationStore s m) => s -> m (Either String (DependencyGraph Migration))
-depGraphFromStore store = do
-  migrationIds <- getMigrations store
-  migrations <- mapM (loadMigration store) migrationIds
-  let loaded = catMaybes migrations
-  return $ mkDepGraph loaded
+depGraphFromMapping :: MigrationMap -> Either String (DependencyGraph Migration)
+depGraphFromMapping mapping = mkDepGraph $ Map.elems mapping
