@@ -114,6 +114,15 @@ revert m mapping backend = do
         revertMigration conn it
         putStrLn "done."
 
+lookupMigration :: MigrationMap -> String -> IO Migration
+lookupMigration mapping name = do
+  let theMigration = Map.lookup name mapping
+  case theMigration of
+    Nothing -> do
+      putStrLn $ "No such migration: " ++ name
+      exitWith (ExitFailure 1)
+    Just m' -> return m'
+
 applyCommand :: CommandHandler
 applyCommand (required, _) = do
   let [fsPath, dbPath, migrationId] = required
@@ -123,15 +132,7 @@ applyCommand (required, _) = do
   withConnection dbPath $ \conn ->
       do
         ensureBootstrappedBackend conn >> commit conn
-
-        -- Look up the migration
-        let theMigration = Map.lookup migrationId mapping
-        m <- case theMigration of
-               Nothing -> do
-                        putStrLn $ "No such migration: " ++ migrationId
-                        exitWith (ExitFailure 1)
-               Just m' -> return m'
-
+        m <- lookupMigration mapping migrationId
         apply m mapping conn
         commit conn
         putStrLn $ "Successfully applied migrations."
@@ -145,15 +146,7 @@ revertCommand (required, _) = do
   withConnection dbPath $ \conn ->
       do
         ensureBootstrappedBackend conn >> commit conn
-
-        -- Look up the migration
-        let theMigration = Map.lookup migrationId mapping
-        m <- case theMigration of
-               Nothing -> do
-                        putStrLn $ "No such migration: " ++ migrationId
-                        exitWith (ExitFailure 1)
-               Just m' -> return m'
-
+        m <- lookupMigration mapping migrationId
         revert m mapping conn
         commit conn
         putStrLn $ "Successfully reverted migrations."
