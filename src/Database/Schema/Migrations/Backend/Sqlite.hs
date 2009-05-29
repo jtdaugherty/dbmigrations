@@ -40,10 +40,13 @@ instance Backend Connection IO where
       quickQuery conn "INSERT INTO installed_migrations (migration_id) VALUES (?)" [SqlString $ mId m]
       return ()
 
-    revertMigration conn m =
+    revertMigration conn m = do
         case mRevert m of
           Nothing -> return ()
           Just query -> quickQuery conn query [] >> return ()
+        -- Remove migration from installed_migrations in either case.
+        quickQuery conn "DELETE FROM installed_migrations WHERE migration_id = ?" [SqlString $ mId m]
+        return ()
 
     getMigrations conn = do
       results <- quickQuery conn "SELECT migration_id FROM installed_migrations" []

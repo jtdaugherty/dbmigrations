@@ -17,6 +17,9 @@ tests = sequence [ bootstrapTest
                  , applyMigrationFailure
                  , isBootstrappedTrueTest
                  , isBootstrappedFalseTest
+                 , revertMigrationFailure
+                 , revertMigrationNothing
+                 , revertMigrationJust
                  ]
 
 withTempDb :: (Connection -> IO Test) -> IO Test
@@ -77,15 +80,72 @@ applyMigrationFailure =
       installed <- getMigrations conn
       return $ "successfully roll back failed apply" ~: ["root"] ~=? installed
 
--- revertMigrationSuccess :: IO Test
--- revertMigrationSuccess = do
---   undefined
+revertMigrationFailure :: IO Test
+revertMigrationFailure =
+    withBootstrappedTempDb $ \conn -> do
+      m1 <- newMigration "second"
+      m2 <- newMigration "third"
 
--- -- |Does a failure to revert a migration imply a transaction rollback?
--- revertMigrationFailure :: IO Test
--- revertMigrationFailure = do
---   undefined
+      let m1' = m1 { mApply = "CREATE TABLE valid (a int)"
+                   , mRevert = Just "DROP TABLE valid"}
+      let m2' = m2 { mApply = "SELECT * FROM valid"
+                   , mRevert = Just "INVALID SQL"}
 
--- getMigrationsTest :: IO Test
--- getMigrationsTest = do
---   undefined
+      withTransaction conn $ \conn' -> do
+        applyMigration conn' m1'
+        applyMigration conn' m2'
+
+      installedBeforeRevert <- getMigrations conn
+
+      -- Revert the migrations, ignore exceptions
+      ignoreSqlExceptions $ withTransaction conn $ \conn' -> do
+        revertMigration conn' m2'
+        revertMigration conn' m1'
+
+      -- Check that none of the migrations were installed
+      installed <- getMigrations conn
+      return $ "successfully roll back failed revert" ~: installedBeforeRevert ~=? installed
+
+revertMigrationNothing :: IO Test
+revertMigrationNothing =
+    withBootstrappedTempDb $ \conn -> do
+      m1 <- newMigration "second"
+
+      let m1' = m1 { mApply = "SELECT 1"
+                   , mRevert = Nothing }
+
+      withTransaction conn $ \conn' -> do
+        applyMigration conn' m1'
+
+      installedAfterApply <- getMigrations conn
+      assertEqual "Check that the migration was applied" installedAfterApply ["root", "second"]
+
+      -- Revert the migration, which should do nothing EXCEPT remove
+      -- it from the installed list
+      withTransaction conn $ \conn' -> do
+        revertMigration conn' m1'
+
+      installed <- getMigrations conn
+      return $ test $ assertEqual "Check that the migration was reverted" installed ["root"]
+
+revertMigrationJust :: IO Test
+revertMigrationJust =
+    withBootstrappedTempDb $ \conn -> do
+      m1 <- newMigration "second"
+
+      let m1' = m1 { mApply = "CREATE TABLE temp (a int)"
+                   , mRevert = Just "DROP TABLE temp" }
+
+      withTransaction conn $ \conn' -> do
+        applyMigration conn' m1'
+
+      installedAfterApply <- getMigrations conn
+      assertEqual "Check that the migration was applied" installedAfterApply ["root", "second"]
+
+      -- Revert the migration, which should do nothing EXCEPT remove
+      -- it from the installed list
+      withTransaction conn $ \conn' -> do
+        revertMigration conn' m1'
+
+      installed <- getMigrations conn
+      return $ test $ assertEqual "Check that the migration was reverted" installed ["root"]
