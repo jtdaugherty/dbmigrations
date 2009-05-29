@@ -19,12 +19,17 @@ import Database.HDBC ( IConnection(commit, disconnect) )
 
 import Database.Schema.Migrations
     ( migrationsToApply
+    , migrationsToRevert
     , createNewMigration
     , ensureBootstrappedBackend
     )
 import Database.Schema.Migrations.Filesystem
 import Database.Schema.Migrations.Migration ( Migration(..), MigrationMap )
-import Database.Schema.Migrations.Backend ( Backend, applyMigration )
+import Database.Schema.Migrations.Backend
+    ( Backend
+    , applyMigration
+    , revertMigration
+    )
 import Database.Schema.Migrations.Store ( loadMigrations )
 import Database.Schema.Migrations.Backend.Sqlite()
 
@@ -41,6 +46,7 @@ type CommandHandler = ([String], [String]) -> IO ()
 commands :: [Command]
 commands = [ Command "new" ["store_path", "db_path", "migration_name"] [] newCommand
            , Command "apply" ["store_path", "db_path", "migration_name"] [] applyCommand
+           , Command "revert" ["store_path", "db_path", "migration_name"] [] revertCommand
            ]
 
 withConnection :: FilePath -> (Connection -> IO a) -> IO a
@@ -82,6 +88,32 @@ apply m mapping backend = do
         applyMigration conn it
         putStrLn "done."
 
+revert :: (Backend b IO) => Migration -> MigrationMap -> b -> IO [Migration]
+revert m mapping backend = do
+  -- Get the list of migrations to revert
+  toRevert' <- migrationsToRevert mapping backend m
+  toRevert <- case toRevert' of
+                Left e -> do
+                  putStrLn $ "Error: " ++ e
+                  exitWith (ExitFailure 1)
+                Right ms -> return ms
+
+  -- Revert them
+  if (null toRevert) then
+      (nothingToDo >> return []) else
+      mapM_ (revertIt backend) toRevert >> return toRevert
+
+    where
+      nothingToDo = do
+        putStrLn $ "Nothing to do; " ++
+                     (mId m) ++
+                     " not installed."
+
+      revertIt conn it = do
+        putStr $ "Reverting: " ++ (mId it) ++ "... "
+        revertMigration conn it
+        putStrLn "done."
+
 applyCommand :: CommandHandler
 applyCommand (required, _) = do
   let [fsPath, dbPath, migrationId] = required
@@ -103,6 +135,28 @@ applyCommand (required, _) = do
         apply m mapping conn
         commit conn
         putStrLn $ "Successfully applied migrations."
+
+revertCommand :: CommandHandler
+revertCommand (required, _) = do
+  let [fsPath, dbPath, migrationId] = required
+      store = FSStore { storePath = fsPath }
+  mapping <- loadMigrations store
+
+  withConnection dbPath $ \conn ->
+      do
+        ensureBootstrappedBackend conn >> commit conn
+
+        -- Look up the migration
+        let theMigration = Map.lookup migrationId mapping
+        m <- case theMigration of
+               Nothing -> do
+                        putStrLn $ "No such migration: " ++ migrationId
+                        exitWith (ExitFailure 1)
+               Just m' -> return m'
+
+        revert m mapping conn
+        commit conn
+        putStrLn $ "Successfully reverted migrations."
 
 usageString :: Command -> String
 usageString command = intercalate " " ((cName command):requiredArgs ++ optionalArgs)
