@@ -9,12 +9,6 @@
 
 - add test for createNewMigration
 
-- InitFS: add a "test" command which:
-  - applies a migration and its dependencies
-  - reverts that same migration (and the dependencies that were
-    applied)
-  - executes ROLLBACK
-
 - add tests for new depGraphFromMapping function
 
 - handle SQLErrors gracefully in InitFS

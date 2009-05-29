@@ -15,7 +15,7 @@ import qualified Data.Map as Map
 import Control.Monad ( when, forM_ )
 
 import Database.HDBC.Sqlite3 ( connectSqlite3, Connection )
-import Database.HDBC ( IConnection(commit, disconnect) )
+import Database.HDBC ( IConnection(commit, rollback, disconnect) )
 
 import Database.Schema.Migrations
     ( migrationsToApply
@@ -47,6 +47,7 @@ commands :: [Command]
 commands = [ Command "new" ["store_path", "db_path", "migration_name"] [] newCommand
            , Command "apply" ["store_path", "db_path", "migration_name"] [] applyCommand
            , Command "revert" ["store_path", "db_path", "migration_name"] [] revertCommand
+           , Command "test" ["store_path", "db_path", "migration_name"] [] testCommand
            ]
 
 withConnection :: FilePath -> (Connection -> IO a) -> IO a
@@ -150,6 +151,22 @@ revertCommand (required, _) = do
         revert m mapping conn
         commit conn
         putStrLn $ "Successfully reverted migrations."
+
+testCommand :: CommandHandler
+testCommand (required,_) = do
+  let [fsPath, dbPath, migrationId] = required
+      store = FSStore { storePath = fsPath }
+  mapping <- loadMigrations store
+
+  withConnection dbPath $ \conn ->
+      do
+        ensureBootstrappedBackend conn >> commit conn
+        m <- lookupMigration mapping migrationId
+        applied <- apply m mapping conn
+        forM_ (reverse applied) $ \migration -> do
+                             revert migration mapping conn
+        rollback conn
+        putStrLn $ "Successfully tested migrations."
 
 usageString :: Command -> String
 usageString command = intercalate " " ((cName command):requiredArgs ++ optionalArgs)
