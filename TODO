@@ -1,16 +1,19 @@
 
-- make InitFS support recursive adding/reverting (partially done)
+- InitFS: add an "--ask" option to the "new" command which will
+  interactively prompt for dependencies and set them when creating the
+  migration (or even have this behavior be the default, with a
+  "--no-ask" option to turn it off)
 
-- make InitFS refuse to apply a migration that is already installed or
-  revert one that is not installed (partially done)
+- make filesystem migration-loading ignore backup files (need a
+  general solution to this problem)
 
 - add test for createNewMigration
 
-- InitFS: add a "--test" option to apply/revert operations which
-  ROLLBACK instead of COMMIT when finished
-
-- InitFS: add optparse support instead of pattern-matching/breaking on
-  args
+- InitFS: add a "test" command which:
+  - applies a migration and its dependencies
+  - reverts that same migration (and the dependencies that were
+    applied)
+  - executes ROLLBACK
 
 - add tests for new depGraphFromMapping function
 
@@ -21,9 +24,6 @@
 
 - clean up code formatting (too many long lines, not enough
   decomposition)
-
-- since bootstrapping is actually special, consider making it special
-  (and not storing a bootstrapping migration in the store)
 
 - tool to show dependency hierarchy
 
