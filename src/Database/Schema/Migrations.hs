@@ -2,6 +2,7 @@ module Database.Schema.Migrations
     ( createNewMigration
     , ensureBootstrappedBackend
     , migrationsToApply
+    , migrationsToRevert
     )
 where
 
@@ -9,7 +10,10 @@ import qualified Data.Set as Set
 import qualified Data.Map as Map
 import Data.Maybe ( catMaybes )
 
-import Database.Schema.Migrations.Dependencies ( dependencies )
+import Database.Schema.Migrations.Dependencies
+    ( dependencies
+    , reverseDependencies
+    )
 import qualified Database.Schema.Migrations.Backend as B
 import qualified Database.Schema.Migrations.Store as S
 import Database.Schema.Migrations.Migration
@@ -69,5 +73,26 @@ migrationsToApply mapping backend migration = do
       let deps = (dependencies graph $ mId migration) ++ [mId migration]
           namesToInstall = [ e | e <- deps, e `elem` allMissing ]
           loadedMigrations = catMaybes $ map (\k -> Map.lookup k mapping) namesToInstall
+
+      return $ Right loadedMigrations
+
+-- |Given a migration mapping computed from a MigrationStore, a
+-- backend, and a migration to apply, return a processing error or a
+-- list of migrations to apply, in order.
+migrationsToRevert :: (B.Backend b m) => MigrationMap -> b
+                  -> Migration -> m (Either String [Migration])
+migrationsToRevert mapping backend migration = do
+  let graph' = S.depGraphFromMapping mapping
+  case graph' of
+    Left e -> return $ Left e
+    Right g -> run g
+
+  where
+    run graph = do
+      allInstalled <- B.getMigrations backend
+
+      let rDeps = (reverseDependencies graph $ mId migration) ++ [mId migration]
+          namesToRevert = [ e | e <- rDeps, e `elem` allInstalled ]
+          loadedMigrations = catMaybes $ map (\k -> Map.lookup k mapping) namesToRevert
 
       return $ Right loadedMigrations
