@@ -24,8 +24,8 @@ import Database.Schema.Migrations
     )
 import Database.Schema.Migrations.Filesystem
 import Database.Schema.Migrations.Migration ( Migration(..) )
-import Database.Schema.Migrations.Backend ( Backend, getBootstrapMigration, applyMigration )
-import Database.Schema.Migrations.Store ( MigrationStore(..), loadMigrations )
+import Database.Schema.Migrations.Backend ( Backend, applyMigration )
+import Database.Schema.Migrations.Store ( loadMigrations )
 import Database.Schema.Migrations.Backend.Sqlite()
 
 -- A command has a name, a number of required arguments' labels, a
@@ -39,21 +39,12 @@ data Command = Command { cName :: String
 type CommandHandler = ([String], [String]) -> IO ()
 
 commands :: [Command]
-commands = [ Command "init" ["store_path", "db_path"] [] initStore
-           , Command "new" ["store_path", "db_path", "migration_name"] [] new
+commands = [ Command "new" ["store_path", "db_path", "migration_name"] [] new
            , Command "apply" ["store_path", "db_path", "migration_name"] [] apply
            ]
 
 withConnection :: FilePath -> (Connection -> IO a) -> IO a
 withConnection dbPath act = bracket (connectSqlite3 dbPath) disconnect act
-
-initStore :: CommandHandler
-initStore (required, _) = do
-  let [fsPath, dbPath] = required
-      store = FSStore { storePath = fsPath }
-  withConnection dbPath $ \conn -> do
-      getBootstrapMigration conn >>= saveMigration store
-      putStrLn $ "Filesystem store initialized at " ++ (storePath store)
 
 new :: CommandHandler
 new (required, _) = do
