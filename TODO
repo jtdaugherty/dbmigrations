@@ -1,4 +1,7 @@
 
+- InitFS: refactor common logic out of testCommand, applyCommand, and
+  revertCommand
+
 - InitFS: add an "--ask" option to the "new" command which will
   interactively prompt for dependencies and set them when creating the
   migration (or even have this behavior be the default, with a
