@@ -81,16 +81,16 @@ mkDepGraph objects = if hasCycle depGraph
 type NextNodesFunc = Gr String String -> Node -> [Node]
 
 -- |Given a dependency graph and an ID, return the IDs of objects that
--- the object depends on.  IDs are returned with more direct
--- dependencies first.
+-- the object depends on.  IDs are returned with least direct
+-- dependencies first (i.e., the apply order).
 dependencies :: (Dependable d) => DependencyGraph d -> String -> [String]
-dependencies = dependenciesWith suc
+dependencies g m = reverse $ dependenciesWith suc g m
 
 -- |Given a dependency graph and an ID, return the IDs of objects that
--- depend on it.  IDs are returned with more direct reverse
--- dependencies first.
+-- depend on it.  IDs are returned with least direct reverse
+-- dependencies first (i.e., the revert order).
 reverseDependencies :: (Dependable d) => DependencyGraph d -> String -> [String]
-reverseDependencies = dependenciesWith pre
+reverseDependencies g m = reverse $ dependenciesWith pre g m
 
 dependenciesWith :: (Dependable d) => NextNodesFunc -> DependencyGraph d -> String -> [String]
 dependenciesWith nextNodes dg@(DG _ nMap theGraph) name =

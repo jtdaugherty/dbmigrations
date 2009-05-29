@@ -66,8 +66,8 @@ migrationsToApply mapping backend migration = do
     run graph = do
       allMissing <- missingMigrations backend mapping
 
-      let deps = (mId migration):(dependencies graph $ mId migration)
-          namesToInstall = reverse [ e | e <- deps, e `elem` allMissing ]
+      let deps = (dependencies graph $ mId migration) ++ [mId migration]
+          namesToInstall = [ e | e <- deps, e `elem` allMissing ]
           loadedMigrations = catMaybes $ map (\k -> Map.lookup k mapping) namesToInstall
 
       return $ Right loadedMigrations
