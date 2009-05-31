@@ -15,7 +15,7 @@ import qualified Data.Map as Map
 import Control.Monad ( when, forM_ )
 
 import Database.HDBC.Sqlite3 ( connectSqlite3, Connection )
-import Database.HDBC ( IConnection(commit, rollback, disconnect) )
+import Database.HDBC ( IConnection(commit, rollback, disconnect), catchSql, seErrorMsg, SqlError )
 
 import Database.Schema.Migrations
     ( migrationsToApply
@@ -62,6 +62,11 @@ newCommand (required, _) = do
   case status of
     Left e -> putStrLn e >> (exitWith (ExitFailure 1))
     Right _ -> putStrLn $ "Migration created successfully: " ++ (show fullPath)
+
+reportSqlError :: SqlError -> IO a
+reportSqlError e = do
+  putStrLn $ "\nA database error occurred: " ++ seErrorMsg e
+  exitWith (ExitFailure 1)
 
 apply :: (Backend b IO) => Migration -> MigrationMap -> b -> IO [Migration]
 apply m mapping backend = do
@@ -203,4 +208,4 @@ main = do
 
   if (length args) < (length $ cRequired command) then
       usageSpecific command else
-      cHandler command $ splitAt (length $ cRequired command) args
+      (cHandler command $ splitAt (length $ cRequired command) args) `catchSql` reportSqlError
