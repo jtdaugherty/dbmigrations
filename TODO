@@ -1,8 +1,5 @@
 - InitFS: add an "upgrade" command to install all absent migrations
 
-- InitFS: refactor common logic out of testCommand, applyCommand, and
-  revertCommand
-
 - InitFS: add an "--ask" option to the "new" command which will
   interactively prompt for dependencies and set them when creating the
   migration (or even have this behavior be the default, with a
@@ -11,11 +8,7 @@
 - make filesystem migration-loading ignore backup files (need a
   general solution to this problem)
 
-- add test for createNewMigration
-
-- add tests for new depGraphFromMapping function
-
-- handle SQLErrors gracefully in InitFS
+- improve test coverage
 
 - make filesystem store operations die if they find a migration name
   with no corresponding disk file
