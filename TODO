@@ -1,3 +1,4 @@
+- InitFS: add an "upgrade" command to install all absent migrations
 
 - InitFS: refactor common logic out of testCommand, applyCommand, and
   revertCommand
