@@ -6,7 +6,7 @@ module Database.Schema.Migrations.Filesystem
 where
 
 import System.Directory ( getDirectoryContents, doesFileExist )
-import System.FilePath ( (</>) )
+import System.FilePath ( (</>), takeExtension, dropExtension )
 
 import Data.Time.Clock ( UTCTime )
 import Data.Time () -- for UTCTime Show instance
@@ -30,6 +30,9 @@ type FieldProcessor = String -> Migration -> Maybe Migration
 
 data FilesystemStore = FSStore { storePath :: FilePath }
 
+filenameExtension :: String
+filenameExtension = ".m"
+
 instance MigrationStore FilesystemStore IO where
 
     fullMigrationName s name = return $ storePath s </> name
@@ -42,21 +45,24 @@ instance MigrationStore FilesystemStore IO where
 
     getMigrations s = do
       contents <- getDirectoryContents $ storePath s
-      let nonSpecial = [ f | f <- contents, not (f `elem` [".", ".."]) ]
-          fullPaths = [ (f, storePath s </> f) | f <- nonSpecial ]
+      let migrationFilenames = [ f | f <- contents, isMigrationFilename f ]
+          fullPaths = [ (f, storePath s </> f) | f <- migrationFilenames ]
       existing <- filterM (\(_, full) -> doesFileExist full) fullPaths
-      return [ short | (short, _) <- existing ]
+      return [ dropExtension short | (short, _) <- existing ]
 
     saveMigration s m = do
-      let filename = storePath s </> mId m
+      let filename = storePath s </> (mId m ++ filenameExtension)
       writeFile filename $ serializeMigration m
+
+isMigrationFilename :: FilePath -> Bool
+isMigrationFilename path = takeExtension path == filenameExtension
 
 -- |Given a file path, read and parse the migration at the specified
 -- path and, if successful, return the migration and its claimed
 -- dependencies.
 migrationFromFile :: FilesystemStore -> String -> IO (Either String Migration)
 migrationFromFile store name = do
-  let path = (storePath store) </> name
+  let path = (storePath store) </> (name ++ filenameExtension)
   contents <- readFile path
   case parse migrationParser path contents of
     Left _ -> return $ Left $ "Could not parse migration file " ++ (show path)

@@ -55,20 +55,20 @@ migrationParsingTestCases = [ ("valid_full", Right valid_full)
                               , Right (valid_full { mId = "valid_no_revert", mRevert = Nothing }))
                             , ("invalid_missing_required_fields"
                               , Left $ "Missing required field(s) in migration " ++
-                                         (show $ fp "invalid_missing_required_fields") ++
+                                         (show $ fp "invalid_missing_required_fields.m") ++
                                          ": [\"Created\",\"Depends\"]")
                             , ("invalid_deps_list"
                               , Left $ "Unrecognized field in migration " ++
-                                         (show $ fp "invalid_deps_list"))
+                                         (show $ fp "invalid_deps_list.m"))
                             , ("invalid_field_name"
                               , Left $ "Unrecognized field in migration " ++
-                                         (show $ fp "invalid_field_name"))
+                                         (show $ fp "invalid_field_name.m"))
                             , ("invalid_syntax"
                               , Left $ "Could not parse migration file " ++
-                                         (show $ fp "invalid_syntax"))
+                                         (show $ fp "invalid_syntax.m"))
                             , ("invalid_timestamp"
                               , Left $ "Unrecognized field in migration " ++
-                                         (show $ fp "invalid_timestamp"))
+                                         (show $ fp "invalid_timestamp.m"))
                             ]
 
 mkParsingTest :: MigrationParsingTestCase -> IO Test
