@@ -14,9 +14,16 @@ import Data.List ( intercalate )
 import qualified Data.Map as Map
 import Control.Monad ( when, forM_ )
 
-import Database.HDBC.Sqlite3 ( connectSqlite3, Connection )
-import Database.HDBC ( IConnection(commit, rollback, disconnect), catchSql, seErrorMsg, SqlError )
-
+import Database.HDBC.Sqlite3
+    ( connectSqlite3
+    , Connection
+    )
+import Database.HDBC
+    ( IConnection(commit, rollback, disconnect)
+    , catchSql
+    , seErrorMsg
+    , SqlError
+    )
 import Database.Schema.Migrations
     ( migrationsToApply
     , migrationsToRevert
@@ -24,13 +31,18 @@ import Database.Schema.Migrations
     , ensureBootstrappedBackend
     )
 import Database.Schema.Migrations.Filesystem
-import Database.Schema.Migrations.Migration ( Migration(..), MigrationMap )
+import Database.Schema.Migrations.Migration
+    ( Migration(..)
+    , MigrationMap
+    )
 import Database.Schema.Migrations.Backend
     ( Backend
     , applyMigration
     , revertMigration
     )
-import Database.Schema.Migrations.Store ( loadMigrations )
+import Database.Schema.Migrations.Store
+    ( loadMigrations
+    )
 import Database.Schema.Migrations.Backend.Sqlite()
 
 -- A command has a name, a number of required arguments' labels, a
