@@ -1,12 +1,13 @@
-- InitFS: add an "upgrade" command to install all absent migrations
 
 - InitFS: add an "--ask" option to the "new" command which will
   interactively prompt for dependencies and set them when creating the
   migration (or even have this behavior be the default, with a
   "--no-ask" option to turn it off)
 
-- make filesystem migration-loading ignore backup files (need a
-  general solution to this problem)
+- curses tool to select dependencies for a migration? could also be
+  used to render / navigate a dependency structure
+
+  - tool to show dependency hierarchy
 
 - improve test coverage
 
@@ -16,13 +17,6 @@
 - clean up code formatting (too many long lines, not enough
   decomposition)
 
-- tool to show dependency hierarchy
-
-- detect whether a store has already been initialized (presence of
-  a *parsable* root migration?)
-
-  - add a magic file/something to a store so we know if it's a store
-
 - possibly limit how big a migration file can be to prevent tarpits (1
   MB?)
 
@@ -30,14 +24,6 @@
   store and backend?  environment variables? configuration file?
   command-line arguments?  probably not *required* args, since you
   need to be able to invoke the tools quickly and easily
-
-- command-line tool to connect to a database and interactively prompt
-  to revert or apply, or to take a migration id on the command line
-
-  - read config files of different types (django, rails, etc) or a way
-    to convert configs to some normalized form (environment variables,
-    etc) or at least a way to just take a DSN on the command line for
-    starters
 
 - postgres support
 
