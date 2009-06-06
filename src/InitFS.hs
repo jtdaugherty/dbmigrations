@@ -4,7 +4,7 @@ module Main
 where
 
 import System.Environment ( getArgs )
-import System.Exit ( exitWith, ExitCode(..) )
+import System.Exit ( exitWith, ExitCode(..), exitSuccess )
 import System.FilePath ( (</>) )
 
 import Control.Exception ( bracket )
@@ -27,6 +27,7 @@ import Database.HDBC
 import Database.Schema.Migrations
     ( migrationsToApply
     , migrationsToRevert
+    , missingMigrations
     , createNewMigration
     , ensureBootstrappedBackend
     )
@@ -60,6 +61,7 @@ commands = [ Command "new" ["store_path", "db_path", "migration_name"] [] newCom
            , Command "apply" ["store_path", "db_path", "migration_name"] [] applyCommand
            , Command "revert" ["store_path", "db_path", "migration_name"] [] revertCommand
            , Command "test" ["store_path", "db_path", "migration_name"] [] testCommand
+           , Command "upgrade" ["store_path", "db_path"] [] upgradeCommand
            ]
 
 withConnection :: FilePath -> (Connection -> IO a) -> IO a
@@ -74,6 +76,23 @@ newCommand (required, _) = do
   case status of
     Left e -> putStrLn e >> (exitWith (ExitFailure 1))
     Right _ -> putStrLn $ "Migration created successfully: " ++ (show fullPath)
+
+upgradeCommand :: CommandHandler
+upgradeCommand (required, _) = do
+  let [fsPath, dbPath] = required
+      store = FSStore { storePath = fsPath }
+  mapping <- loadMigrations store
+
+  withConnection dbPath $ \conn ->
+      do
+        ensureBootstrappedBackend conn >> commit conn
+        migrationNames <- missingMigrations conn mapping
+        when (null migrationNames) (putStrLn "Database is up to date." >> exitSuccess)
+        forM_ migrationNames $ \migrationName -> do
+            m <- lookupMigration mapping migrationName
+            apply m mapping conn
+        commit conn
+        putStrLn $ "Database successfully upgraded."
 
 reportSqlError :: SqlError -> IO a
 reportSqlError e = do
