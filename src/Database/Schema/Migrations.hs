@@ -3,6 +3,7 @@ module Database.Schema.Migrations
     , ensureBootstrappedBackend
     , migrationsToApply
     , migrationsToRevert
+    , missingMigrations
     )
 where
 
