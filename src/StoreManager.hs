@@ -34,13 +34,13 @@ data MMState = MMState
 type MM = StateT MMState IO
 
 type ToplineWidget = TextWidget
-type BotlineWidget = TextWidget
+type HelpLineWidget = TextWidget
 type MsglineWidget = TableWidget
 type MigrationListWidget = TableWidget
 
 data MainWidget = MainWidget
     { toplineWidget :: ToplineWidget
-    , botlineWidget :: BotlineWidget
+    , helplineWidget :: HelpLineWidget
     , msglineWidget :: MsglineWidget
     , migrationListWidget :: MigrationListWidget
     }
@@ -51,7 +51,7 @@ instance Widget MainWidget where
 
 data MainEditWidget = MainEditWidget
     { toplineEditWidget :: ToplineWidget
-    , botlineEditWidget :: BotlineWidget
+    , helplineEditWidget :: HelpLineWidget
     , msglineEditWidget :: MsglineWidget
     }
 
@@ -105,8 +105,8 @@ mkToplineWidget = do
   opts <- lineOptions
   return $ newTextWidget (opts { twopt_halign = AlignCenter }) title
 
-mkBotlineWidget :: MM BotlineWidget
-mkBotlineWidget = do
+mkHelpLineWidget :: MM HelpLineWidget
+mkHelpLineWidget = do
   opts <- lineOptions
   return $ newTextWidget opts help
 
@@ -129,6 +129,8 @@ mkMsglineWidget = do
       tabOpts = defaultTBWOptions { tbwopt_minSize = (1, width) }
   return $ newTableWidget tabOpts [row]
 
+-- nlines = height of status line + height of help line + height of
+-- top line
 nlines :: Int
 nlines = 3
 
@@ -176,14 +178,14 @@ mkMainWidget :: MM MainWidget
 mkMainWidget = do
   tlw <- mkToplineWidget
   clw <- mkMigrationListWidget
-  blw <- mkBotlineWidget
+  blw <- mkHelpLineWidget
   msglw <- mkMsglineWidget
   return $ MainWidget tlw blw msglw clw
 
 mkRealMainEditWidget :: (Maybe Size) -> MainEditWidget -> TableWidget
 mkRealMainEditWidget msz w =
     let cells = [ TableCell $ toplineEditWidget w
-                , TableCell $ botlineEditWidget w
+                , TableCell $ helplineEditWidget w
                 , TableCell $ msglineEditWidget w ]
         rows = map singletonRow cells
         opts = case msz of
@@ -195,7 +197,7 @@ mkRealMainWidget :: Maybe Size -> MainWidget -> TableWidget
 mkRealMainWidget msz w =
     let cells = [ TableCell $ toplineWidget w
                 , TableCell $ migrationListWidget w
-                , TableCell $ botlineWidget w
+                , TableCell $ helplineWidget w
                 , TableCell $ msglineWidget w ]
         rows = map singletonRow cells
         opts = case msz of
