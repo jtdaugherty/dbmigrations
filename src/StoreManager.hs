@@ -45,16 +45,6 @@ data MainWidget = MainWidget
     , migrationListWidget :: MigrationListWidget
     }
 
-data MainEditWidget = MainEditWidget
-    { toplineEditWidget :: ToplineWidget
-    , helplineEditWidget :: HelpLineWidget
-    , statusbarEditWidget :: StatusBarWidget
-    }
-
-instance Widget MainEditWidget where
-    draw pos sz hint w = draw pos sz hint (mkRealMainEditWidget (Just sz) w)
-    minSize w = minSize (mkRealMainEditWidget Nothing w)
-
 instance Widget MainWidget where
     draw pos sz hint w = draw pos sz hint (mkRealMainWidget (Just sz) w)
     minSize w = minSize (mkRealMainWidget Nothing w)
@@ -181,17 +171,6 @@ mkMainWidget = do
   blw <- mkHelpLineWidget
   msglw <- mkStatusBarWidget
   return $ MainWidget tlw blw msglw clw
-
-mkRealMainEditWidget :: (Maybe Size) -> MainEditWidget -> TableWidget
-mkRealMainEditWidget msz w =
-    let cells = [ TableCell $ toplineEditWidget w
-                , TableCell $ helplineEditWidget w
-                , TableCell $ statusbarEditWidget w ]
-        rows = map singletonRow cells
-        opts = case msz of
-                 Nothing -> defaultTBWOptions
-                 Just sz -> defaultTBWOptions { tbwopt_minSize = sz }
-        in newTableWidget opts rows
 
 mkRealMainWidget :: Maybe Size -> MainWidget -> TableWidget
 mkRealMainWidget msz w =
