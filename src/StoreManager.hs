@@ -35,13 +35,13 @@ type MM = StateT MMState IO
 
 type ToplineWidget = TextWidget
 type HelpLineWidget = TextWidget
-type MsglineWidget = TableWidget
+type StatusBarWidget = TableWidget
 type MigrationListWidget = TableWidget
 
 data MainWidget = MainWidget
     { toplineWidget :: ToplineWidget
     , helplineWidget :: HelpLineWidget
-    , msglineWidget :: MsglineWidget
+    , statusbarWidget :: StatusBarWidget
     , migrationListWidget :: MigrationListWidget
     }
 
@@ -52,7 +52,7 @@ instance Widget MainWidget where
 data MainEditWidget = MainEditWidget
     { toplineEditWidget :: ToplineWidget
     , helplineEditWidget :: HelpLineWidget
-    , msglineEditWidget :: MsglineWidget
+    , statusbarEditWidget :: StatusBarWidget
     }
 
 instance Widget MainEditWidget where
@@ -115,8 +115,8 @@ mkHelpLineWidget = do
 -- line. Otherwise, an error occurs because drawing a character to
 -- this position moves the cursor to the next line, which doesn't
 -- exist.
-mkMsglineWidget :: MM MsglineWidget
-mkMsglineWidget = do
+mkStatusBarWidget :: MM StatusBarWidget
+mkStatusBarWidget = do
   sz <- getSize
   msg <- gets mmStatus
   let width = getWidth sz
@@ -179,14 +179,14 @@ mkMainWidget = do
   tlw <- mkToplineWidget
   clw <- mkMigrationListWidget
   blw <- mkHelpLineWidget
-  msglw <- mkMsglineWidget
+  msglw <- mkStatusBarWidget
   return $ MainWidget tlw blw msglw clw
 
 mkRealMainEditWidget :: (Maybe Size) -> MainEditWidget -> TableWidget
 mkRealMainEditWidget msz w =
     let cells = [ TableCell $ toplineEditWidget w
                 , TableCell $ helplineEditWidget w
-                , TableCell $ msglineEditWidget w ]
+                , TableCell $ statusbarEditWidget w ]
         rows = map singletonRow cells
         opts = case msz of
                  Nothing -> defaultTBWOptions
@@ -198,7 +198,7 @@ mkRealMainWidget msz w =
     let cells = [ TableCell $ toplineWidget w
                 , TableCell $ migrationListWidget w
                 , TableCell $ helplineWidget w
-                , TableCell $ msglineWidget w ]
+                , TableCell $ statusbarWidget w ]
         rows = map singletonRow cells
         opts = case msz of
                  Nothing -> defaultTBWOptions
@@ -207,9 +207,9 @@ mkRealMainWidget msz w =
 
 updateStateDependentWidgets :: MainWidget -> MM MainWidget
 updateStateDependentWidgets w = do
-  msgLine <- mkMsglineWidget -- update the message line with the
-                             -- state's status
-  return $ w { msglineWidget = msgLine }
+  statusbar <- mkStatusBarWidget -- update the message line with the
+                                 -- state's status
+  return $ w { statusbarWidget = statusbar }
 
 updateStatus :: String -> MM ()
 updateStatus msg = do
