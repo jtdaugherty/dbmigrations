@@ -171,29 +171,6 @@ moveDown orig =
         newPos = ((getHeight $ oldPos) + 1, getWidth oldPos)
     in if validPos newPos orig then orig { tbw_pos = Just newPos } else orig
 
--- mkContactEditWidget :: Contact -> CM ContactEditWidget
--- mkContactEditWidget contact =
---     let l = contactToLabelValueList contact
---         rows = map mkRow l
---         in do sz <- getSize
---               let opts = TBWOptions
---                          { tbwopt_fillCol = Just 1,
---                            tbwopt_fillRow = None,
---                            tbwopt_activeCols = [1],
---                            tbwopt_minSize = (getHeight sz - 3, getWidth sz) }
---               return $ newTableWidget opts rows
---     where mkRow (label, value) =
---               let labelW = newTextWidget defaultTWOptions label
---                   valueW = newEditWidget defaultEWOptions value
---                   in [TableCell labelW, ActiveTableCell valueW]
-
--- mkMainEditWidget contact =
---     do tlw <- mkToplineWidget
---        blw <- mkBotlineWidget
---        msglw <- mkMsglineWidget
---        ew <- mkContactEditWidget contact
---        return $ MainEditWidget tlw blw msglw ew
-
 mkMainWidget :: MM MainWidget
 mkMainWidget = do
   tlw <- mkToplineWidget
@@ -245,44 +222,6 @@ move dir w = do
       orig = migrationListWidget w
   w' <- updateStateDependentWidgets w
   return $ w' { migrationListWidget = listWidget }
-
--- delete w =
---     let lw = migrationListWidget w
---         in case tbw_pos lw of
---              Nothing -> return w
---              Just (row,_) ->
---                  let lw' = tableWidgetDeleteRow row lw
---                      in do modify (\s -> s { mmMigrations =
---                                              deleteAt row (mmMigrations s) })
---                            updateStateDependentWidgets w lw'
-{-
-editEventloop w ewm =
-    do k <- CursesH.getKey (resize mkMainEditWidget)
-       case k of
-         Curses.KeyChar 'q' -> return w
-         Curses.KeyChar '\r' ->
-             do debug "editing..."
-                sz <- getSize
-                let ewm' = mkRealMainEditWidget (Just sz) ewm
-                    (epos, esz) = getCellInfo (0,0) sz ewm' (1,0)
-                    ew = contactEditWidget ewm
-                (ew', res) <-
-                    tableWidgetActivateCurrent (redraw ewm) epos esz DHFocus ew
-                editEventloop w ewm
-         _ -> editEventloop w ewm
--}
-
--- edit w =
---     let lw = contactListWidget w
---         in case tbw_pos lw of
---              Nothing -> return w
---              Just (row,_) ->
---                  do contacts <- gets cm_contacts
---                     let c = contacts !! row
---                     ew <- mkMainEditWidget c
---                     redraw ew
---                     return w
---                     --editEventloop w ew
 
 resize :: Widget w => MM w -> MM ()
 resize f = do
