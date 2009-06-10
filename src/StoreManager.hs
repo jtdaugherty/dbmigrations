@@ -33,6 +33,32 @@ data MMState = MMState
 
 type MM = StateT MMState IO
 
+type ToplineWidget = TextWidget
+type BotlineWidget = TextWidget
+type MsglineWidget = TableWidget
+type MigrationListWidget = TableWidget
+
+data MainWidget = MainWidget
+    { toplineWidget :: ToplineWidget
+    , botlineWidget :: BotlineWidget
+    , msglineWidget :: MsglineWidget
+    , migrationListWidget :: MigrationListWidget
+    }
+
+instance Widget MainWidget where
+    draw pos sz hint w = draw pos sz hint (mkRealMainWidget (Just sz) w)
+    minSize w = minSize (mkRealMainWidget Nothing w)
+
+data MainEditWidget = MainEditWidget
+    { toplineEditWidget :: ToplineWidget
+    , botlineEditWidget :: BotlineWidget
+    , msglineEditWidget :: MsglineWidget
+    }
+
+instance Widget MainEditWidget where
+    draw pos sz hint w = draw pos sz hint (mkRealMainEditWidget (Just sz) w)
+    minSize w = minSize (mkRealMainEditWidget Nothing w)
+
 runMM :: FilePath -> MigrationMap -> [CursesH.CursesStyle] -> MM a -> IO a
 runMM sp migrations cstyles mm =
     evalStateT mm (MMState { mmMigrations = migrations
@@ -66,45 +92,41 @@ lineDrawingStyle = do
   return $ mkDrawingStyle s
 
 lineOptions :: MM TextWidgetOptions
-lineOptions =
-    do sz <- getSize
-       ds <- lineDrawingStyle
-       return $ TWOptions { twopt_size = TWSizeFixed (1, getWidth sz),
-                            twopt_style = ds,
-                            twopt_halign = AlignLeft }
-
-type ToplineWidget = TextWidget
-type BotlineWidget = TextWidget
-type MsglineWidget = TableWidget
-type MigrationListWidget = TableWidget
+lineOptions = do
+  sz <- getSize
+  ds <- lineDrawingStyle
+  return $ TWOptions { twopt_size = TWSizeFixed (1, getWidth sz)
+                     , twopt_style = ds
+                     , twopt_halign = AlignLeft
+                     }
 
 mkToplineWidget :: MM ToplineWidget
-mkToplineWidget =
-    do opts <- lineOptions
-       return $ newTextWidget (opts { twopt_halign = AlignCenter })
-                  title
+mkToplineWidget = do
+  opts <- lineOptions
+  return $ newTextWidget (opts { twopt_halign = AlignCenter }) title
 
 mkBotlineWidget :: MM BotlineWidget
-mkBotlineWidget =
-    do opts <- lineOptions
-       return $ newTextWidget opts help
+mkBotlineWidget = do
+  opts <- lineOptions
+  return $ newTextWidget opts help
 
 -- We need to insert a dummy widget at the lower-right corner of the window,
 -- i.e. at the lower-right corner of the message line. Otherwise, an
 -- error occurs because drawing a character to this position moves the
 -- cursor to the next line, which doesn't exist.
 mkMsglineWidget :: MM MsglineWidget
-mkMsglineWidget =
-    do sz <- getSize
-       msg <- gets mmStatus
-       let width = getWidth sz
-           opts = TWOptions { twopt_size = TWSizeFixed (1, width - 1),
-                              twopt_style = defaultDrawingStyle,
-                              twopt_halign = AlignLeft }
-           tw = newTextWidget opts msg
-           row = [TableCell tw, TableCell $ EmptyWidget (1,1)]
-           tabOpts = defaultTBWOptions { tbwopt_minSize = (1, width) }
-       return $ newTableWidget tabOpts [row]
+mkMsglineWidget = do
+  sz <- getSize
+  msg <- gets mmStatus
+  let width = getWidth sz
+      opts = TWOptions { twopt_size = TWSizeFixed (1, width - 1)
+                       , twopt_style = defaultDrawingStyle
+                       , twopt_halign = AlignLeft
+                       }
+      tw = newTextWidget opts msg
+      row = [TableCell tw, TableCell $ EmptyWidget (1,1)]
+      tabOpts = defaultTBWOptions { tbwopt_minSize = (1, width) }
+  return $ newTableWidget tabOpts [row]
 
 nlines :: Int
 nlines = 3
@@ -113,21 +135,21 @@ migrationListHeight :: (Int, Int) -> Int
 migrationListHeight (h, _) = h - nlines
 
 migrationListOptions :: MM TableWidgetOptions
-migrationListOptions =
-    do sz <- getSize
-       return $ TBWOptions
-                  { tbwopt_fillCol = Nothing,
-                    tbwopt_fillRow = None,
-                    tbwopt_activeCols = [0],
-                    tbwopt_minSize = (migrationListHeight sz, getWidth sz) }
+migrationListOptions = do
+  sz <- getSize
+  return $ TBWOptions { tbwopt_fillCol = Nothing
+                      , tbwopt_fillRow = None
+                      , tbwopt_activeCols = [0]
+                      , tbwopt_minSize = (migrationListHeight sz, getWidth sz)
+                      }
 
 mkMigrationListWidget :: MM MigrationListWidget
-mkMigrationListWidget =
-    do migrationMap <- gets mmMigrations
-       sz <- getSize
-       let rows = map (migrationRow $ getWidth sz) (Map.keys migrationMap)
-       opts <- migrationListOptions
-       return $ newTableWidget opts rows
+mkMigrationListWidget = do
+  migrationMap <- gets mmMigrations
+  sz <- getSize
+  let rows = map (migrationRow $ getWidth sz) (Map.keys migrationMap)
+  opts <- migrationListOptions
+  return $ newTableWidget opts rows
     where migrationRow w s = [TableCell $ newTextWidget
                               (defaultTWOptions { twopt_size = TWSizeFixed (1, w) }) s]
 
@@ -172,23 +194,13 @@ moveDown orig =
 --        ew <- mkContactEditWidget contact
 --        return $ MainEditWidget tlw blw msglw ew
 
-data MainEditWidget = MainEditWidget
-    { toplineEditWidget :: ToplineWidget
-    , botlineEditWidget :: BotlineWidget
-    , msglineEditWidget :: MsglineWidget
-    }
-
 mkMainWidget :: MM MainWidget
-mkMainWidget =
-    do tlw <- mkToplineWidget
-       clw <- mkMigrationListWidget
-       blw <- mkBotlineWidget
-       msglw <- mkMsglineWidget
-       return $ MainWidget tlw blw msglw clw
-
-instance Widget MainEditWidget where
-    draw pos sz hint w = draw pos sz hint (mkRealMainEditWidget (Just sz) w)
-    minSize w = minSize (mkRealMainEditWidget Nothing w)
+mkMainWidget = do
+  tlw <- mkToplineWidget
+  clw <- mkMigrationListWidget
+  blw <- mkBotlineWidget
+  msglw <- mkMsglineWidget
+  return $ MainWidget tlw blw msglw clw
 
 mkRealMainEditWidget :: (Maybe Size) -> MainEditWidget -> TableWidget
 mkRealMainEditWidget msz w =
@@ -200,16 +212,6 @@ mkRealMainEditWidget msz w =
                  Nothing -> defaultTBWOptions
                  Just sz -> defaultTBWOptions { tbwopt_minSize = sz }
         in newTableWidget opts rows
-
-data MainWidget = MainWidget
-    { toplineWidget :: ToplineWidget
-    , botlineWidget :: BotlineWidget
-    , msglineWidget :: MsglineWidget
-    , migrationListWidget :: MigrationListWidget }
-
-instance Widget MainWidget where
-    draw pos sz hint w = draw pos sz hint (mkRealMainWidget (Just sz) w)
-    minSize w = minSize (mkRealMainWidget Nothing w)
 
 mkRealMainWidget :: Maybe Size -> MainWidget -> TableWidget
 mkRealMainWidget msz w =
@@ -224,10 +226,10 @@ mkRealMainWidget msz w =
         in newTableWidget opts rows
 
 updateStateDependentWidgets :: MainWidget -> MM MainWidget
-updateStateDependentWidgets w =
-    do msgLine <- mkMsglineWidget -- update the message line with the
-                                  -- state's status
-       return $ w { msglineWidget = msgLine }
+updateStateDependentWidgets w = do
+  msgLine <- mkMsglineWidget -- update the message line with the
+                             -- state's status
+  return $ w { msglineWidget = msgLine }
 
 updateStatus :: String -> MM ()
 updateStatus msg = do
@@ -283,55 +285,55 @@ editEventloop w ewm =
 --                     --editEventloop w ew
 
 resize :: Widget w => MM w -> MM ()
-resize f =
-    do liftIO $ do Curses.endWin
-                   Curses.resetParams
-                   Curses.cursSet Curses.CursorInvisible
-                   Curses.refresh
-       w <- f
-       redraw w
+resize f = do
+  liftIO $ do Curses.endWin
+              Curses.resetParams
+              Curses.cursSet Curses.CursorInvisible
+              Curses.refresh
+  w <- f
+  redraw w
 
 redraw :: Widget w => w -> MM ()
-redraw w =
-    do sz <- getSize
-       liftIO $ draw (0, 0) sz DHNormal w
-       liftIO $ Curses.refresh
+redraw w = do
+  sz <- getSize
+  liftIO $ do draw (0, 0) sz DHNormal w
+              Curses.refresh
 
 eventloop :: MainWidget -> MM ()
-eventloop w =
-    do k <- CursesH.getKey (resize mkMainWidget)
-       case k of
-         Curses.KeyChar 'q' -> return ()
-         Curses.KeyUp       -> process $ move DirUp w
-         Curses.KeyDown     -> process $ move DirDown w
-         _ -> eventloop w
-    where process f =
-              do w' <- f
-                 redraw w'
-                 eventloop w'
+eventloop w = do
+  k <- CursesH.getKey (resize mkMainWidget)
+  case k of
+    Curses.KeyChar 'q' -> return ()
+    Curses.KeyUp       -> process $ move DirUp w
+    Curses.KeyDown     -> process $ move DirDown w
+    _ -> eventloop w
+  where process f = do
+                w' <- f
+                redraw w'
+                eventloop w'
 
 mmMain :: MM ()
-mmMain =
-    do w <- mkMainWidget
-       redraw w
-       eventloop w
+mmMain = do
+  w <- mkMainWidget
+  redraw w
+  eventloop w
 
 main :: IO ()
-main =
-    do args <- getArgs
-       let theStorePath = args !! 0
-       migrationMap <-
-             if length args /= 1
-                then do p <- getProgName
-                        putStrLn ("Usage: " ++ p ++ " <store-path>")
-                        exitFailure
-                else do
-                  let store = FSStore { storePath = theStorePath }
-                  loadMigrations store
+main = do
+  args <- getArgs
+  let theStorePath = args !! 0
+  migrationMap <-
+      if length args /= 1
+      then do p <- getProgName
+              putStrLn ("Usage: " ++ p ++ " <store-path>")
+              exitFailure
+      else do
+        let store = FSStore { storePath = theStorePath }
+        loadMigrations store
 
-       runCurses theStorePath migrationMap `finally` CursesH.end
-    where runCurses sp migrations =
-              do CursesH.start
-                 cstyles <- CursesH.convertStyles styles
-                 Curses.cursSet Curses.CursorInvisible
-                 runMM sp migrations cstyles mmMain
+  runCurses theStorePath migrationMap `finally` CursesH.end
+    where runCurses sp migrations = do
+            CursesH.start
+            cstyles <- CursesH.convertStyles styles
+            Curses.cursSet Curses.CursorInvisible
+            runMM sp migrations cstyles mmMain
