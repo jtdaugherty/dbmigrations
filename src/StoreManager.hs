@@ -45,10 +45,6 @@ data MainWidget = MainWidget
     , migrationListWidget :: MigrationListWidget
     }
 
-instance Widget MainWidget where
-    draw pos sz hint w = draw pos sz hint (mkRealMainWidget (Just sz) w)
-    minSize w = minSize (mkRealMainWidget Nothing w)
-
 data MainEditWidget = MainEditWidget
     { toplineEditWidget :: ToplineWidget
     , helplineEditWidget :: HelpLineWidget
@@ -58,6 +54,10 @@ data MainEditWidget = MainEditWidget
 instance Widget MainEditWidget where
     draw pos sz hint w = draw pos sz hint (mkRealMainEditWidget (Just sz) w)
     minSize w = minSize (mkRealMainEditWidget Nothing w)
+
+instance Widget MainWidget where
+    draw pos sz hint w = draw pos sz hint (mkRealMainWidget (Just sz) w)
+    minSize w = minSize (mkRealMainWidget Nothing w)
 
 runMM :: FilePath -> MigrationMap -> [CursesH.CursesStyle] -> MM a -> IO a
 runMM sp migrations cstyles mm =
