@@ -110,10 +110,11 @@ mkBotlineWidget = do
   opts <- lineOptions
   return $ newTextWidget opts help
 
--- We need to insert a dummy widget at the lower-right corner of the window,
--- i.e. at the lower-right corner of the message line. Otherwise, an
--- error occurs because drawing a character to this position moves the
--- cursor to the next line, which doesn't exist.
+-- We need to insert a dummy widget at the lower-right corner of the
+-- window, i.e. at the lower-right corner of the message
+-- line. Otherwise, an error occurs because drawing a character to
+-- this position moves the cursor to the next line, which doesn't
+-- exist.
 mkMsglineWidget :: MM MsglineWidget
 mkMsglineWidget = do
   sz <- getSize
