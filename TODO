@@ -1,3 +1,4 @@
+- InitFS: add command to list migrations not yet installed
 
 - InitFS: add an "--ask" option to the "new" command which will
   interactively prompt for dependencies and set them when creating the
