@@ -5,7 +5,6 @@ where
 
 import System.Environment ( getArgs )
 import System.Exit ( exitWith, ExitCode(..), exitSuccess )
-import System.FilePath ( (</>) )
 
 import Control.Exception ( bracket )
 
