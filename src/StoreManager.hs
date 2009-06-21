@@ -3,7 +3,7 @@ module Main where
 
 import Control.Exception
 import Control.Monad.State
-import Data.Maybe ( fromJust, isJust, isNothing )
+import Data.Maybe ( fromJust, isNothing )
 import qualified Data.Map as Map
 import System.Environment (getArgs, getProgName)
 import System.Exit (exitFailure)
