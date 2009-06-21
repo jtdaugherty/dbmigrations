@@ -58,7 +58,7 @@ data Command = Command { cName :: String
 type CommandHandler = ([String], [String]) -> IO ()
 
 commands :: [Command]
-commands = [ Command "new" ["store_path", "db_path", "migration_name"] [] newCommand
+commands = [ Command "new" ["store_path", "migration_name"] [] newCommand
            , Command "apply" ["store_path", "db_path", "migration_name"] [] applyCommand
            , Command "revert" ["store_path", "db_path", "migration_name"] [] revertCommand
            , Command "test" ["store_path", "db_path", "migration_name"] [] testCommand
