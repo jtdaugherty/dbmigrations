@@ -63,6 +63,7 @@ commands = [ Command "new" ["store_path", "migration_name"] [] newCommand
            , Command "revert" ["store_path", "db_path", "migration_name"] [] revertCommand
            , Command "test" ["store_path", "db_path", "migration_name"] [] testCommand
            , Command "upgrade" ["store_path", "db_path"] [] upgradeCommand
+           , Command "upgrade-list" ["store_path", "db_path"] [] upgradeListCommand
            ]
 
 withConnection :: FilePath -> (Connection -> IO a) -> IO a
@@ -94,6 +95,20 @@ upgradeCommand (required, _) = do
             apply m mapping conn
         commit conn
         putStrLn $ "Database successfully upgraded."
+
+upgradeListCommand :: CommandHandler
+upgradeListCommand (required, _) = do
+  let [fsPath, dbPath] = required
+      store = FSStore { storePath = fsPath }
+  mapping <- loadMigrations store
+
+  withConnection dbPath $ \conn ->
+      do
+        ensureBootstrappedBackend conn >> commit conn
+        migrationNames <- missingMigrations conn mapping
+        when (null migrationNames) (putStrLn "Database is up to date." >> exitSuccess)
+        putStrLn "Migrations to install:"
+        forM_ migrationNames (putStrLn . ("  " ++))
 
 reportSqlError :: SqlError -> IO a
 reportSqlError e = do
