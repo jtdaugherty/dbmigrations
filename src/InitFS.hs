@@ -275,6 +275,10 @@ testCommand (required,_) _ = do
       do
         ensureBootstrappedBackend conn >> commit conn
         m <- lookupMigration mapping migrationId
+        migrationNames <- missingMigrations conn mapping
+        -- If the migration is already installed, remove it as part of
+        -- the test
+        when (not $ migrationId `elem` migrationNames) $ revert m mapping conn >> return ()
         applied <- apply m mapping conn
         forM_ (reverse applied) $ \migration -> do
                              revert migration mapping conn
