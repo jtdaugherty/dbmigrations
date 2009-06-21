@@ -52,18 +52,24 @@ import Database.Schema.Migrations.Backend.Sqlite()
 data Command = Command { cName :: String
                        , cRequired :: [String]
                        , cOptional :: [String]
+                       , cDescription :: String
                        , cHandler :: CommandHandler
                        }
 -- (required arguments, optional arguments) -> IO ()
 type CommandHandler = ([String], [String]) -> IO ()
 
 commands :: [Command]
-commands = [ Command "new" ["store_path", "migration_name"] [] newCommand
-           , Command "apply" ["store_path", "db_path", "migration_name"] [] applyCommand
-           , Command "revert" ["store_path", "db_path", "migration_name"] [] revertCommand
-           , Command "test" ["store_path", "db_path", "migration_name"] [] testCommand
-           , Command "upgrade" ["store_path", "db_path"] [] upgradeCommand
-           , Command "upgrade-list" ["store_path", "db_path"] [] upgradeListCommand
+commands = [ Command "new" ["store_path", "migration_name"] [] "Create a new empty migration" newCommand
+           , Command "apply" ["store_path", "db_path", "migration_name"] []
+                         "Apply the specified migration and its dependencies" applyCommand
+           , Command "revert" ["store_path", "db_path", "migration_name"] []
+                         "Revert the specified migration and those that depend on it" revertCommand
+           , Command "test" ["store_path", "db_path", "migration_name"] []
+                         "Test the specified migration by applying it and reverting it" testCommand
+           , Command "upgrade" ["store_path", "db_path"] []
+                         "Install all migrations that have not yet been installed" upgradeCommand
+           , Command "upgrade-list" ["store_path", "db_path"] []
+                         "Show the list of migrations to be installed during an upgrade" upgradeListCommand
            ]
 
 withConnection :: FilePath -> (Connection -> IO a) -> IO a
@@ -232,6 +238,8 @@ usage = do
   putStrLn "Commands:"
   forM_ commands $ \command -> do
           putStrLn $ "  " ++ usageString command
+          putStrLn $ "    " ++ cDescription command
+          putStrLn ""
   exitWith (ExitFailure 1)
 
 usageSpecific :: Command -> IO a
