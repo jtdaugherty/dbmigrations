@@ -5,11 +5,12 @@ where
 
 import System.Environment ( getArgs )
 import System.Exit ( exitWith, ExitCode(..), exitSuccess )
+import System.IO ( stdout, hFlush, hSetBuffering, stdin, BufferMode(..) )
 
 import Control.Exception ( bracket )
 
 import Data.Maybe ( listToMaybe, catMaybes, isJust, fromJust )
-import Data.List ( intercalate )
+import Data.List ( intercalate, intersperse, sortBy )
 import qualified Data.Map as Map
 import Control.Monad ( when, forM_ )
 
@@ -60,6 +61,7 @@ type CommandHandler = ([String], [String]) -> [CommandOption] -> IO ()
 
 -- Options which can be passed to commands to alter behavior
 data CommandOption = Test
+                   | Ask
                    deriving (Eq)
 
 reset :: String
@@ -83,11 +85,25 @@ blue s = "\27[34m" ++ s ++ reset
 -- cyan :: String -> String
 -- cyan s = "\27[36m" ++ s ++ reset
 
-white :: String -> String
-white s = "\27[37m" ++ s ++ reset
+-- white :: String -> String
+-- white s = "\27[37m" ++ s ++ reset
+
+prompt :: String -> [Char] -> IO Char
+prompt _ [] = error "prompt requires a list of choices"
+prompt message choices = do
+  hSetBuffering stdin NoBuffering
+  putStr $ message ++ " (" ++ (intersperse ',' choices) ++ "): "
+  hFlush stdout
+  c <- getChar
+  if c `elem` choices then
+      putStrLn "" >> return c else
+      if c == '\n' then return (choices !! 0) else putStrLn "" >> retry
+    where
+      retry = prompt message choices
 
 optionMap :: [(String, CommandOption)]
-optionMap = [("--test", Test)]
+optionMap = [ ("--test", Test)
+            , ("--ask", Ask)]
 
 withOption :: CommandOption -> [CommandOption] -> Bool
 withOption = elem
@@ -109,7 +125,7 @@ convertOptions args = if null unsupportedOptions
       rest = [arg | arg <- args, not $ isCommandOption arg]
 
 commands :: [Command]
-commands = [ Command "new" ["store_path", "migration_name"] [] [] "Create a new empty migration" newCommand
+commands = [ Command "new" ["store_path", "migration_name"] [] [Ask] "Create a new empty migration" newCommand
            , Command "apply" ["store_path", "db_path", "migration_name"] [] []
                          "Apply the specified migration and its dependencies" applyCommand
            , Command "revert" ["store_path", "db_path", "migration_name"] [] []
@@ -125,12 +141,58 @@ commands = [ Command "new" ["store_path", "migration_name"] [] [] "Create a new 
 withConnection :: FilePath -> (Connection -> IO a) -> IO a
 withConnection dbPath act = bracket (connectSqlite3 dbPath) disconnect act
 
+interactiveAskDeps :: MigrationMap -> IO [String]
+interactiveAskDeps mapping = do
+  -- For each migration in the store, starting with the most recently
+  -- added, ask the user if it should be added to a dependency list
+  let migrations = Map.elems mapping
+      sorted = sortBy compareTimestamps migrations
+  interactiveAskDeps' mapping (map mId sorted)
+      where
+        compareTimestamps m1 m2 = compare (mTimestamp m2) (mTimestamp m1)
+
+interactiveAskDeps' :: MigrationMap -> [String] -> IO [String]
+interactiveAskDeps' _ [] = return []
+interactiveAskDeps' mapping (name:rest) = do
+  result <- prompt ("Depend on '" ++ (green name) ++ "'?") ['n', 'y', 'v', 'd']
+  if (result == 'd') then return [] else
+      do
+        case result of
+          'y' -> do
+            next <- interactiveAskDeps' mapping rest
+            return $ name:next
+          'n' -> interactiveAskDeps' mapping rest
+          'v' -> do
+            -- load migration
+            let Just m = Map.lookup name mapping
+            -- print out description, timestamp, deps
+            when (isJust $ mDesc m) (putStrLn $ "  Description: " ++ (fromJust $ mDesc m))
+            putStrLn $ "      Created: " ++ (show $ mTimestamp m)
+            when (not $ null $ mDeps m) $ putStrLn $ "  Deps: " ++ (intercalate "\n        " $ mDeps m)
+            -- ask again
+            interactiveAskDeps' mapping (name:rest)
+          -- Impossible
+          _ -> return []
+
 newCommand :: CommandHandler
-newCommand (required, _) _ = do
+newCommand (required, _) opts = do
   let [fsPath, migrationId] = required
       store = FSStore { storePath = fsPath }
+  mapping <- loadMigrations store
   fullPath <- fullMigrationName store migrationId
-  status <- createNewMigration store migrationId
+
+  when (isJust $ Map.lookup migrationId mapping) $
+       do
+         putStrLn $ red $ "Migration " ++ (show fullPath) ++ " already exists"
+         exitWith (ExitFailure 1)
+
+  deps <- case withOption Ask opts of
+            True -> do
+                putStrLn $ "Selecting dependencies for new migration: " ++ migrationId
+                interactiveAskDeps mapping
+            False -> return []
+
+  status <- createNewMigration store migrationId deps
   case status of
     Left e -> putStrLn (red e) >> (exitWith (ExitFailure 1))
     Right _ -> putStrLn $ "Migration created successfully: " ++ (green $ show fullPath)
