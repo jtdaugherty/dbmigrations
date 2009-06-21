@@ -3,7 +3,7 @@ module Main where
 
 import Control.Exception
 import Control.Monad.State
-import Data.Maybe ( fromJust )
+import Data.Maybe ( fromJust, isJust, isNothing )
 import qualified Data.Map as Map
 import System.Environment (getArgs, getProgName)
 import System.Exit (exitFailure)
@@ -154,15 +154,23 @@ validPos pos w = (getWidth pos) `elem` (tbwopt_activeCols $ tbw_options w) &&
 
 moveUp :: TableWidget -> TableWidget
 moveUp orig =
-    let oldPos = fromJust $ tbw_pos orig
-        newPos = ((getHeight $ oldPos) - 1, getWidth oldPos)
-    in if validPos newPos orig then orig { tbw_pos = Just newPos } else orig
+    if isNothing (tbw_pos orig) then orig
+    else
+        let oldPos = fromJust $ tbw_pos orig
+            newPos = ((getHeight $ oldPos) - 1, getWidth oldPos)
+        in if validPos newPos orig
+           then orig { tbw_pos = Just newPos }
+           else orig
 
 moveDown :: TableWidget -> TableWidget
 moveDown orig =
-    let oldPos = fromJust $ tbw_pos orig
-        newPos = ((getHeight $ oldPos) + 1, getWidth oldPos)
-    in if validPos newPos orig then orig { tbw_pos = Just newPos } else orig
+    if isNothing (tbw_pos orig) then orig
+    else
+        let oldPos = fromJust $ tbw_pos orig
+            newPos = ((getHeight $ oldPos) + 1, getWidth oldPos)
+        in if validPos newPos orig
+           then orig { tbw_pos = Just newPos }
+           else orig
 
 mkMainWidget :: MM MainWidget
 mkMainWidget = do
