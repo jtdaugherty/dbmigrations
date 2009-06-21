@@ -62,6 +62,30 @@ type CommandHandler = ([String], [String]) -> [CommandOption] -> IO ()
 data CommandOption = Test
                    deriving (Eq)
 
+reset :: String
+reset = "\027[0m"
+
+red :: String -> String
+red s = "\27[31m" ++ s ++ reset
+
+green :: String -> String
+green s = "\27[32m" ++ s ++ reset
+
+yellow :: String -> String
+yellow s = "\27[33m" ++ s ++ reset
+
+blue :: String -> String
+blue s = "\27[34m" ++ s ++ reset
+
+magenta :: String -> String
+magenta s = "\27[35m" ++ s ++ reset
+
+cyan :: String -> String
+cyan s = "\27[36m" ++ s ++ reset
+
+white :: String -> String
+white s = "\27[37m" ++ s ++ reset
+
 optionMap :: [(String, CommandOption)]
 optionMap = [("--test", Test)]
 
@@ -108,8 +132,8 @@ newCommand (required, _) _ = do
   fullPath <- fullMigrationName store migrationId
   status <- createNewMigration store migrationId
   case status of
-    Left e -> putStrLn e >> (exitWith (ExitFailure 1))
-    Right _ -> putStrLn $ "Migration created successfully: " ++ (show fullPath)
+    Left e -> putStrLn (red e) >> (exitWith (ExitFailure 1))
+    Right _ -> putStrLn $ "Migration created successfully: " ++ (green $ show fullPath)
 
 upgradeCommand :: CommandHandler
 upgradeCommand (required, _) opts = do
@@ -128,10 +152,10 @@ upgradeCommand (required, _) opts = do
         if withOption Test opts
           then do
             rollback conn
-            putStrLn $ "Upgrade test successful."
+            putStrLn "Upgrade test successful."
           else do
             commit conn
-            putStrLn $ "Database successfully upgraded."
+            putStrLn "Database successfully upgraded."
 
 upgradeListCommand :: CommandHandler
 upgradeListCommand (required, _) _ = do
@@ -145,11 +169,11 @@ upgradeListCommand (required, _) _ = do
         migrationNames <- missingMigrations conn mapping
         when (null migrationNames) (putStrLn "Database is up to date." >> exitSuccess)
         putStrLn "Migrations to install:"
-        forM_ migrationNames (putStrLn . ("  " ++))
+        forM_ migrationNames (putStrLn . ("  " ++) . green)
 
 reportSqlError :: SqlError -> IO a
 reportSqlError e = do
-  putStrLn $ "\nA database error occurred: " ++ seErrorMsg e
+  putStrLn $ "\n" ++ (red $ "A database error occurred: " ++ seErrorMsg e)
   exitWith (ExitFailure 1)
 
 apply :: (Backend b IO) => Migration -> MigrationMap -> b -> IO [Migration]
@@ -158,7 +182,7 @@ apply m mapping backend = do
   toApply' <- migrationsToApply mapping backend m
   toApply <- case toApply' of
                Left e -> do
-                 putStrLn $ "Error: " ++ e
+                 putStrLn $ red $ "Error: " ++ e
                  exitWith (ExitFailure 1)
                Right ms -> return ms
 
@@ -174,9 +198,9 @@ apply m mapping backend = do
                      " already installed."
 
       applyIt conn it = do
-        putStr $ "Applying: " ++ (mId it) ++ "... "
+        putStr $ "Applying: " ++ (green $ mId it) ++ "... "
         applyMigration conn it
-        putStrLn "done."
+        putStrLn $ green "done."
 
 revert :: (Backend b IO) => Migration -> MigrationMap -> b -> IO [Migration]
 revert m mapping backend = do
@@ -184,7 +208,7 @@ revert m mapping backend = do
   toRevert' <- migrationsToRevert mapping backend m
   toRevert <- case toRevert' of
                 Left e -> do
-                  putStrLn $ "Error: " ++ e
+                  putStrLn $ red $ "Error: " ++ e
                   exitWith (ExitFailure 1)
                 Right ms -> return ms
 
@@ -200,16 +224,16 @@ revert m mapping backend = do
                      " not installed."
 
       revertIt conn it = do
-        putStr $ "Reverting: " ++ (mId it) ++ "... "
+        putStr $ "Reverting: " ++ (green $ mId it) ++ "... "
         revertMigration conn it
-        putStrLn "done."
+        putStrLn $ green "done."
 
 lookupMigration :: MigrationMap -> String -> IO Migration
 lookupMigration mapping name = do
   let theMigration = Map.lookup name mapping
   case theMigration of
     Nothing -> do
-      putStrLn $ "No such migration: " ++ name
+      putStrLn $ red $ "No such migration: " ++ name
       exitWith (ExitFailure 1)
     Just m' -> return m'
 
@@ -225,7 +249,7 @@ applyCommand (required, _) _ = do
         m <- lookupMigration mapping migrationId
         apply m mapping conn
         commit conn
-        putStrLn $ "Successfully applied migrations."
+        putStrLn "Successfully applied migrations."
 
 revertCommand :: CommandHandler
 revertCommand (required, _) _ = do
@@ -239,7 +263,7 @@ revertCommand (required, _) _ = do
         m <- lookupMigration mapping migrationId
         revert m mapping conn
         commit conn
-        putStrLn $ "Successfully reverted migrations."
+        putStrLn "Successfully reverted migrations."
 
 testCommand :: CommandHandler
 testCommand (required,_) _ = do
@@ -255,10 +279,10 @@ testCommand (required,_) _ = do
         forM_ (reverse applied) $ \migration -> do
                              revert migration mapping conn
         rollback conn
-        putStrLn $ "Successfully tested migrations."
+        putStrLn "Successfully tested migrations."
 
 usageString :: Command -> String
-usageString command = intercalate " " ((cName command):requiredArgs ++ optionalArgs ++ options)
+usageString command = intercalate " " ((blue $ cName command):requiredArgs ++ optionalArgs ++ options)
     where
       requiredArgs = map (\s -> "<" ++ s ++ ">") $ cRequired command
       optionalArgs = map (\s -> "[" ++ s ++ "]") $ cOptional command
@@ -268,7 +292,7 @@ usageString command = intercalate " " ((cName command):requiredArgs ++ optionalA
 
 usage :: IO a
 usage = do
-  putStrLn $ "Usage: initstore-fs <command> [args]"
+  putStrLn $ "Usage: initstore-fs <" ++ (blue "command") ++ "> [args]"
   putStrLn "Commands:"
   forM_ commands $ \command -> do
           putStrLn $ "  " ++ usageString command
