@@ -52,7 +52,7 @@ instance MigrationStore FilesystemStore IO where
       return [ dropExtension short | (short, _) <- existing ]
 
     saveMigration s m = do
-      let filename = storePath s </> (mId m ++ filenameExtension)
+      filename <- fullMigrationName s $ mId m
       writeFile filename $ serializeMigration m
 
 isMigrationFilename :: FilePath -> Bool
@@ -63,7 +63,7 @@ isMigrationFilename path = takeExtension path == filenameExtension
 -- dependencies.
 migrationFromFile :: FilesystemStore -> String -> IO (Either String Migration)
 migrationFromFile store name = do
-  let path = (storePath store) </> (name ++ filenameExtension)
+  path <- fullMigrationName store name
   contents <- readFile path
   case parse migrationParser path contents of
     Left _ -> return $ Left $ "Could not parse migration file " ++ (show path)
