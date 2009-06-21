@@ -71,17 +71,17 @@ red s = "\27[31m" ++ s ++ reset
 green :: String -> String
 green s = "\27[32m" ++ s ++ reset
 
-yellow :: String -> String
-yellow s = "\27[33m" ++ s ++ reset
-
 blue :: String -> String
 blue s = "\27[34m" ++ s ++ reset
 
-magenta :: String -> String
-magenta s = "\27[35m" ++ s ++ reset
+-- yellow :: String -> String
+-- yellow s = "\27[33m" ++ s ++ reset
 
-cyan :: String -> String
-cyan s = "\27[36m" ++ s ++ reset
+-- magenta :: String -> String
+-- magenta s = "\27[35m" ++ s ++ reset
+
+-- cyan :: String -> String
+-- cyan s = "\27[36m" ++ s ++ reset
 
 white :: String -> String
 white s = "\27[37m" ++ s ++ reset
