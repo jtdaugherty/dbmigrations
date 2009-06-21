@@ -43,6 +43,7 @@ import Database.Schema.Migrations.Backend
     )
 import Database.Schema.Migrations.Store
     ( loadMigrations
+    , fullMigrationName
     )
 import Database.Schema.Migrations.Backend.Sqlite()
 
@@ -71,7 +72,7 @@ newCommand :: CommandHandler
 newCommand (required, _) = do
   let [fsPath, migrationId] = required
       store = FSStore { storePath = fsPath }
-      fullPath = storePath store </> migrationId
+  fullPath <- fullMigrationName store migrationId
   status <- createNewMigration store migrationId
   case status of
     Left e -> putStrLn e >> (exitWith (ExitFailure 1))
