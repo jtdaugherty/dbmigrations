@@ -4,6 +4,12 @@
   migration (or even have this behavior be the default, with a
   "--no-ask" option to turn it off)
 
+  (mostly done; don't ask about dependencies that would result in a
+  graph cycle!)
+
+  (also need to do a confirmation prompt before creating new
+  migrations)
+
 - curses tool to select dependencies for a migration? could also be
   used to render / navigate a dependency structure
 
