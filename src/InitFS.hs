@@ -8,7 +8,7 @@ import System.Exit ( exitWith, ExitCode(..), exitSuccess )
 
 import Control.Exception ( bracket )
 
-import Data.Maybe ( listToMaybe )
+import Data.Maybe ( listToMaybe, catMaybes, isJust, fromJust )
 import Data.List ( intercalate )
 import qualified Data.Map as Map
 import Control.Monad ( when, forM_ )
@@ -51,23 +51,50 @@ import Database.Schema.Migrations.Backend.Sqlite()
 data Command = Command { cName :: String
                        , cRequired :: [String]
                        , cOptional :: [String]
+                       , cAllowedOptions :: [CommandOption]
                        , cDescription :: String
                        , cHandler :: CommandHandler
                        }
 -- (required arguments, optional arguments) -> IO ()
-type CommandHandler = ([String], [String]) -> IO ()
+type CommandHandler = ([String], [String]) -> [CommandOption] -> IO ()
+
+-- Options which can be passed to commands to alter behavior
+data CommandOption = Test
+                   deriving (Eq)
+
+optionMap :: [(String, CommandOption)]
+optionMap = [("--test", Test)]
+
+withOption :: CommandOption -> [CommandOption] -> Bool
+withOption = elem
+
+isSupportedCommandOption :: String -> Bool
+isSupportedCommandOption s = isJust $ lookup s optionMap
+
+isCommandOption :: String -> Bool
+isCommandOption s = take 2 s == "--"
+
+convertOptions :: [String] -> Either String ([CommandOption], [String])
+convertOptions args = if null unsupportedOptions
+                      then Right (supportedOptions, rest)
+                      else Left $ "Unsupported option(s): " ++ intercalate ", " unsupportedOptions
+    where
+      allOptions = filter isCommandOption args
+      supportedOptions = catMaybes $ map (\s -> lookup s optionMap) args
+      unsupportedOptions = [ s | s <- allOptions, not $ isSupportedCommandOption s ]
+      rest = [arg | arg <- args, not $ isCommandOption arg]
 
 commands :: [Command]
-commands = [ Command "new" ["store_path", "migration_name"] [] "Create a new empty migration" newCommand
-           , Command "apply" ["store_path", "db_path", "migration_name"] []
+commands = [ Command "new" ["store_path", "migration_name"] [] [] "Create a new empty migration" newCommand
+           , Command "apply" ["store_path", "db_path", "migration_name"] [] []
                          "Apply the specified migration and its dependencies" applyCommand
-           , Command "revert" ["store_path", "db_path", "migration_name"] []
+           , Command "revert" ["store_path", "db_path", "migration_name"] [] []
                          "Revert the specified migration and those that depend on it" revertCommand
-           , Command "test" ["store_path", "db_path", "migration_name"] []
+           , Command "test" ["store_path", "db_path", "migration_name"] [] []
                          "Test the specified migration by applying it and reverting it" testCommand
-           , Command "upgrade" ["store_path", "db_path"] []
+           , Command "upgrade" ["store_path", "db_path"] [] [Test]
                          "Install all migrations that have not yet been installed" upgradeCommand
-           , Command "upgrade-list" ["store_path", "db_path"] []
+           , Command "upgrade-list" ["store_path", "db_path"] [] []
                          "Show the list of migrations to be installed during an upgrade" upgradeListCommand
            ]
 
@@ -75,7 +102,7 @@ withConnection :: FilePath -> (Connection -> IO a) -> IO a
 withConnection dbPath act = bracket (connectSqlite3 dbPath) disconnect act
 
 newCommand :: CommandHandler
-newCommand (required, _) = do
+newCommand (required, _) _ = do
   let [fsPath, migrationId] = required
       store = FSStore { storePath = fsPath }
   fullPath <- fullMigrationName store migrationId
@@ -85,7 +112,7 @@ newCommand (required, _) = do
     Right _ -> putStrLn $ "Migration created successfully: " ++ (show fullPath)
 
 upgradeCommand :: CommandHandler
-upgradeCommand (required, _) = do
+upgradeCommand (required, _) opts = do
   let [fsPath, dbPath] = required
       store = FSStore { storePath = fsPath }
   mapping <- loadMigrations store
@@ -98,11 +125,16 @@ upgradeCommand (required, _) = do
         forM_ migrationNames $ \migrationName -> do
             m <- lookupMigration mapping migrationName
             apply m mapping conn
-        commit conn
-        putStrLn $ "Database successfully upgraded."
+        if withOption Test opts
+          then do
+            rollback conn
+            putStrLn $ "Upgrade test successful."
+          else do
+            commit conn
+            putStrLn $ "Database successfully upgraded."
 
 upgradeListCommand :: CommandHandler
-upgradeListCommand (required, _) = do
+upgradeListCommand (required, _) _ = do
   let [fsPath, dbPath] = required
       store = FSStore { storePath = fsPath }
   mapping <- loadMigrations store
@@ -182,7 +214,7 @@ lookupMigration mapping name = do
     Just m' -> return m'
 
 applyCommand :: CommandHandler
-applyCommand (required, _) = do
+applyCommand (required, _) _ = do
   let [fsPath, dbPath, migrationId] = required
       store = FSStore { storePath = fsPath }
   mapping <- loadMigrations store
@@ -196,7 +228,7 @@ applyCommand (required, _) = do
         putStrLn $ "Successfully applied migrations."
 
 revertCommand :: CommandHandler
-revertCommand (required, _) = do
+revertCommand (required, _) _ = do
   let [fsPath, dbPath, migrationId] = required
       store = FSStore { storePath = fsPath }
   mapping <- loadMigrations store
@@ -210,7 +242,7 @@ revertCommand (required, _) = do
         putStrLn $ "Successfully reverted migrations."
 
 testCommand :: CommandHandler
-testCommand (required,_) = do
+testCommand (required,_) _ = do
   let [fsPath, dbPath, migrationId] = required
       store = FSStore { storePath = fsPath }
   mapping <- loadMigrations store
@@ -226,10 +258,13 @@ testCommand (required,_) = do
         putStrLn $ "Successfully tested migrations."
 
 usageString :: Command -> String
-usageString command = intercalate " " ((cName command):requiredArgs ++ optionalArgs)
+usageString command = intercalate " " ((cName command):requiredArgs ++ optionalArgs ++ options)
     where
       requiredArgs = map (\s -> "<" ++ s ++ ">") $ cRequired command
       optionalArgs = map (\s -> "[" ++ s ++ "]") $ cOptional command
+      options = map (\s -> "[" ++ s ++ "]") $ optionStrings
+      optionStrings = map (\o -> fromJust $ lookup o flippedOptions) $ cAllowedOptions command
+      flippedOptions = map (\(a,b) -> (b,a)) optionMap
 
 usage :: IO a
 usage = do
@@ -254,12 +289,17 @@ main = do
   allArgs <- getArgs
   when (null allArgs) usage
 
-  let (commandName:args) = allArgs
+  let (commandName:unprocessedArgs) = allArgs
+  (opts, args) <- case convertOptions unprocessedArgs of
+                    Left e -> putStrLn e >> usage
+                    Right c -> return c
 
   command <- case findCommand commandName of
                Nothing -> usage
                Just c -> return c
 
+  let splitArgs = splitAt (length $ cRequired command) args
+
   if (length args) < (length $ cRequired command) then
       usageSpecific command else
-      (cHandler command $ splitAt (length $ cRequired command) args) `catchSql` reportSqlError
+      ((cHandler command) splitArgs opts) `catchSql` reportSqlError
