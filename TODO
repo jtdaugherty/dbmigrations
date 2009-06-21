@@ -1,4 +1,3 @@
-- InitFS: add command to list migrations not yet installed
 
 - InitFS: add an "--ask" option to the "new" command which will
   interactively prompt for dependencies and set them when creating the
@@ -8,7 +7,21 @@
 - curses tool to select dependencies for a migration? could also be
   used to render / navigate a dependency structure
 
+  - list migrations
+
+  - let user select dependencies
+
   - tool to show dependency hierarchy
+
+  - support for creating and editing migrations
+
+    - editing: fire up editor with migration in a temp file, when
+      editor closes, parse the migration and tell the user if there
+      was a problem, then ask to re-invoke editor or quit. if no parse
+      error, overwrite original migration file with temp file
+      contents.
+
+- Rename InitFS / initstore-fs
 
 - improve test coverage
 
