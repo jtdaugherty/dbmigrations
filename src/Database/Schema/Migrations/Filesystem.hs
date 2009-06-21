@@ -35,7 +35,8 @@ filenameExtension = ".m"
 
 instance MigrationStore FilesystemStore IO where
 
-    fullMigrationName s name = return $ storePath s </> name
+    fullMigrationName s name =
+        return $ storePath s </> name ++ filenameExtension
 
     loadMigration s theId = do
       result <- migrationFromFile s theId
