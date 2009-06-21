@@ -34,8 +34,8 @@ missingMigrations backend storeMigrationMap = do
          (Set.fromList backendMigrations)
 
 createNewMigration :: (MonadMigration m, S.MigrationStore s m) =>
-                      s -> String -> m (Either String ())
-createNewMigration store name = do
+                      s -> String -> [String] -> m (Either String ())
+createNewMigration store name deps = do
   available <- S.getMigrations store
   fullPath <- S.fullMigrationName store name
   case name `elem` available of
@@ -45,6 +45,7 @@ createNewMigration store name = do
       let newWithDefaults = new { mDesc = Just "(Description here.)"
                                 , mApply = "(Apply SQL here.)"
                                 , mRevert = Just "(Revert SQL here.)"
+                                , mDeps = deps
                                 }
       S.saveMigration store newWithDefaults
       return $ Right ()
