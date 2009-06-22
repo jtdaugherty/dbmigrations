@@ -60,6 +60,23 @@ noCycleRadial :: Gr String String
 noCycleRadial = mkGraph [(1,""),(2,""),(3,""),(4,"")]
                   [(1,2,""),(3,1,""),(4,1,"")]
 
+-- This graph would contain a loop if it were undirected, but it does
+-- not contain a directed cycle.
+noDirectedCycle1 :: Gr String String
+noDirectedCycle1 = mkGraph [(1,""),(2,""),(3,""),(4,"")]
+                   [(1,2,""),(1,3,""),(3,2,""),(2,4,"")]
+
+-- This graph would contain a loop if it were undirected, but it does
+-- not contain a directed cycle.
+noDirectedCycle2 :: Gr String String
+noDirectedCycle2 = mkGraph [(1,"flub"),(2,"test.db"),(3,"test2"),(4,"test3"),(5,"test1")]
+                   [ (1,2,"flub->test.db")
+                   , (2,3,"test.db->test2")
+                   , (2,4,"test.db->test3")
+                   , (3,5,"test2->test1")
+                   , (4,3,"test3->test2")
+                   ]
+
 type CycleTestCase = (Gr String String, Bool)
 
 cycleTests :: [CycleTestCase]
@@ -69,6 +86,8 @@ cycleTests = [ (noCyclesEmpty, False)
              , (withCycleSimple, True)
              , (withCycleComplex, True)
              , (withCycleRadial, True)
+             , (noDirectedCycle1, False)
+             , (noDirectedCycle2, False)
              ]
 
 mkCycleTests :: [Test]
