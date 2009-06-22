@@ -113,6 +113,12 @@ dependencyTestCases = [ ([TD "first" []], "first", Forward, [])
                         , "first", Reverse, ["third", "second"])
                       , ([TD "first" [], TD "second" ["first"], TD "third" ["second"], TD "fourth" ["second"]]
                         , "first", Reverse, ["fourth", "third", "second"])
+                      , ([ TD "first" ["second"], TD "second" ["third"], TD "third" ["fourth"]
+                         , TD "second" ["fifth"], TD "fifth" ["third"], TD "fourth" []]
+                        , "fourth", Reverse, ["first", "second", "fifth", "third"])
+                      , ([ TD "first" ["second"], TD "second" ["third", "fifth"], TD "third" ["fourth"]
+                         , TD "fifth" ["third"], TD "fourth" []]
+                        , "first", Forward, ["fourth", "third", "fifth", "second"])
                       ]
 
 fromRight :: Either a b -> b
