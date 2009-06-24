@@ -1,14 +1,23 @@
 
-- InitFS: add an "--ask" option to the "new" command which will
-  interactively prompt for dependencies and set them when creating the
-  migration (or even have this behavior be the default, with a
-  "--no-ask" option to turn it off)
+- Add --verbose to upgrade, apply, test, and revert?
 
-  (mostly done; don't ask about dependencies that would result in a
-  graph cycle!)
+- InitFS: add a flag (--summary) to upgrade, apply, and revert; remove
+  upgrade-list command; have --summary show the user what will be done
+  without actually doing it
 
-  (also need to do a confirmation prompt before creating new
-  migrations)
+- InitFS: put application into ReaderT of configuration state (command
+  line options in particular)
+
+- InitFS: add a command to modify the dependency list of a migration
+  (or defer this to the ncurses tool, or a human)
+
+  - don't ask about dependencies that would result in a
+  graph cycle
+
+- InitFS "new" confirmation: display deps in columns, sorted
+  alphabetically, so we don't have to invoke a pager
+
+- InitFS "new" command deps selection: allow j/k navigation a la darcs
 
 - curses tool to select dependencies for a migration? could also be
   used to render / navigate a dependency structure
