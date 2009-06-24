@@ -174,6 +174,15 @@ interactiveAskDeps' mapping (name:rest) = do
           -- Impossible
           _ -> return []
 
+confirmCreation :: String -> [String] -> IO Bool
+confirmCreation migrationId deps = do
+  putStrLn ""
+  putStrLn $ "Confirm: create migration '" ++ (green migrationId) ++ "'"
+  when (null deps) $ putStrLn "  (No dependencies)"
+  forM_ deps $ \d -> putStrLn $ "  " ++ d
+  result <- prompt "Are you sure?" ['n', 'y']
+  return $ result == 'y'
+
 newCommand :: CommandHandler
 newCommand (required, _) opts = do
   let [fsPath, migrationId] = required
@@ -193,10 +202,15 @@ newCommand (required, _) opts = do
                 interactiveAskDeps mapping
             True -> return []
 
-  status <- createNewMigration store migrationId deps
-  case status of
-    Left e -> putStrLn (red e) >> (exitWith (ExitFailure 1))
-    Right _ -> putStrLn $ "Migration created successfully: " ++ (green $ show fullPath)
+  result <- confirmCreation migrationId deps
+  case result of
+    True -> do
+      status <- createNewMigration store migrationId deps
+      case status of
+        Left e -> putStrLn (red e) >> (exitWith (ExitFailure 1))
+        Right _ -> putStrLn $ "Migration created successfully: " ++ (green $ show fullPath)
+    False -> do
+      putStrLn $ red "Migration creation cancelled."
 
 upgradeCommand :: CommandHandler
 upgradeCommand (required, _) opts = do
