@@ -112,8 +112,8 @@ optionMap :: [(String, CommandOption)]
 optionMap = [ ("--test", Test)
             , ("--no-ask", NoAsk)]
 
-withOption :: CommandOption -> [CommandOption] -> Bool
-withOption = elem
+hasOption :: CommandOption -> [CommandOption] -> Bool
+hasOption = elem
 
 isSupportedCommandOption :: String -> Bool
 isSupportedCommandOption s = isJust $ lookup s optionMap
@@ -207,7 +207,7 @@ newCommand (required, _) opts = do
          exitWith (ExitFailure 1)
 
   -- Default behavior: ask for dependencies
-  deps <- case withOption NoAsk opts of
+  deps <- case hasOption NoAsk opts of
             False -> do
                 putStrLn $ "Selecting dependencies for new migration: " ++ migrationId
                 interactiveAskDeps mapping
@@ -237,7 +237,7 @@ upgradeCommand (required, _) opts = do
         forM_ migrationNames $ \migrationName -> do
             m <- lookupMigration mapping migrationName
             apply m mapping conn
-        if withOption Test opts
+        if hasOption Test opts
           then do
             rollback conn
             putStrLn "Upgrade test successful."
