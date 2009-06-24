@@ -173,6 +173,7 @@ interactiveAskDeps' mapping (name:rest) = do
             interactiveAskDeps' mapping (name:rest)
           'q' -> do
             exitWith (ExitFailure 1)
+          'd' -> return []
           -- Impossible
           _ -> return []
 
