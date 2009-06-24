@@ -97,7 +97,7 @@ prompt message choices = do
   c <- getChar
   if c `elem` choices then
       putStrLn "" >> return c else
-      if c == '\n' then return (choices !! 0) else putStrLn "" >> retry
+      if c == '\n' then retry else putStrLn "" >> retry
     where
       retry = prompt message choices
 
