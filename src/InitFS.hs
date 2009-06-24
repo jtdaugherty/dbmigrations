@@ -181,8 +181,9 @@ confirmCreation :: String -> [String] -> IO Bool
 confirmCreation migrationId deps = do
   putStrLn ""
   putStrLn $ "Confirm: create migration '" ++ (green migrationId) ++ "'"
-  when (null deps) $ putStrLn "  (No dependencies)"
-  forM_ deps $ \d -> putStrLn $ "  " ++ d
+  if (null deps) then putStrLn "  (No dependencies)"
+     else putStrLn "with dependencies:"
+  forM_ deps $ \d -> putStrLn $ "  " ++ (green d)
   result <- prompt "Are you sure?" ['y', 'q']
   return $ result == 'y'
 
