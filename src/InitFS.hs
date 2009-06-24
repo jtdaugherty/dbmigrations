@@ -154,7 +154,7 @@ interactiveAskDeps mapping = do
 interactiveAskDeps' :: MigrationMap -> [String] -> IO [String]
 interactiveAskDeps' _ [] = return []
 interactiveAskDeps' mapping (name:rest) = do
-  result <- prompt ("Depend on '" ++ (green name) ++ "'?") ['y', 'n', 'v', 'd']
+  result <- prompt ("Depend on '" ++ (green name) ++ "'?") ['y', 'n', 'v', 'd', 'q']
   if (result == 'd') then return [] else
       do
         case result of
@@ -171,6 +171,8 @@ interactiveAskDeps' mapping (name:rest) = do
             when (not $ null $ mDeps m) $ putStrLn $ (blue "  Deps: ") ++ (intercalate "\n        " $ mDeps m)
             -- ask again
             interactiveAskDeps' mapping (name:rest)
+          'q' -> do
+            exitWith (ExitFailure 1)
           -- Impossible
           _ -> return []
 
