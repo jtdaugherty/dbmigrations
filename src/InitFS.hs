@@ -10,7 +10,7 @@ import System.IO ( stdout, hFlush, hSetBuffering, stdin, BufferMode(..) )
 import Control.Exception ( bracket )
 
 import Data.Maybe ( listToMaybe, catMaybes, isJust, fromJust )
-import Data.List ( intercalate, intersperse, sortBy )
+import Data.List ( intercalate, sortBy )
 import qualified Data.Map as Map
 import Control.Monad ( when, forM_ )
 
@@ -92,7 +92,7 @@ prompt :: String -> [Char] -> IO Char
 prompt _ [] = error "prompt requires a list of choices"
 prompt message choices = do
   hSetBuffering stdin NoBuffering
-  putStr $ message ++ " (" ++ (intersperse ',' choices) ++ "): "
+  putStr $ message ++ " (" ++ choices ++ "): "
   hFlush stdout
   c <- getChar
   if c `elem` choices then
