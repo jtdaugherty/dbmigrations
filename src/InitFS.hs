@@ -93,10 +93,10 @@ data AppState = AppState { appOptions :: [CommandOption]
 
 type AppT a = ReaderT AppState IO a
 
--- (required arguments, optional arguments) -> IO ()
+-- The type of actions that are invoked to handle specific commands
 type CommandHandler = AppT ()
 
--- Options which can be passed to commands to alter behavior
+-- Options which can be used to alter command behavior
 data CommandOption = Test
                    | NoAsk
                    deriving (Eq)
