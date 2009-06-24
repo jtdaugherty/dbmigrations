@@ -87,12 +87,14 @@ data Command = Command { cName :: String
 
 data AppState = AppState { appOptions :: [CommandOption]
                          , appCommand :: Command
+                         , appRequiredArgs :: [String]
+                         , appOptionalArgs :: [String]
                          }
 
 type AppT a = ReaderT AppState IO a
 
 -- (required arguments, optional arguments) -> IO ()
-type CommandHandler = ([String], [String]) -> AppT ()
+type CommandHandler = AppT ()
 
 -- Options which can be passed to commands to alter behavior
 data CommandOption = Test
@@ -235,7 +237,8 @@ confirmCreation migrationId deps = do
   return $ result == 'y'
 
 newCommand :: CommandHandler
-newCommand (required, _) = do
+newCommand = do
+  required <- asks appRequiredArgs
   let [fsPath, migrationId] = required
       store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
@@ -263,7 +266,8 @@ newCommand (required, _) = do
                putStrLn $ red "Migration creation cancelled."
 
 upgradeCommand :: CommandHandler
-upgradeCommand (required, _) = do
+upgradeCommand = do
+  required <- asks appRequiredArgs
   let [fsPath, dbPath] = required
       store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
@@ -285,7 +289,8 @@ upgradeCommand (required, _) = do
                  putStrLn "Database successfully upgraded."
 
 upgradeListCommand :: CommandHandler
-upgradeListCommand (required, _) = do
+upgradeListCommand = do
+  required <- asks appRequiredArgs
   let [fsPath, dbPath] = required
       store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
@@ -365,7 +370,8 @@ lookupMigration mapping name = do
     Just m' -> return m'
 
 applyCommand :: CommandHandler
-applyCommand (required, _) = do
+applyCommand = do
+  required <- asks appRequiredArgs
   let [fsPath, dbPath, migrationId] = required
       store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
@@ -378,7 +384,8 @@ applyCommand (required, _) = do
         putStrLn "Successfully applied migrations."
 
 revertCommand :: CommandHandler
-revertCommand (required, _) = do
+revertCommand = do
+  required <- asks appRequiredArgs
   let [fsPath, dbPath, migrationId] = required
       store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
@@ -392,7 +399,8 @@ revertCommand (required, _) = do
         putStrLn "Successfully reverted migrations."
 
 testCommand :: CommandHandler
-testCommand (required,_) = do
+testCommand = do
+  required <- asks appRequiredArgs
   let [fsPath, dbPath, migrationId] = required
       store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
@@ -454,8 +462,10 @@ main = do
   let (required,optional) = splitAt (length $ cRequired command) args
       st = AppState { appOptions = opts
                     , appCommand = command
+                    , appRequiredArgs = required
+                    , appOptionalArgs = optional
                     }
 
   if (length args) < (length $ cRequired command) then
       usageSpecific command else
-      (runReaderT ((cHandler command) (required, optional)) st) `catchSql` reportSqlError
+      (runReaderT (cHandler command) st) `catchSql` reportSqlError
