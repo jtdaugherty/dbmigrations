@@ -166,9 +166,9 @@ interactiveAskDeps' mapping (name:rest) = do
             -- load migration
             let Just m = Map.lookup name mapping
             -- print out description, timestamp, deps
-            when (isJust $ mDesc m) (putStrLn $ "  Description: " ++ (fromJust $ mDesc m))
-            putStrLn $ "      Created: " ++ (show $ mTimestamp m)
-            when (not $ null $ mDeps m) $ putStrLn $ "  Deps: " ++ (intercalate "\n        " $ mDeps m)
+            when (isJust $ mDesc m) (putStrLn $ (blue "  Description: ") ++ (fromJust $ mDesc m))
+            putStrLn $ (blue "      Created: ") ++ (show $ mTimestamp m)
+            when (not $ null $ mDeps m) $ putStrLn $ (blue "  Deps: ") ++ (intercalate "\n        " $ mDeps m)
             -- ask again
             interactiveAskDeps' mapping (name:rest)
           -- Impossible
