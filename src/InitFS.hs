@@ -180,7 +180,7 @@ confirmCreation migrationId deps = do
   putStrLn $ "Confirm: create migration '" ++ (green migrationId) ++ "'"
   when (null deps) $ putStrLn "  (No dependencies)"
   forM_ deps $ \d -> putStrLn $ "  " ++ d
-  result <- prompt "Are you sure?" ['y', 'n']
+  result <- prompt "Are you sure?" ['y', 'q']
   return $ result == 'y'
 
 newCommand :: CommandHandler
