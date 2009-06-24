@@ -61,7 +61,7 @@ type CommandHandler = ([String], [String]) -> [CommandOption] -> IO ()
 
 -- Options which can be passed to commands to alter behavior
 data CommandOption = Test
-                   | Ask
+                   | NoAsk
                    deriving (Eq)
 
 reset :: String
@@ -103,7 +103,7 @@ prompt message choices = do
 
 optionMap :: [(String, CommandOption)]
 optionMap = [ ("--test", Test)
-            , ("--ask", Ask)]
+            , ("--no-ask", NoAsk)]
 
 withOption :: CommandOption -> [CommandOption] -> Bool
 withOption = elem
@@ -125,7 +125,7 @@ convertOptions args = if null unsupportedOptions
       rest = [arg | arg <- args, not $ isCommandOption arg]
 
 commands :: [Command]
-commands = [ Command "new" ["store_path", "migration_name"] [] [Ask] "Create a new empty migration" newCommand
+commands = [ Command "new" ["store_path", "migration_name"] [] [NoAsk] "Create a new empty migration" newCommand
            , Command "apply" ["store_path", "db_path", "migration_name"] [] []
                          "Apply the specified migration and its dependencies" applyCommand
            , Command "revert" ["store_path", "db_path", "migration_name"] [] []
@@ -186,11 +186,12 @@ newCommand (required, _) opts = do
          putStrLn $ red $ "Migration " ++ (show fullPath) ++ " already exists"
          exitWith (ExitFailure 1)
 
-  deps <- case withOption Ask opts of
-            True -> do
+  -- Default behavior: ask for dependencies
+  deps <- case withOption NoAsk opts of
+            False -> do
                 putStrLn $ "Selecting dependencies for new migration: " ++ migrationId
                 interactiveAskDeps mapping
-            False -> return []
+            True -> return []
 
   status <- createNewMigration store migrationId deps
   case status of
