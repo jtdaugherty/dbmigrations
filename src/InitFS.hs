@@ -30,9 +30,17 @@ import Data.List
     , sortBy
     )
 import qualified Data.Map as Map
+import Control.Monad.Reader
+    ( ReaderT
+    , asks
+    , runReaderT
+    )
 import Control.Monad
     ( when
     , forM_
+    )
+import Control.Monad.Trans
+    ( liftIO
     )
 import Database.HDBC.Sqlite3
     ( connectSqlite3
@@ -76,8 +84,15 @@ data Command = Command { cName :: String
                        , cDescription :: String
                        , cHandler :: CommandHandler
                        }
+
+data AppState = AppState { appOptions :: [CommandOption]
+                         , appCommand :: Command
+                         }
+
+type AppT a = ReaderT AppState IO a
+
 -- (required arguments, optional arguments) -> IO ()
-type CommandHandler = ([String], [String]) -> [CommandOption] -> IO ()
+type CommandHandler = ([String], [String]) -> AppT ()
 
 -- Options which can be passed to commands to alter behavior
 data CommandOption = Test
@@ -132,8 +147,13 @@ optionMap :: [(String, CommandOption)]
 optionMap = [ ("--test", Test)
             , ("--no-ask", NoAsk)]
 
-hasOption :: CommandOption -> [CommandOption] -> Bool
-hasOption = elem
+hasOption :: CommandOption -> AppT Bool
+hasOption o = asks ((o `elem`) . appOptions)
+
+ifOption :: CommandOption -> AppT a -> AppT a -> AppT a
+ifOption opt yes no = do
+  result <- hasOption opt
+  if result then yes else no
 
 isSupportedCommandOption :: String -> Bool
 isSupportedCommandOption s = isJust $ lookup s optionMap
@@ -165,8 +185,8 @@ commands = [ Command "new" ["store_path", "migration_name"] [] [NoAsk] "Create a
                          "Show the list of migrations to be installed during an upgrade" upgradeListCommand
            ]
 
-withConnection :: FilePath -> (Connection -> IO a) -> IO a
-withConnection dbPath act = bracket (connectSqlite3 dbPath) disconnect act
+withConnection :: FilePath -> (Connection -> IO a) -> AppT a
+withConnection dbPath act = liftIO $ bracket (connectSqlite3 dbPath) disconnect act
 
 interactiveAskDeps :: MigrationMap -> IO [String]
 interactiveAskDeps mapping = do
@@ -215,64 +235,62 @@ confirmCreation migrationId deps = do
   return $ result == 'y'
 
 newCommand :: CommandHandler
-newCommand (required, _) opts = do
+newCommand (required, _) = do
   let [fsPath, migrationId] = required
       store = FSStore { storePath = fsPath }
-  mapping <- loadMigrations store
-  fullPath <- fullMigrationName store migrationId
+  mapping <- liftIO $ loadMigrations store
+  fullPath <- liftIO $ fullMigrationName store migrationId
 
   when (isJust $ Map.lookup migrationId mapping) $
-       do
+       liftIO $ do
          putStrLn $ red $ "Migration " ++ (show fullPath) ++ " already exists"
          exitWith (ExitFailure 1)
 
   -- Default behavior: ask for dependencies
-  deps <- case hasOption NoAsk opts of
-            False -> do
-                putStrLn $ "Selecting dependencies for new migration: " ++ migrationId
-                interactiveAskDeps mapping
-            True -> return []
+  deps <- ifOption NoAsk (return [])
+                           (liftIO $ do
+                              putStrLn $ "Selecting dependencies for new migration: " ++ migrationId
+                              interactiveAskDeps mapping)
 
-  result <- confirmCreation migrationId deps
-  case result of
-    True -> do
-      status <- createNewMigration store migrationId deps
-      case status of
-        Left e -> putStrLn (red e) >> (exitWith (ExitFailure 1))
-        Right _ -> putStrLn $ "Migration created successfully: " ++ (green $ show fullPath)
-    False -> do
-      putStrLn $ red "Migration creation cancelled."
+  result <- liftIO $ confirmCreation migrationId deps
+  liftIO $ case result of
+             True -> do
+               status <- createNewMigration store migrationId deps
+               case status of
+                 Left e -> putStrLn (red e) >> (exitWith (ExitFailure 1))
+                 Right _ -> putStrLn $ "Migration created successfully: " ++ (green $ show fullPath)
+             False -> do
+               putStrLn $ red "Migration creation cancelled."
 
 upgradeCommand :: CommandHandler
-upgradeCommand (required, _) opts = do
+upgradeCommand (required, _) = do
   let [fsPath, dbPath] = required
       store = FSStore { storePath = fsPath }
-  mapping <- loadMigrations store
+  mapping <- liftIO $ loadMigrations store
 
-  withConnection dbPath $ \conn ->
-      do
+  isTesting <- hasOption Test
+  withConnection dbPath $ \conn -> do
         ensureBootstrappedBackend conn >> commit conn
         migrationNames <- missingMigrations conn mapping
         when (null migrationNames) (putStrLn "Database is up to date." >> exitSuccess)
         forM_ migrationNames $ \migrationName -> do
             m <- lookupMigration mapping migrationName
             apply m mapping conn
-        if hasOption Test opts
-          then do
-            rollback conn
-            putStrLn "Upgrade test successful."
-          else do
-            commit conn
-            putStrLn "Database successfully upgraded."
+        case isTesting of
+          True -> do
+                 rollback conn
+                 putStrLn "Upgrade test successful."
+          False -> do
+                 commit conn
+                 putStrLn "Database successfully upgraded."
 
 upgradeListCommand :: CommandHandler
-upgradeListCommand (required, _) _ = do
+upgradeListCommand (required, _) = do
   let [fsPath, dbPath] = required
       store = FSStore { storePath = fsPath }
-  mapping <- loadMigrations store
+  mapping <- liftIO $ loadMigrations store
 
-  withConnection dbPath $ \conn ->
-      do
+  withConnection dbPath $ \conn -> do
         ensureBootstrappedBackend conn >> commit conn
         migrationNames <- missingMigrations conn mapping
         when (null migrationNames) (putStrLn "Database is up to date." >> exitSuccess)
@@ -313,7 +331,7 @@ apply m mapping backend = do
 revert :: (Backend b IO) => Migration -> MigrationMap -> b -> IO [Migration]
 revert m mapping backend = do
   -- Get the list of migrations to revert
-  toRevert' <- migrationsToRevert mapping backend m
+  toRevert' <- liftIO $ migrationsToRevert mapping backend m
   toRevert <- case toRevert' of
                 Left e -> do
                   putStrLn $ red $ "Error: " ++ e
@@ -328,8 +346,8 @@ revert m mapping backend = do
     where
       nothingToDo = do
         putStrLn $ "Nothing to do; " ++
-                     (mId m) ++
-                     " not installed."
+                   (mId m) ++
+                   " not installed."
 
       revertIt conn it = do
         putStr $ "Reverting: " ++ (green $ mId it) ++ "... "
@@ -341,18 +359,18 @@ lookupMigration mapping name = do
   let theMigration = Map.lookup name mapping
   case theMigration of
     Nothing -> do
-      putStrLn $ red $ "No such migration: " ++ name
-      exitWith (ExitFailure 1)
+      liftIO $ do
+        putStrLn $ red $ "No such migration: " ++ name
+        exitWith (ExitFailure 1)
     Just m' -> return m'
 
 applyCommand :: CommandHandler
-applyCommand (required, _) _ = do
+applyCommand (required, _) = do
   let [fsPath, dbPath, migrationId] = required
       store = FSStore { storePath = fsPath }
-  mapping <- loadMigrations store
+  mapping <- liftIO $ loadMigrations store
 
-  withConnection dbPath $ \conn ->
-      do
+  withConnection dbPath $ \conn -> do
         ensureBootstrappedBackend conn >> commit conn
         m <- lookupMigration mapping migrationId
         apply m mapping conn
@@ -360,13 +378,13 @@ applyCommand (required, _) _ = do
         putStrLn "Successfully applied migrations."
 
 revertCommand :: CommandHandler
-revertCommand (required, _) _ = do
+revertCommand (required, _) = do
   let [fsPath, dbPath, migrationId] = required
       store = FSStore { storePath = fsPath }
-  mapping <- loadMigrations store
+  mapping <- liftIO $ loadMigrations store
 
   withConnection dbPath $ \conn ->
-      do
+      liftIO $ do
         ensureBootstrappedBackend conn >> commit conn
         m <- lookupMigration mapping migrationId
         revert m mapping conn
@@ -374,19 +392,18 @@ revertCommand (required, _) _ = do
         putStrLn "Successfully reverted migrations."
 
 testCommand :: CommandHandler
-testCommand (required,_) _ = do
+testCommand (required,_) = do
   let [fsPath, dbPath, migrationId] = required
       store = FSStore { storePath = fsPath }
-  mapping <- loadMigrations store
+  mapping <- liftIO $ loadMigrations store
 
-  withConnection dbPath $ \conn ->
-      do
+  withConnection dbPath $ \conn -> do
         ensureBootstrappedBackend conn >> commit conn
         m <- lookupMigration mapping migrationId
         migrationNames <- missingMigrations conn mapping
         -- If the migration is already installed, remove it as part of
         -- the test
-        when (not $ migrationId `elem` migrationNames) $ revert m mapping conn >> return ()
+        when (not $ migrationId `elem` migrationNames) $ (revert m mapping conn) >> return ()
         applied <- apply m mapping conn
         forM_ (reverse applied) $ \migration -> do
                              revert migration mapping conn
@@ -434,8 +451,11 @@ main = do
                Nothing -> usage
                Just c -> return c
 
-  let splitArgs = splitAt (length $ cRequired command) args
+  let (required,optional) = splitAt (length $ cRequired command) args
+      st = AppState { appOptions = opts
+                    , appCommand = command
+                    }
 
   if (length args) < (length $ cRequired command) then
       usageSpecific command else
-      ((cHandler command) splitArgs opts) `catchSql` reportSqlError
+      (runReaderT ((cHandler command) (required, optional)) st) `catchSql` reportSqlError
