@@ -154,7 +154,7 @@ interactiveAskDeps mapping = do
 interactiveAskDeps' :: MigrationMap -> [String] -> IO [String]
 interactiveAskDeps' _ [] = return []
 interactiveAskDeps' mapping (name:rest) = do
-  result <- prompt ("Depend on '" ++ (green name) ++ "'?") ['n', 'y', 'v', 'd']
+  result <- prompt ("Depend on '" ++ (green name) ++ "'?") ['y', 'n', 'v', 'd']
   if (result == 'd') then return [] else
       do
         case result of
@@ -180,7 +180,7 @@ confirmCreation migrationId deps = do
   putStrLn $ "Confirm: create migration '" ++ (green migrationId) ++ "'"
   when (null deps) $ putStrLn "  (No dependencies)"
   forM_ deps $ \d -> putStrLn $ "  " ++ d
-  result <- prompt "Are you sure?" ['n', 'y']
+  result <- prompt "Are you sure?" ['y', 'n']
   return $ result == 'y'
 
 newCommand :: CommandHandler
