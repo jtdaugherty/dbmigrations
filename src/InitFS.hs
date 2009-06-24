@@ -2,18 +2,38 @@
 module Main
     ( main )
 where
-
 import System.Environment ( getArgs )
-import System.Exit ( exitWith, ExitCode(..), exitSuccess )
-import System.IO ( stdout, hFlush, hGetBuffering, hSetBuffering, stdin, BufferMode(..) )
-
-import Control.Exception ( bracket )
-
-import Data.Maybe ( listToMaybe, catMaybes, isJust, fromJust )
-import Data.List ( intercalate, sortBy )
+import System.Exit
+    ( exitWith
+    , ExitCode(..)
+    , exitSuccess
+    )
+import System.IO
+    ( stdout
+    , hFlush
+    , hGetBuffering
+    , hSetBuffering
+    , stdin
+    , BufferMode(..)
+    )
+import Control.Exception
+    ( bracket
+    )
+import Data.Maybe
+    ( listToMaybe
+    , catMaybes
+    , isJust
+    , fromJust
+    )
+import Data.List
+    ( intercalate
+    , sortBy
+    )
 import qualified Data.Map as Map
-import Control.Monad ( when, forM_ )
-
+import Control.Monad
+    ( when
+    , forM_
+    )
 import Database.HDBC.Sqlite3
     ( connectSqlite3
     , Connection
