@@ -5,7 +5,7 @@ where
 
 import System.Environment ( getArgs )
 import System.Exit ( exitWith, ExitCode(..), exitSuccess )
-import System.IO ( stdout, hFlush, hSetBuffering, stdin, BufferMode(..) )
+import System.IO ( stdout, hFlush, hGetBuffering, hSetBuffering, stdin, BufferMode(..) )
 
 import Control.Exception ( bracket )
 
@@ -88,13 +88,20 @@ blue s = "\27[34m" ++ s ++ reset
 -- white :: String -> String
 -- white s = "\27[37m" ++ s ++ reset
 
+unbufferedGetChar :: IO Char
+unbufferedGetChar = do
+  bufferingMode <- hGetBuffering stdin
+  hSetBuffering stdin NoBuffering
+  c <- getChar
+  hSetBuffering stdin bufferingMode
+  return c
+
 prompt :: String -> [Char] -> IO Char
 prompt _ [] = error "prompt requires a list of choices"
 prompt message choices = do
-  hSetBuffering stdin NoBuffering
   putStr $ message ++ " (" ++ choices ++ "): "
   hFlush stdout
-  c <- getChar
+  c <- unbufferedGetChar
   if c `elem` choices then
       putStrLn "" >> return c else
       if c == '\n' then retry else putStrLn "" >> retry
