@@ -207,7 +207,7 @@ interactiveAskDeps storeData = do
       where
         compareTimestamps m1 m2 = compare (mTimestamp m2) (mTimestamp m1)
 
-data AskDepsChoice = Yes | No | View | Done | Quit
+data AskDepsChoice = Yes | No | View | Done | Quit | Help
                      deriving (Eq)
 
 askDepsChoices :: [(Char, AskDepsChoice)]
@@ -217,9 +217,10 @@ askDepsChoices = [ ('y', Yes)
                  , ('v', View)
                  , ('d', Done)
                  , ('q', Quit)
+                 , ('h', Help)
                  ]
 
-interactiveAskDeps' :: StoreData -> [String] -> IO [String]
+interactiveAskDeps' :: MigrationMap -> [String] -> IO [String]
 interactiveAskDeps' _ [] = return []
 interactiveAskDeps' storeData (name:rest) = do
   result <- prompt ("Depend on '" ++ name ++ "'?") askDepsChoices
@@ -246,6 +247,7 @@ interactiveAskDeps' storeData (name:rest) = do
           Quit -> do
             putStrLn "cancelled."
             exitWith (ExitFailure 1)
+          Help -> askDepsHelp >> interactiveAskDeps' mapping (name:rest)
           Done -> return []
 
 confirmCreation :: String -> [String] -> IO Bool
