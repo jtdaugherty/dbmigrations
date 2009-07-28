@@ -183,7 +183,8 @@ commands = [ Command "new" ["store_path", "migration_name"] [] [NoAsk] "Create a
            , Command "revert" ["store_path", "db_path", "migration_name"] [] []
                          "Revert the specified migration and those that depend on it" revertCommand
            , Command "test" ["store_path", "db_path", "migration_name"] [] []
-                         "Test the specified migration by applying it and reverting it" testCommand
+                         "Test the specified migration by applying and reverting it in a transaction, then roll back"
+                         testCommand
            , Command "upgrade" ["store_path", "db_path"] [] [Test]
                          "Install all migrations that have not yet been installed" upgradeCommand
            , Command "upgrade-list" ["store_path", "db_path"] [] []
