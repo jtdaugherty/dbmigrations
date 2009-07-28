@@ -247,7 +247,7 @@ confirmCreation migrationId deps = do
   if (null deps) then putStrLn "  (No dependencies)"
      else putStrLn "with dependencies:"
   forM_ deps $ \d -> putStrLn $ "  " ++ (green d)
-  result <- prompt "Are you sure?" [('y', 'y'), ('q', 'q')]
+  result <- prompt "Are you sure?" [('y', 'y'), ('n', 'n')]
   return $ result == 'y'
 
 newCommand :: CommandHandler
