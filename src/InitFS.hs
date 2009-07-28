@@ -133,17 +133,20 @@ unbufferedGetChar = do
   hSetBuffering stdin bufferingMode
   return c
 
-prompt :: String -> [Char] -> IO Char
+prompt :: (Eq a) => String -> [(Char, a)] -> IO a
 prompt _ [] = error "prompt requires a list of choices"
-prompt message choices = do
-  putStr $ message ++ " (" ++ choices ++ "): "
+prompt message choiceMap = do
+  putStr $ message ++ " (" ++ choiceStr ++ "): "
   hFlush stdout
   c <- unbufferedGetChar
-  if c `elem` choices then
-      putStrLn "" >> return c else
-      if c == '\n' then retry else putStrLn "" >> retry
+  case lookup c choiceMap of
+    Nothing -> if c == '\n'
+               then retry
+               else putStrLn "" >> retry
+    Just val -> putStrLn "" >> return val
     where
-      retry = prompt message choices
+      retry = prompt message choiceMap
+      choiceStr = intercalate "" $ map (return . fst) choiceMap
 
 optionMap :: [(String, CommandOption)]
 optionMap = [ ("--test", Test)
@@ -200,18 +203,30 @@ interactiveAskDeps mapping = do
       where
         compareTimestamps m1 m2 = compare (mTimestamp m2) (mTimestamp m1)
 
+data AskDepsChoice = Yes | No | View | Done | Quit
+                     deriving (Eq)
+
+askDepsChoices :: [(Char, AskDepsChoice)]
+
+askDepsChoices = [ ('y', Yes)
+                 , ('n', No)
+                 , ('v', View)
+                 , ('d', Done)
+                 , ('q', Quit)
+                 ]
+
 interactiveAskDeps' :: MigrationMap -> [String] -> IO [String]
 interactiveAskDeps' _ [] = return []
 interactiveAskDeps' mapping (name:rest) = do
-  result <- prompt ("Depend on '" ++ (green name) ++ "'?") ['y', 'n', 'v', 'd', 'q']
-  if (result == 'd') then return [] else
+  result <- prompt ("Depend on '" ++ (green name) ++ "'?") askDepsChoices
+  if (result == Done) then return [] else
       do
         case result of
-          'y' -> do
+          Yes -> do
             next <- interactiveAskDeps' mapping rest
             return $ name:next
-          'n' -> interactiveAskDeps' mapping rest
-          'v' -> do
+          No -> interactiveAskDeps' mapping rest
+          View -> do
             -- load migration
             let Just m = Map.lookup name mapping
             -- print out description, timestamp, deps
@@ -220,11 +235,9 @@ interactiveAskDeps' mapping (name:rest) = do
             when (not $ null $ mDeps m) $ putStrLn $ (blue "  Deps: ") ++ (intercalate "\n        " $ mDeps m)
             -- ask again
             interactiveAskDeps' mapping (name:rest)
-          'q' -> do
+          Quit -> do
             exitWith (ExitFailure 1)
-          'd' -> return []
-          -- Impossible
-          _ -> return []
+          Done -> return []
 
 confirmCreation :: String -> [String] -> IO Bool
 confirmCreation migrationId deps = do
@@ -233,7 +246,7 @@ confirmCreation migrationId deps = do
   if (null deps) then putStrLn "  (No dependencies)"
      else putStrLn "with dependencies:"
   forM_ deps $ \d -> putStrLn $ "  " ++ (green d)
-  result <- prompt "Are you sure?" ['y', 'q']
+  result <- prompt "Are you sure?" [('y', 'y'), ('q', 'q')]
   return $ result == 'y'
 
 newCommand :: CommandHandler
