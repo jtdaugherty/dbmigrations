@@ -107,20 +107,32 @@ unbufferedGetChar = do
   hSetBuffering stdin bufferingMode
   return c
 
-prompt :: (Eq a) => String -> [(Char, a)] -> IO a
+mkPromptHelp :: PromptChoices a -> String
+mkPromptHelp choices =
+    intercalate "" [ [c] ++ ": " ++ (fromJust msg) ++ "\n" |
+                     (c, (_, msg)) <- choices, isJust msg ]
+
+hasHelp :: PromptChoices a -> Bool
+hasHelp = (> 0) . length . (filter hasMsg)
+    where hasMsg (_, (_, m)) = isJust m
+
+prompt :: (Eq a) => String -> PromptChoices a -> IO a
 prompt _ [] = error "prompt requires a list of choices"
 prompt message choiceMap = do
-  putStr $ message ++ " (" ++ choiceStr ++ "): "
+  putStr $ message ++ " (" ++ choiceStr ++ helpChar ++ "): "
   hFlush stdout
   c <- unbufferedGetChar
   case lookup c choiceMap of
-    Nothing -> if c == '\n'
-               then retry
-               else putStrLn "" >> retry
-    Just val -> putStrLn "" >> return val
+    Nothing -> do
+      when (c /= '\n') $ putStrLn ""
+      when (c == 'h') $ putStr $ mkPromptHelp choiceMapWithHelp
+      retry
+    Just (val, _) -> putStrLn "" >> return val
     where
       retry = prompt message choiceMap
       choiceStr = intercalate "" $ map (return . fst) choiceMap
+      helpChar = if hasHelp choiceMap then "h" else ""
+      choiceMapWithHelp = choiceMap ++ [('h', (undefined, Just "this help"))]
 
 optionMap :: [(String, CommandOption)]
 optionMap = [ ("--test", Test)
@@ -207,17 +219,17 @@ interactiveAskDeps storeData = do
       where
         compareTimestamps m1 m2 = compare (mTimestamp m2) (mTimestamp m1)
 
-data AskDepsChoice = Yes | No | View | Done | Quit | Help
+data AskDepsChoice = Yes | No | View | Done | Quit
                      deriving (Eq)
 
-askDepsChoices :: [(Char, AskDepsChoice)]
+type PromptChoices a = [(Char, (a, Maybe String))]
 
-askDepsChoices = [ ('y', Yes)
-                 , ('n', No)
-                 , ('v', View)
-                 , ('d', Done)
-                 , ('q', Quit)
-                 , ('h', Help)
+askDepsChoices :: PromptChoices AskDepsChoice
+askDepsChoices = [ ('y', (Yes, Just "yes, depend on this migration"))
+                 , ('n', (No, Just "no, do not depend on this migration"))
+                 , ('v', (View, Just "view migration details"))
+                 , ('d', (Done, Just "done, do not ask me about more dependencies"))
+                 , ('q', (Quit, Just "cancel this operation and quit"))
                  ]
 
 interactiveAskDeps' :: MigrationMap -> [String] -> IO [String]
@@ -247,7 +259,6 @@ interactiveAskDeps' storeData (name:rest) = do
           Quit -> do
             putStrLn "cancelled."
             exitWith (ExitFailure 1)
-          Help -> askDepsHelp >> interactiveAskDeps' mapping (name:rest)
           Done -> return []
 
 confirmCreation :: String -> [String] -> IO Bool
@@ -257,8 +268,9 @@ confirmCreation migrationId deps = do
   if (null deps) then putStrLn "  (No dependencies)"
      else putStrLn "with dependencies:"
   forM_ deps $ \d -> putStrLn $ "  " ++ d
-  result <- prompt "Are you sure?" [('y', 'y'), ('n', 'n')]
-  return $ result == 'y'
+  prompt "Are you sure?" [ ('y', (True, Nothing))
+                         , ('n', (False, Nothing))
+                         ]
 
 newCommand :: CommandHandler
 newCommand = do
