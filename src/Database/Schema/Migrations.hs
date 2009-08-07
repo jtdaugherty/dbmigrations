@@ -79,8 +79,8 @@ migrationsToApply mapping backend migration = do
       return $ Right loadedMigrations
 
 -- |Given a migration mapping computed from a MigrationStore, a
--- backend, and a migration to apply, return a processing error or a
--- list of migrations to apply, in order.
+-- backend, and a migration to revert, return a processing error or a
+-- list of migrations to revert, in order.
 migrationsToRevert :: (B.Backend b m) => MigrationMap -> b
                   -> Migration -> m (Either String [Migration])
 migrationsToRevert mapping backend migration = do
