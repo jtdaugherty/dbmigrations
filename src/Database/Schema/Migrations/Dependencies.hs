@@ -18,6 +18,8 @@ import Control.Monad ( forM )
 import Data.Graph.Inductive.Graph ( Graph(..), nodes, edges, Node, suc, pre, lab )
 import Data.Graph.Inductive.PatriciaTree ( Gr )
 
+-- |Dependable objects supply a representation of their identifiers,
+-- and a list of other objects upon which they depend.
 class (Eq a, Ord a) => Dependable a where
     -- |The identifiers of the objects on which 'a' depends.
     depsOf :: a -> [String]
