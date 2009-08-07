@@ -26,6 +26,8 @@ class (Eq a, Ord a) => Dependable a where
     -- |The identifier of a Dependable object.
     depId :: a -> String
 
+-- |A DependencyGraph represents a collection of objects together with
+-- a graph of their dependency relationships.
 data DependencyGraph a = DG { objectMap :: [(a, Int)] -- Map from object to its graph index
                             , nameMap :: [(String, Int)] -- Map from object depid to its graph index
                             , graph :: Gr String String
