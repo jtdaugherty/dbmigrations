@@ -9,6 +9,7 @@ import qualified MigrationsTest
 import qualified FilesystemSerializeTest
 import qualified FilesystemParseTest
 import qualified FilesystemTest
+import qualified CycleDetectionTest
 
 loadTests :: IO [Test]
 loadTests = do
@@ -24,6 +25,7 @@ loadTests = do
                   , DependencyTest.tests
                   , FilesystemSerializeTest.tests
                   , MigrationsTest.tests
+                  , CycleDetectionTest.tests
                   ]
 
 main :: IO ()
