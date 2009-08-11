@@ -7,6 +7,7 @@ import Test.HUnit
 import Data.Graph.Inductive.Graph ( Graph(..) )
 import Data.Graph.Inductive.PatriciaTree ( Gr )
 
+import Database.Schema.Migrations.CycleDetection
 import Database.Schema.Migrations.Dependencies
 import Common
 
