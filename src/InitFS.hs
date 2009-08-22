@@ -73,7 +73,7 @@ import Database.Schema.Migrations.Store
     ( loadMigrations
     , fullMigrationName
     )
-import Database.Schema.Migrations.Backend.Sqlite()
+import Database.Schema.Migrations.Backend.HDBC ()
 
 -- A command has a name, a number of required arguments' labels, a
 -- number of optional arguments' labels, and an action to invoke.
@@ -321,7 +321,7 @@ reportSqlError e = do
   putStrLn $ "\n" ++ (red $ "A database error occurred: " ++ seErrorMsg e)
   exitWith (ExitFailure 1)
 
-apply :: (Backend b IO) => Migration -> MigrationMap -> b -> IO [Migration]
+apply :: (IConnection b, Backend b IO) => Migration -> MigrationMap -> b -> IO [Migration]
 apply m mapping backend = do
   -- Get the list of migrations to apply
   toApply' <- migrationsToApply mapping backend m
@@ -347,7 +347,7 @@ apply m mapping backend = do
         applyMigration conn it
         putStrLn $ green "done."
 
-revert :: (Backend b IO) => Migration -> MigrationMap -> b -> IO [Migration]
+revert :: (IConnection b, Backend b IO) => Migration -> MigrationMap -> b -> IO [Migration]
 revert m mapping backend = do
   -- Get the list of migrations to revert
   toRevert' <- liftIO $ migrationsToRevert mapping backend m

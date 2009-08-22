@@ -1,17 +1,17 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE MultiParamTypeClasses,FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Database.Schema.Migrations.Backend.Sqlite
+module Database.Schema.Migrations.Backend.HDBC
     ()
 where
 
 import Database.HDBC ( quickQuery, fromSql, SqlValue(SqlString), IConnection(getTables) )
-import Database.HDBC.Sqlite3 ( Connection )
+
+import Database.Schema.Migrations.Backend
+    ( Backend(..) )
 import Database.Schema.Migrations.Migration
     ( Migration(..)
     , newMigration
     )
-import Database.Schema.Migrations.Backend
-    ( Backend(..) )
 
 createSql :: String
 createSql = "CREATE TABLE installed_migrations (\
@@ -20,7 +20,7 @@ createSql = "CREATE TABLE installed_migrations (\
 revertSql :: String
 revertSql = "DROP TABLE installed_migrations"
 
-instance Backend Connection IO where
+instance (IConnection conn) => Backend conn IO where
     isBootstrapped conn = do
       -- if 'installed_migrations' is in the list of tables,
       -- bootstrapping has been performed.

@@ -40,7 +40,7 @@ Library
           Database.Schema.Migrations.Filesystem.Parse
           Database.Schema.Migrations.Filesystem.Serialize
           Database.Schema.Migrations.Backend
-          Database.Schema.Migrations.Backend.Sqlite
+          Database.Schema.Migrations.Backend.HDBC
           Database.Schema.Migrations.Store
 
 Executable test

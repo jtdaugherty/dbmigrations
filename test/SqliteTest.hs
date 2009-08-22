@@ -5,7 +5,7 @@ where
 
 import Test.HUnit
 
-import Database.Schema.Migrations.Backend.Sqlite ()
+import Database.Schema.Migrations.Backend.HDBC ()
 import Database.Schema.Migrations.Migration ( Migration(..), newMigration )
 import Database.Schema.Migrations.Backend ( Backend(..) )
 
