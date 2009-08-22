@@ -1,15 +1,28 @@
 
-- Add --verbose to upgrade, apply, test, and revert?
+- Refactor sqlite tests so they work for any connection (which they
+  should)
+
+- Postgres support: connect to template1, create new database with
+  random name, reconnect to new db.  when done, reconnect to
+  template1, drop test database
+
+- Make store path and database be command line arguments with switches
+  ("-s store-path", "-d database_info").  This makes usage output
+  cleaner and it makes it easier to support setting these values by
+  other means (e.g., environment variables)
+
+- Add --verbose to upgrade, apply, test, and revert? (what would this
+  do?)
 
 - InitFS: add a flag (--summary) to upgrade, apply, and revert; remove
   upgrade-list command; have --summary show the user what will be done
-  without actually doing it
+  without actually doing it.
 
 - InitFS: put application into ReaderT of configuration state (command
   line options in particular)
 
-- InitFS: add a command to modify the dependency list of a migration
-  (or defer this to the ncurses tool, or a human)
+- StoreManager: add abillity to modify the dependency list of a
+  migration
 
   - don't ask about dependencies that would result in a
   graph cycle
