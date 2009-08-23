@@ -11,10 +11,15 @@ import qualified FilesystemParseTest
 import qualified FilesystemTest
 import qualified CycleDetectionTest
 
+import Database.HDBC.Sqlite3 ( connectSqlite3 )
+
 loadTests :: IO [Test]
 loadTests = do
+
+  sqliteConn <- connectSqlite3 ":memory:"
+
   ioTests <- sequence
-             [ do sqliteTests <- SqliteTest.tests
+             [ do sqliteTests <- SqliteTest.tests sqliteConn
                   return $ "Sqlite" ~: test sqliteTests
              , do fspTests <- FilesystemParseTest.tests
                   return $ "Filesystem Parsing" ~: test fspTests

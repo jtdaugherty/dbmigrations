@@ -9,36 +9,21 @@ import Database.Schema.Migrations.Backend.HDBC ()
 import Database.Schema.Migrations.Migration ( Migration(..), newMigration )
 import Database.Schema.Migrations.Backend ( Backend(..) )
 
-import Database.HDBC.Sqlite3 ( Connection, connectSqlite3 )
 import Database.HDBC ( IConnection(..), catchSql, withTransaction )
 
-tests :: IO [Test]
-tests = do
-  let unbootstrappedTests = [ bootstrapTest
-                            , isBootstrappedFalseTest
-                            ]
-      bootstrappedTests = [ applyMigrationFailure
-                          , isBootstrappedTrueTest
-                          , revertMigrationFailure
-                          , revertMigrationNothing
-                          , revertMigrationJust
-                          ]
-  t1 <- sequence $ map withTempDb unbootstrappedTests
-  t2 <- sequence $ map withBootstrappedTempDb bootstrappedTests
-  return $ t1 ++ t2
+tests :: (IConnection a) => a -> IO [Test]
+tests conn = do
+  let acts = [ isBootstrappedFalseTest
+             , bootstrapTest
+             , applyMigrationFailure
+             , isBootstrappedTrueTest
+             , revertMigrationFailure
+             , revertMigrationNothing
+             , revertMigrationJust
+             ]
+  sequence $ map (\f -> commit conn >> f conn) acts
 
-withTempDb :: (Connection -> IO Test) -> IO Test
-withTempDb act = connectSqlite3 ":memory:" >>= act
-
-withBootstrappedTempDb :: (Connection -> IO Test) -> IO Test
-withBootstrappedTempDb act = do
-  conn <- connectSqlite3 ":memory:"
-  bs <- getBootstrapMigration conn
-  applyMigration conn bs
-  commit conn
-  act conn
-
-bootstrapTest :: Connection -> IO Test
+bootstrapTest :: (IConnection a) => a -> IO Test
 bootstrapTest conn = do
   bs <- getBootstrapMigration conn
   applyMigration conn bs
@@ -49,12 +34,12 @@ bootstrapTest conn = do
                   , "installed_migrations table exists" ~:
                     ["installed_migrations"] ~=? tables ]
 
-isBootstrappedTrueTest :: Connection -> IO Test
+isBootstrappedTrueTest :: (IConnection a) => a -> IO Test
 isBootstrappedTrueTest conn = do
   result <- isBootstrapped conn
   return $ test $ True ~=? result
 
-isBootstrappedFalseTest :: Connection -> IO Test
+isBootstrappedFalseTest :: (IConnection a) => a -> IO Test
 isBootstrappedFalseTest conn = do
   result <- isBootstrapped conn
   return $ test $ False ~=? result
@@ -64,7 +49,7 @@ ignoreSqlExceptions act = (act >>= return . Just) `catchSql`
                        (\_ -> return Nothing)
 
 -- |Does a failure to apply a migration imply a transaction rollback?
-applyMigrationFailure :: Connection -> IO Test
+applyMigrationFailure :: (IConnection a) => a -> IO Test
 applyMigrationFailure conn = do
     m1 <- newMigration "second"
     m2 <- newMigration "third"
@@ -74,14 +59,14 @@ applyMigrationFailure conn = do
 
     -- Apply the migrations, ignore exceptions
     ignoreSqlExceptions $ withTransaction conn $ \conn' -> do
-      applyMigration conn' m1'
-      applyMigration conn' m2'
+                               applyMigration conn' m1'
+                               applyMigration conn' m2'
 
     -- Check that none of the migrations were installed
     installed <- getMigrations conn
     return $ "successfully roll back failed apply" ~: ["root"] ~=? installed
 
-revertMigrationFailure :: Connection -> IO Test
+revertMigrationFailure :: (IConnection a) => a -> IO Test
 revertMigrationFailure conn = do
     m1 <- newMigration "second"
     m2 <- newMigration "third"
@@ -106,7 +91,7 @@ revertMigrationFailure conn = do
     installed <- getMigrations conn
     return $ "successfully roll back failed revert" ~: installedBeforeRevert ~=? installed
 
-revertMigrationNothing :: Connection -> IO Test
+revertMigrationNothing :: (IConnection a) => a -> IO Test
 revertMigrationNothing conn = do
     m1 <- newMigration "second"
 
@@ -117,7 +102,7 @@ revertMigrationNothing conn = do
       applyMigration conn' m1'
 
     installedAfterApply <- getMigrations conn
-    assertEqual "Check that the migration was applied" installedAfterApply ["root", "second"]
+    assertBool "Check that the migration was applied" $ "second" `elem` installedAfterApply
 
     -- Revert the migration, which should do nothing EXCEPT remove it
     -- from the installed list
@@ -125,9 +110,9 @@ revertMigrationNothing conn = do
       revertMigration conn' m1'
 
     installed <- getMigrations conn
-    return $ test $ assertEqual "Check that the migration was reverted" installed ["root"]
+    return $ test $ assertBool "Check that the migration was reverted" $ not $ "second" `elem` installed
 
-revertMigrationJust :: Connection -> IO Test
+revertMigrationJust :: (IConnection a) => a -> IO Test
 revertMigrationJust conn = do
     m1 <- newMigration "second"
 
@@ -138,7 +123,7 @@ revertMigrationJust conn = do
       applyMigration conn' m1'
 
     installedAfterApply <- getMigrations conn
-    assertEqual "Check that the migration was applied" installedAfterApply ["root", "second"]
+    assertBool "Check that the migration was applied" $ "second" `elem` installedAfterApply
 
     -- Revert the migration, which should do nothing EXCEPT remove it
     -- from the installed list
@@ -146,4 +131,4 @@ revertMigrationJust conn = do
       revertMigration conn' m1'
 
     installed <- getMigrations conn
-    return $ test $ assertEqual "Check that the migration was reverted" installed ["root"]
+    return $ test $ assertBool "Check that the migration was reverted" $ not $ "second" `elem` installed
