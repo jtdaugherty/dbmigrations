@@ -1,15 +1,11 @@
 
-- Refactor sqlite tests so they work for any connection (which they
-  should)
-
 - Postgres support: connect to template1, create new database with
   random name, reconnect to new db.  when done, reconnect to
   template1, drop test database
 
-- Make store path and database be command line arguments with switches
-  ("-s store-path", "-d database_info").  This makes usage output
-  cleaner and it makes it easier to support setting these values by
-  other means (e.g., environment variables)
+- Make initstore-fs take a database connection URI
+
+  - devise scheme for URI -> each supported backend connection params
 
 - Add --verbose to upgrade, apply, test, and revert? (what would this
   do?)
@@ -66,7 +62,3 @@
   store and backend?  environment variables? configuration file?
   command-line arguments?  probably not *required* args, since you
   need to be able to invoke the tools quickly and easily
-
-- postgres support
-
-  - postgres tests
