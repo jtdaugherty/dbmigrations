@@ -3,13 +3,15 @@ import Test.HUnit
 import System.Exit
 import System.IO ( stderr )
 
-import qualified SqliteTest
+import qualified BackendTest
 import qualified DependencyTest
 import qualified MigrationsTest
 import qualified FilesystemSerializeTest
 import qualified FilesystemParseTest
 import qualified FilesystemTest
 import qualified CycleDetectionTest
+
+import Control.Monad ( forM )
 
 import Database.HDBC.Sqlite3 ( connectSqlite3 )
 import Database.HDBC.PostgreSQL ( connectPostgreSQL )
@@ -20,17 +22,22 @@ loadTests = do
   sqliteConn <- connectSqlite3 ":memory:"
   pgConn <- connectPostgreSQL "dbname=cygnus"
 
-  ioTests <- sequence
-             [ do sqliteTests <- SqliteTest.tests sqliteConn
-                  return $ "Sqlite" ~: test sqliteTests
-             , do pgTests <- SqliteTest.tests pgConn
-                  return $ "PostgreSQL" ~: test pgTests
-             , do fspTests <- FilesystemParseTest.tests
-                  return $ "Filesystem Parsing" ~: test fspTests
-             , do fsTests <- FilesystemTest.tests
-                  return $ "Filesystem general" ~: test fsTests
-             ]
-  return $ concat [ ioTests
+  -- [ (String, IO [Test]) ]
+  let backends = [ ("Sqlite", BackendTest.tests sqliteConn)
+                 , ("PostgreSQL", BackendTest.tests pgConn)
+                 ]
+
+  backendTests <- forM backends $ \(name, testAct) -> do
+                    theTests <- testAct
+                    return $ name ~: test theTests
+
+  ioTests <- sequence [ do fspTests <- FilesystemParseTest.tests
+                           return $ "Filesystem Parsing" ~: test fspTests
+                      , do fsTests <- FilesystemTest.tests
+                           return $ "Filesystem general" ~: test fsTests
+                      ]
+  return $ concat [ backendTests
+                  , ioTests
                   , DependencyTest.tests
                   , FilesystemSerializeTest.tests
                   , MigrationsTest.tests

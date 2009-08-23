@@ -1,4 +1,4 @@
-module SqliteTest
+module BackendTest
     ( tests
     )
 where
