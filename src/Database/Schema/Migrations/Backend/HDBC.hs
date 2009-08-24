@@ -13,19 +13,21 @@ import Database.Schema.Migrations.Migration
     , newMigration
     )
 
+migrationTableName :: String
+migrationTableName = "installed_migrations"
+
 createSql :: String
-createSql = "CREATE TABLE installed_migrations (\
-            \migration_id TEXT)"
+createSql = "CREATE TABLE " ++ migrationTableName ++ " (migration_id TEXT)"
 
 revertSql :: String
-revertSql = "DROP TABLE installed_migrations"
+revertSql = "DROP TABLE " ++ migrationTableName
 
 instance (IConnection conn) => Backend conn IO where
     isBootstrapped conn = do
       -- if 'installed_migrations' is in the list of tables,
       -- bootstrapping has been performed.
       tables <- getTables conn
-      return $ "installed_migrations" `elem` tables
+      return $ migrationTableName `elem` tables
 
     getBootstrapMigration _ =
         do
@@ -37,7 +39,8 @@ instance (IConnection conn) => Backend conn IO where
 
     applyMigration conn m = do
       quickQuery conn (mApply m) []
-      quickQuery conn "INSERT INTO installed_migrations (migration_id) VALUES (?)" [toSql $ mId m]
+      quickQuery conn ("INSERT INTO " ++ migrationTableName ++
+                       " (migration_id) VALUES (?)") [toSql $ mId m]
       return ()
 
     revertMigration conn m = do
@@ -45,9 +48,10 @@ instance (IConnection conn) => Backend conn IO where
           Nothing -> return ()
           Just query -> run conn query [] >> return ()
         -- Remove migration from installed_migrations in either case.
-        quickQuery conn "DELETE FROM installed_migrations WHERE migration_id = ?" [toSql $ mId m]
+        quickQuery conn ("DELETE FROM " ++ migrationTableName ++
+                         " WHERE migration_id = ?") [toSql $ mId m]
         return ()
 
     getMigrations conn = do
-      results <- quickQuery conn "SELECT migration_id FROM installed_migrations" []
+      results <- quickQuery conn ("SELECT migration_id FROM " ++ migrationTableName) []
       return $ map (\(h:_) -> fromSql h) results
