@@ -4,6 +4,7 @@ module BackendTest
 where
 
 import Test.HUnit
+import Control.Monad ( (=<<), forM_ )
 
 import Database.Schema.Migrations.Backend.HDBC ()
 import Database.Schema.Migrations.Migration ( Migration(..), newMigration )
@@ -11,45 +12,43 @@ import Database.Schema.Migrations.Backend ( Backend(..) )
 
 import Database.HDBC ( IConnection(..), catchSql, withTransaction )
 
-tests :: (IConnection a) => a -> IO [Test]
+tests :: (IConnection a) => a -> IO ()
 tests conn = do
   let acts = [ isBootstrappedFalseTest
              , bootstrapTest
-             , applyMigrationFailure
              , isBootstrappedTrueTest
+             , applyMigrationFailure
              , revertMigrationFailure
              , revertMigrationNothing
              , revertMigrationJust
              ]
-  sequence $ map (\f -> commit conn >> f conn) acts
+  forM_ acts $ \act -> do
+               commit conn
+               act conn
 
-bootstrapTest :: (IConnection a) => a -> IO Test
+bootstrapTest :: (IConnection a) => a -> IO ()
 bootstrapTest conn = do
   bs <- getBootstrapMigration conn
   applyMigration conn bs
-  tables <- getTables conn
-  installed <- getMigrations conn
-  return $ test $ [ "successfully bootstrapped" ~:
-                    [mId bs] ~=? installed
-                  , "installed_migrations table exists" ~:
-                    ["installed_migrations"] ~=? tables ]
+  assertEqual "installed_migrations table exists" ["installed_migrations"] =<< getTables conn
+  assertEqual "successfully bootstrapped" [mId bs] =<< getMigrations conn
 
-isBootstrappedTrueTest :: (IConnection a) => a -> IO Test
+isBootstrappedTrueTest :: (IConnection a) => a -> IO ()
 isBootstrappedTrueTest conn = do
   result <- isBootstrapped conn
-  return $ test $ True ~=? result
+  assertBool "Bootstrapped check" result
 
-isBootstrappedFalseTest :: (IConnection a) => a -> IO Test
+isBootstrappedFalseTest :: (IConnection a) => a -> IO ()
 isBootstrappedFalseTest conn = do
   result <- isBootstrapped conn
-  return $ test $ False ~=? result
+  assertBool "Bootstrapped check" $ not result
 
 ignoreSqlExceptions :: IO a -> IO (Maybe a)
 ignoreSqlExceptions act = (act >>= return . Just) `catchSql`
                        (\_ -> return Nothing)
 
 -- |Does a failure to apply a migration imply a transaction rollback?
-applyMigrationFailure :: (IConnection a) => a -> IO Test
+applyMigrationFailure :: (IConnection a) => a -> IO ()
 applyMigrationFailure conn = do
     m1 <- newMigration "second"
     m2 <- newMigration "third"
@@ -63,10 +62,10 @@ applyMigrationFailure conn = do
                                applyMigration conn' m2'
 
     -- Check that none of the migrations were installed
-    installed <- getMigrations conn
-    return $ "successfully roll back failed apply" ~: ["root"] ~=? installed
+    assertEqual "Installed migrations" ["root"] =<< getMigrations conn
+    assertEqual "Installed tables" ["installed_migrations"] =<< getTables conn
 
-revertMigrationFailure :: (IConnection a) => a -> IO Test
+revertMigrationFailure :: (IConnection a) => a -> IO ()
 revertMigrationFailure conn = do
     m1 <- newMigration "second"
     m2 <- newMigration "third"
@@ -88,10 +87,10 @@ revertMigrationFailure conn = do
       revertMigration conn' m1'
 
     -- Check that none of the migrations were installed
-    installed <- getMigrations conn
-    return $ "successfully roll back failed revert" ~: installedBeforeRevert ~=? installed
+    assertEqual "successfully roll back failed revert" installedBeforeRevert
+        =<< getMigrations conn
 
-revertMigrationNothing :: (IConnection a) => a -> IO Test
+revertMigrationNothing :: (IConnection a) => a -> IO ()
 revertMigrationNothing conn = do
     m1 <- newMigration "second"
 
@@ -110,20 +109,21 @@ revertMigrationNothing conn = do
       revertMigration conn' m1'
 
     installed <- getMigrations conn
-    return $ test $ assertBool "Check that the migration was reverted" $ not $ "second" `elem` installed
+    assertBool "Check that the migration was reverted" $ not $ "second" `elem` installed
 
-revertMigrationJust :: (IConnection a) => a -> IO Test
+revertMigrationJust :: (IConnection a) => a -> IO ()
 revertMigrationJust conn = do
-    m1 <- newMigration "second"
+    let name = "revertable"
+    m1 <- newMigration name
 
-    let m1' = m1 { mApply = "CREATE TABLE temp (a int)"
-                 , mRevert = Just "DROP TABLE temp" }
+    let m1' = m1 { mApply = "CREATE TABLE the_test_table (a int)"
+                 , mRevert = Just "DROP TABLE the_test_table" }
 
     withTransaction conn $ \conn' -> do
       applyMigration conn' m1'
 
     installedAfterApply <- getMigrations conn
-    assertBool "Check that the migration was applied" $ "second" `elem` installedAfterApply
+    assertBool "Check that the migration was applied" $ name `elem` installedAfterApply
 
     -- Revert the migration, which should do nothing EXCEPT remove it
     -- from the installed list
@@ -131,4 +131,4 @@ revertMigrationJust conn = do
       revertMigration conn' m1'
 
     installed <- getMigrations conn
-    return $ test $ assertBool "Check that the migration was reverted" $ not $ "second" `elem` installed
+    assertBool "Check that the migration was reverted" $ not $ name `elem` installed
