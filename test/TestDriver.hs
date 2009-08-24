@@ -22,7 +22,6 @@ loadTests = do
   sqliteConn <- connectSqlite3 ":memory:"
   pgConn <- connectPostgreSQL "dbname=cygnus"
 
-  -- [ (String, IO [Test]) ]
   let backends = [ ("Sqlite", BackendTest.tests sqliteConn)
                  , ("PostgreSQL", BackendTest.tests pgConn)
                  ]
