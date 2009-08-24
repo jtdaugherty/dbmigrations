@@ -80,7 +80,10 @@ revertMigrationFailure conn = do
 
     installedBeforeRevert <- getMigrations conn
 
-    -- Revert the migrations, ignore exceptions
+    commit conn
+
+    -- Revert the migrations, ignore exceptions; the revert will fail,
+    -- but withTransaction will roll back.
     ignoreSqlExceptions $ withTransaction conn $ \conn' -> do
       revertMigration conn' m2'
       revertMigration conn' m1'
