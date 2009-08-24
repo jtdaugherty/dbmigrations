@@ -32,8 +32,7 @@ loadTests = do
                  ]
 
   backendTests <- forM backends $ \(name, testAct) -> do
-                    theTests <- testAct
-                    return $ name ~: test theTests
+                    return $ (name ++ " backend tests") ~: test testAct
 
   ioTests <- sequence [ do fspTests <- FilesystemParseTest.tests
                            return $ "Filesystem Parsing" ~: test fspTests
