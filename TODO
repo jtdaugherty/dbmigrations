@@ -1,8 +1,4 @@
 
-- Postgres support: connect to template1, create new database with
-  random name, reconnect to new db.  when done, reconnect to
-  template1, drop test database
-
 - Make initstore-fs take a database connection URI
 
   - devise scheme for URI -> each supported backend connection params
