@@ -75,9 +75,8 @@ revertMigrationFailure conn = do
     let m2' = m2 { mApply = "SELECT * FROM valid"
                  , mRevert = Just "INVALID SQL"}
 
-    withTransaction conn $ \conn' -> do
-      applyMigration conn' m1'
-      applyMigration conn' m2'
+    applyMigration conn m1'
+    applyMigration conn m2'
 
     installedBeforeRevert <- getMigrations conn
 
@@ -97,16 +96,14 @@ revertMigrationNothing conn = do
     let m1' = m1 { mApply = "SELECT 1"
                  , mRevert = Nothing }
 
-    withTransaction conn $ \conn' -> do
-      applyMigration conn' m1'
+    applyMigration conn m1'
 
     installedAfterApply <- getMigrations conn
     assertBool "Check that the migration was applied" $ "second" `elem` installedAfterApply
 
     -- Revert the migration, which should do nothing EXCEPT remove it
     -- from the installed list
-    withTransaction conn $ \conn' -> do
-      revertMigration conn' m1'
+    revertMigration conn m1'
 
     installed <- getMigrations conn
     assertBool "Check that the migration was reverted" $ not $ "second" `elem` installed
@@ -119,16 +116,14 @@ revertMigrationJust conn = do
     let m1' = m1 { mApply = "CREATE TABLE the_test_table (a int)"
                  , mRevert = Just "DROP TABLE the_test_table" }
 
-    withTransaction conn $ \conn' -> do
-      applyMigration conn' m1'
+    applyMigration conn m1'
 
     installedAfterApply <- getMigrations conn
     assertBool "Check that the migration was applied" $ name `elem` installedAfterApply
 
     -- Revert the migration, which should do nothing EXCEPT remove it
     -- from the installed list
-    withTransaction conn $ \conn' -> do
-      revertMigration conn' m1'
+    revertMigration conn m1'
 
     installed <- getMigrations conn
     assertBool "Check that the migration was reverted" $ not $ name `elem` installed
