@@ -88,7 +88,7 @@ revertMigrationFailure conn = do
       revertMigration conn' m2'
       revertMigration conn' m1'
 
-    -- Check that none of the migrations were installed
+    -- Check that none of the migrations were reverted
     assertEqual "successfully roll back failed revert" installedBeforeRevert
         =<< getMigrations conn
 
