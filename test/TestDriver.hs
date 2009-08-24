@@ -1,6 +1,8 @@
 module Main where
+import Prelude hiding ( catch )
 import Test.HUnit
 import System.Exit
+import System.Process ( system )
 import System.IO ( stderr )
 
 import qualified BackendTest
@@ -12,18 +14,21 @@ import qualified FilesystemTest
 import qualified CycleDetectionTest
 
 import Control.Monad ( forM )
+import Control.Exception ( finally, catch )
 
+import Database.HDBC ( IConnection(disconnect) )
 import Database.HDBC.Sqlite3 ( connectSqlite3 )
-import Database.HDBC.PostgreSQL ( connectPostgreSQL )
+import qualified Database.HDBC.PostgreSQL as PostgreSQL
 
 loadTests :: IO [Test]
 loadTests = do
 
   sqliteConn <- connectSqlite3 ":memory:"
-  pgConn <- connectPostgreSQL "dbname=cygnus"
+  pgConn <- setupPostgresDb
 
   let backends = [ ("Sqlite", BackendTest.tests sqliteConn)
-                 , ("PostgreSQL", BackendTest.tests pgConn)
+                 , ("PostgreSQL", BackendTest.tests pgConn `finally`
+                                    (disconnect pgConn >> teardownPostgresDb))
                  ]
 
   backendTests <- forM backends $ \(name, testAct) -> do
@@ -42,6 +47,30 @@ loadTests = do
                   , MigrationsTest.tests
                   , CycleDetectionTest.tests
                   ]
+
+tempPgDatabase :: String
+tempPgDatabase = "dbmigrations_test"
+
+setupPostgresDb :: IO PostgreSQL.Connection
+setupPostgresDb = do
+  teardownPostgresDb `catch` (\_ -> return ())
+
+  -- create database
+  status <- system $ "createdb " ++ tempPgDatabase
+  case status of
+    ExitSuccess -> return ()
+    ExitFailure _ -> error $ "Failed to create PostgreSQL database " ++ (show tempPgDatabase)
+
+  -- return test db connection
+  PostgreSQL.connectPostgreSQL $ "dbname=" ++ tempPgDatabase
+
+teardownPostgresDb :: IO ()
+teardownPostgresDb = do
+  -- create database
+  status <- system $ "dropdb " ++ tempPgDatabase ++ " 2>/dev/null"
+  case status of
+    ExitSuccess -> return ()
+    ExitFailure _ -> error $ "Failed to drop PostgreSQL database " ++ (show tempPgDatabase)
 
 main :: IO ()
 main = do

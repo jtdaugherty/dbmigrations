@@ -57,7 +57,8 @@ Executable test
     directory == 1.0.*,
     fgl == 5.4.2.*,
     template-haskell,
-    HUnit == 1.2.*
+    HUnit == 1.2.*,
+    process == 1.0.*
 
   if !flag(testing)
     Buildable:     False
