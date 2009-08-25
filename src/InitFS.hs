@@ -42,6 +42,7 @@ import Control.Monad
 import Control.Monad.Trans
     ( liftIO
     )
+import Control.Applicative ( (<$>) )
 import Database.HDBC.Sqlite3
     ( connectSqlite3
     , Connection
@@ -85,12 +86,14 @@ data Command = Command { cName :: String
                        , cHandler :: CommandHandler
                        }
 
+newtype DbConnDescriptor = DbConnDescriptor String
+
 data AppState = AppState { appOptions :: [CommandOption]
                          , appCommand :: Command
                          , appRequiredArgs :: [String]
                          , appOptionalArgs :: [String]
                          , appStorePath :: String
-                         , appDatabaseConnStr :: Maybe String
+                         , appDatabaseConnStr :: Maybe DbConnDescriptor
                          }
 
 type AppT a = ReaderT AppState IO a
@@ -180,21 +183,25 @@ convertOptions args = if null unsupportedOptions
 
 commands :: [Command]
 commands = [ Command "new" ["migration_name"] [] [NoAsk] "Create a new empty migration" newCommand
-           , Command "apply" ["db_path", "migration_name"] [] []
+           , Command "apply" ["migration_name"] [] []
                          "Apply the specified migration and its dependencies" applyCommand
-           , Command "revert" ["db_path", "migration_name"] [] []
+           , Command "revert" ["migration_name"] [] []
                          "Revert the specified migration and those that depend on it" revertCommand
-           , Command "test" ["db_path", "migration_name"] [] []
+           , Command "test" ["migration_name"] [] []
                          "Test the specified migration by applying and reverting it in a transaction, then roll back"
                          testCommand
-           , Command "upgrade" ["db_path"] [] [Test]
+           , Command "upgrade" [] [] [Test]
                          "Install all migrations that have not yet been installed" upgradeCommand
-           , Command "upgrade-list" ["db_path"] [] []
+           , Command "upgrade-list" [] [] []
                          "Show the list of migrations to be installed during an upgrade" upgradeListCommand
            ]
 
-withConnection :: FilePath -> (Connection -> IO a) -> AppT a
-withConnection dbPath act = liftIO $ bracket (connectSqlite3 dbPath) disconnect act
+withConnection :: (Connection -> IO a) -> AppT a
+withConnection act = do
+  mDbPath <- asks appDatabaseConnStr
+  case mDbPath of
+    Nothing -> error "Error: Database connection string not specified"
+    Just (DbConnDescriptor dbPath) -> liftIO $ bracket (connectSqlite3 dbPath) disconnect act
 
 interactiveAskDeps :: MigrationMap -> IO [String]
 interactiveAskDeps mapping = do
@@ -284,14 +291,12 @@ newCommand = do
 
 upgradeCommand :: CommandHandler
 upgradeCommand = do
-  required <- asks appRequiredArgs
   fsPath <- asks appStorePath
-  let [dbPath] = required
-      store = FSStore { storePath = fsPath }
+  let store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
 
   isTesting <- hasOption Test
-  withConnection dbPath $ \conn -> do
+  withConnection $ \conn -> do
         ensureBootstrappedBackend conn >> commit conn
         migrationNames <- missingMigrations conn mapping
         when (null migrationNames) (putStrLn "Database is up to date." >> exitSuccess)
@@ -308,13 +313,11 @@ upgradeCommand = do
 
 upgradeListCommand :: CommandHandler
 upgradeListCommand = do
-  required <- asks appRequiredArgs
   fsPath <- asks appStorePath
-  let [dbPath] = required
-      store = FSStore { storePath = fsPath }
+  let store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
 
-  withConnection dbPath $ \conn -> do
+  withConnection $ \conn -> do
         ensureBootstrappedBackend conn >> commit conn
         migrationNames <- missingMigrations conn mapping
         when (null migrationNames) (putStrLn "Database is up to date." >> exitSuccess)
@@ -392,11 +395,11 @@ applyCommand :: CommandHandler
 applyCommand = do
   required <- asks appRequiredArgs
   fsPath <- asks appStorePath
-  let [dbPath, migrationId] = required
+  let [migrationId] = required
       store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
 
-  withConnection dbPath $ \conn -> do
+  withConnection $ \conn -> do
         ensureBootstrappedBackend conn >> commit conn
         m <- lookupMigration mapping migrationId
         apply m mapping conn
@@ -407,11 +410,11 @@ revertCommand :: CommandHandler
 revertCommand = do
   required <- asks appRequiredArgs
   fsPath <- asks appStorePath
-  let [dbPath, migrationId] = required
+  let [migrationId] = required
       store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
 
-  withConnection dbPath $ \conn ->
+  withConnection $ \conn ->
       liftIO $ do
         ensureBootstrappedBackend conn >> commit conn
         m <- lookupMigration mapping migrationId
@@ -423,11 +426,11 @@ testCommand :: CommandHandler
 testCommand = do
   required <- asks appRequiredArgs
   fsPath <- asks appStorePath
-  let [dbPath, migrationId] = required
+  let [migrationId] = required
       store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
 
-  withConnection dbPath $ \conn -> do
+  withConnection $ \conn -> do
         ensureBootstrappedBackend conn >> commit conn
         m <- lookupMigration mapping migrationId
         migrationNames <- missingMigrations conn mapping
@@ -502,7 +505,7 @@ main = do
                     , appCommand = command
                     , appRequiredArgs = required
                     , appOptionalArgs = optional
-                    , appDatabaseConnStr = mDbConnStr
+                    , appDatabaseConnStr = DbConnDescriptor <$> mDbConnStr
                     , appStorePath = storePathStr
                     }
 
