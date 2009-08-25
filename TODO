@@ -1,10 +1,13 @@
 
-- Make initstore-fs take a database connection URI
+- Make initstore-fs take a database connection string, whose format is
+  basically up to whoever implements backend support
 
-  - devise scheme for URI -> each supported backend connection params
+  Postgres: use typical k/v pairs, e.g.,
 
-- Add --verbose to upgrade, apply, test, and revert? (what would this
-  do?)
+    "dbname=foo host=bar user=me password=flubx"
+
+  - Make it easy to get the connection string into the program from
+    the environment, from a file, or from the command line
 
 - InitFS: add a flag (--summary) to upgrade, apply, and revert; remove
   upgrade-list command; have --summary show the user what will be done
@@ -13,43 +16,15 @@
 - InitFS: put application into ReaderT of configuration state (command
   line options in particular)
 
-- StoreManager: add abillity to modify the dependency list of a
-  migration
-
-  - don't ask about dependencies that would result in a
-  graph cycle
-
 - InitFS "new" confirmation: display deps in columns, sorted
   alphabetically, so we don't have to invoke a pager
 
 - InitFS "new" command deps selection: allow j/k navigation a la darcs
 
-- curses tool to select dependencies for a migration? could also be
-  used to render / navigate a dependency structure
-
-  - list migrations
-
-  - let user select dependencies
-
-  - tool to show dependency hierarchy
-
-  - support for creating and editing migrations
-
-    - editing: fire up editor with migration in a temp file, when
-      editor closes, parse the migration and tell the user if there
-      was a problem, then ask to re-invoke editor or quit. if no parse
-      error, overwrite original migration file with temp file
-      contents.
-
 - Rename InitFS / initstore-fs
-
-- improve test coverage
 
 - make filesystem store operations die if they find a migration name
   with no corresponding disk file
-
-- clean up code formatting (too many long lines, not enough
-  decomposition)
 
 - possibly limit how big a migration file can be to prevent tarpits (1
   MB?)
@@ -58,3 +33,34 @@
   store and backend?  environment variables? configuration file?
   command-line arguments?  probably not *required* args, since you
   need to be able to invoke the tools quickly and easily
+
+Testing
+=======
+
+- improve test coverage
+
+- Make tests display warning if they can't run the postgres tests due
+  to tools not being present (createdb, dropdb) -- check that those
+  exist in advance.  Also gracefully do not run the pgsql tests if the
+  test database cannot be created for some other reason (permissions).
+
+StoreManager
+============
+
+- Add abillity to modify the dependency list of a migration
+
+  - don't ask about dependencies that would result in a
+  graph cycle
+
+- list migrations
+
+- let user select dependencies
+
+- tool to show dependency hierarchy
+
+- support for creating and editing migrations
+
+  - editing: fire up editor with migration in a temp file, when editor
+    closes, parse the migration and tell the user if there was a
+    problem, then ask to re-invoke editor or quit. if no parse error,
+    overwrite original migration file with temp file contents.
