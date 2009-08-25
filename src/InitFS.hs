@@ -179,17 +179,17 @@ convertOptions args = if null unsupportedOptions
       rest = [arg | arg <- args, not $ isCommandOption arg]
 
 commands :: [Command]
-commands = [ Command "new" ["store_path", "migration_name"] [] [NoAsk] "Create a new empty migration" newCommand
-           , Command "apply" ["store_path", "db_path", "migration_name"] [] []
+commands = [ Command "new" ["migration_name"] [] [NoAsk] "Create a new empty migration" newCommand
+           , Command "apply" ["db_path", "migration_name"] [] []
                          "Apply the specified migration and its dependencies" applyCommand
-           , Command "revert" ["store_path", "db_path", "migration_name"] [] []
+           , Command "revert" ["db_path", "migration_name"] [] []
                          "Revert the specified migration and those that depend on it" revertCommand
-           , Command "test" ["store_path", "db_path", "migration_name"] [] []
+           , Command "test" ["db_path", "migration_name"] [] []
                          "Test the specified migration by applying and reverting it in a transaction, then roll back"
                          testCommand
-           , Command "upgrade" ["store_path", "db_path"] [] [Test]
+           , Command "upgrade" ["db_path"] [] [Test]
                          "Install all migrations that have not yet been installed" upgradeCommand
-           , Command "upgrade-list" ["store_path", "db_path"] [] []
+           , Command "upgrade-list" ["db_path"] [] []
                          "Show the list of migrations to be installed during an upgrade" upgradeListCommand
            ]
 
@@ -255,7 +255,8 @@ confirmCreation migrationId deps = do
 newCommand :: CommandHandler
 newCommand = do
   required <- asks appRequiredArgs
-  let [fsPath, migrationId] = required
+  fsPath <- asks appStorePath
+  let [migrationId] = required
       store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
   fullPath <- liftIO $ fullMigrationName store migrationId
@@ -284,7 +285,8 @@ newCommand = do
 upgradeCommand :: CommandHandler
 upgradeCommand = do
   required <- asks appRequiredArgs
-  let [fsPath, dbPath] = required
+  fsPath <- asks appStorePath
+  let [dbPath] = required
       store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
 
@@ -307,7 +309,8 @@ upgradeCommand = do
 upgradeListCommand :: CommandHandler
 upgradeListCommand = do
   required <- asks appRequiredArgs
-  let [fsPath, dbPath] = required
+  fsPath <- asks appStorePath
+  let [dbPath] = required
       store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
 
@@ -388,7 +391,8 @@ lookupMigration mapping name = do
 applyCommand :: CommandHandler
 applyCommand = do
   required <- asks appRequiredArgs
-  let [fsPath, dbPath, migrationId] = required
+  fsPath <- asks appStorePath
+  let [dbPath, migrationId] = required
       store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
 
@@ -402,7 +406,8 @@ applyCommand = do
 revertCommand :: CommandHandler
 revertCommand = do
   required <- asks appRequiredArgs
-  let [fsPath, dbPath, migrationId] = required
+  fsPath <- asks appStorePath
+  let [dbPath, migrationId] = required
       store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
 
@@ -417,7 +422,8 @@ revertCommand = do
 testCommand :: CommandHandler
 testCommand = do
   required <- asks appRequiredArgs
-  let [fsPath, dbPath, migrationId] = required
+  fsPath <- asks appStorePath
+  let [dbPath, migrationId] = required
       store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
 
