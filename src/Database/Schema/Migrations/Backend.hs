@@ -18,7 +18,34 @@ class (Monad m) => Backend b m where
     -- connection interface.  This might differ slightly from one
     -- backend to another.
     getBootstrapMigration :: b -> m Migration
+
+    -- |Returns whether the backend has been bootstrapped.  A backend
+    -- has been bootstrapped if is capable of tracking which
+    -- migrations have been installed; the "bootstrap migration"
+    -- provided by getBootstrapMigration should suffice to bootstrap
+    -- the backend.
     isBootstrapped :: b -> m Bool
+
+    -- |Apply the specified migration on the backend.  applyMigration
+    -- does NOT assume control of the transaction, since it expects
+    -- the transaction to (possibly) cover more than one
+    -- applyMigration operation.  The caller is expected to call
+    -- commit at the appropriate time.  If the application fails, the
+    -- underlying SqlError is raised and a manual rollback may be
+    -- necessary; for this, see withTransaction from HDBC.
     applyMigration :: b -> Migration -> m ()
+
+    -- |Revert the specified migration from the backend and record
+    -- this action in the table which tracks installed migrations.
+    -- revertMigration does NOT assume control of the transaction,
+    -- since it expects the transaction to (possibly) cover more than
+    -- one revertMigration operation.  The caller is expected to call
+    -- commit at the appropriate time.  If the revert fails, the
+    -- underlying SqlError is raised and a manual rollback may be
+    -- necessary; for this, see withTransaction from HDBC.  If the
+    -- specified migration does not supply a revert instruction, this
+    -- has no effect other than bookkeeping.
     revertMigration :: b -> Migration -> m ()
+
+    -- |Returns a list of installed migration names from the backend.
     getMigrations :: b -> m [String]
