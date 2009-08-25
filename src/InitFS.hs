@@ -2,7 +2,7 @@
 module Main
     ( main )
 where
-import System.Environment ( getArgs )
+import System.Environment ( getArgs, getEnvironment )
 import System.Exit
     ( exitWith
     , ExitCode(..)
@@ -89,6 +89,8 @@ data AppState = AppState { appOptions :: [CommandOption]
                          , appCommand :: Command
                          , appRequiredArgs :: [String]
                          , appOptionalArgs :: [String]
+                         , appStorePath :: String
+                         , appDatabaseConnStr :: Maybe String
                          }
 
 type AppT a = ReaderT AppState IO a
@@ -459,6 +461,12 @@ usageSpecific command = do
 findCommand :: String -> Maybe Command
 findCommand name = listToMaybe [ c | c <- commands, cName c == name ]
 
+envDatabaseName :: String
+envDatabaseName = "DBM_DATABASE"
+
+envStoreName :: String
+envStoreName = "DBM_MIGRATION_STORE"
+
 main :: IO ()
 main = do
   allArgs <- getArgs
@@ -473,11 +481,23 @@ main = do
                Nothing -> usage
                Just c -> return c
 
+  -- Read store path and database connection string from environment
+  -- or config file (for now, we just look at the environment).  Also,
+  -- require them both to be set for every operation, even though some
+  -- operations only require the store path.
+  env <- getEnvironment
+  let mDbConnStr = lookup envDatabaseName env
+      storePathStr = case lookup envStoreName env of
+                       Just sp -> sp
+                       Nothing -> error $ "Error: missing required environment variable " ++ envStoreName
+
   let (required,optional) = splitAt (length $ cRequired command) args
       st = AppState { appOptions = opts
                     , appCommand = command
                     , appRequiredArgs = required
                     , appOptionalArgs = optional
+                    , appDatabaseConnStr = mDbConnStr
+                    , appStorePath = storePathStr
                     }
 
   if (length args) < (length $ cRequired command) then
