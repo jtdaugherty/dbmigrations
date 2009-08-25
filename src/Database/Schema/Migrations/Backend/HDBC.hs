@@ -38,9 +38,9 @@ instance (IConnection conn) => Backend conn IO where
                      }
 
     applyMigration conn m = do
-      quickQuery conn (mApply m) []
-      quickQuery conn ("INSERT INTO " ++ migrationTableName ++
-                       " (migration_id) VALUES (?)") [toSql $ mId m]
+      run conn (mApply m) []
+      run conn ("INSERT INTO " ++ migrationTableName ++
+                " (migration_id) VALUES (?)") [toSql $ mId m]
       return ()
 
     revertMigration conn m = do
@@ -48,8 +48,8 @@ instance (IConnection conn) => Backend conn IO where
           Nothing -> return ()
           Just query -> run conn query [] >> return ()
         -- Remove migration from installed_migrations in either case.
-        quickQuery conn ("DELETE FROM " ++ migrationTableName ++
-                         " WHERE migration_id = ?") [toSql $ mId m]
+        run conn ("DELETE FROM " ++ migrationTableName ++
+                  " WHERE migration_id = ?") [toSql $ mId m]
         return ()
 
     getMigrations conn = do
