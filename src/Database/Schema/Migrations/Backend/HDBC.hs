@@ -22,6 +22,10 @@ createSql = "CREATE TABLE " ++ migrationTableName ++ " (migration_id TEXT)"
 revertSql :: String
 revertSql = "DROP TABLE " ++ migrationTableName
 
+-- |General Backend instance for all IO-driven HDBC connection
+-- implementations.  You can provide a connection-specific instance if
+-- need be; this implementation is provided with the hope that you
+-- won't /have/ to do that.
 instance (IConnection conn) => Backend conn IO where
     isBootstrapped conn = do
       -- if 'installed_migrations' is in the list of tables,
