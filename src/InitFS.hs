@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts, ExistentialQuantification #-}
 module Main
     ( main )
 where
@@ -24,6 +24,7 @@ import Data.Maybe
     , catMaybes
     , isJust
     , fromJust
+    , isNothing
     )
 import Data.List
     ( intercalate
@@ -43,10 +44,7 @@ import Control.Monad.Trans
     ( liftIO
     )
 import Control.Applicative ( (<$>) )
-import Database.HDBC.Sqlite3
-    ( connectSqlite3
-    , Connection
-    )
+import Database.HDBC.Sqlite3 ( connectSqlite3 )
 import Database.HDBC
     ( IConnection(commit, rollback, disconnect)
     , catchSql
@@ -196,12 +194,16 @@ commands = [ Command "new" ["migration_name"] [] [NoAsk] "Create a new empty mig
                          "Show the list of migrations to be installed during an upgrade" upgradeListCommand
            ]
 
-withConnection :: (Connection -> IO a) -> AppT a
+data AnyIConnection = forall c. (IConnection c) => AnyIConnection c
+
+makeConnection :: DbConnDescriptor -> IO AnyIConnection
+makeConnection (DbConnDescriptor connStr) = AnyIConnection <$> connectSqlite3 connStr
+
+withConnection :: (AnyIConnection -> IO a) -> AppT a
 withConnection act = do
   mDbPath <- asks appDatabaseConnStr
-  case mDbPath of
-    Nothing -> error "Error: Database connection string not specified"
-    Just (DbConnDescriptor dbPath) -> liftIO $ bracket (connectSqlite3 dbPath) disconnect act
+  when (isNothing mDbPath) $ error "Error: Database connection string not specified"
+  liftIO $ bracket (makeConnection $ fromJust mDbPath) (\(AnyIConnection conn) -> disconnect conn) act
 
 interactiveAskDeps :: MigrationMap -> IO [String]
 interactiveAskDeps mapping = do
@@ -296,7 +298,7 @@ upgradeCommand = do
   mapping <- liftIO $ loadMigrations store
 
   isTesting <- hasOption Test
-  withConnection $ \conn -> do
+  withConnection $ \(AnyIConnection conn) -> do
         ensureBootstrappedBackend conn >> commit conn
         migrationNames <- missingMigrations conn mapping
         when (null migrationNames) (putStrLn "Database is up to date." >> exitSuccess)
@@ -317,7 +319,7 @@ upgradeListCommand = do
   let store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
 
-  withConnection $ \conn -> do
+  withConnection $ \(AnyIConnection conn) -> do
         ensureBootstrappedBackend conn >> commit conn
         migrationNames <- missingMigrations conn mapping
         when (null migrationNames) (putStrLn "Database is up to date." >> exitSuccess)
@@ -399,7 +401,7 @@ applyCommand = do
       store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
 
-  withConnection $ \conn -> do
+  withConnection $ \(AnyIConnection conn) -> do
         ensureBootstrappedBackend conn >> commit conn
         m <- lookupMigration mapping migrationId
         apply m mapping conn
@@ -414,7 +416,7 @@ revertCommand = do
       store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
 
-  withConnection $ \conn ->
+  withConnection $ \(AnyIConnection conn) ->
       liftIO $ do
         ensureBootstrappedBackend conn >> commit conn
         m <- lookupMigration mapping migrationId
@@ -430,7 +432,7 @@ testCommand = do
       store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
 
-  withConnection $ \conn -> do
+  withConnection $ \(AnyIConnection conn) -> do
         ensureBootstrappedBackend conn >> commit conn
         m <- lookupMigration mapping migrationId
         migrationNames <- missingMigrations conn mapping
