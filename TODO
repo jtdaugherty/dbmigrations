@@ -1,20 +1,7 @@
 
-- Make initstore-fs take a database connection string, whose format is
-  basically up to whoever implements backend support
-
-  Postgres: use typical k/v pairs, e.g.,
-
-    "dbname=foo host=bar user=me password=flubx"
-
-  - Make it easy to get the connection string into the program from
-    the environment, from a file, or from the command line
-
 - InitFS: add a flag (--summary) to upgrade, apply, and revert; remove
   upgrade-list command; have --summary show the user what will be done
   without actually doing it.
-
-- InitFS: put application into ReaderT of configuration state (command
-  line options in particular)
 
 - InitFS "new" confirmation: display deps in columns, sorted
   alphabetically, so we don't have to invoke a pager
