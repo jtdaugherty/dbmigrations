@@ -457,6 +457,9 @@ usageString command = intercalate " " ((blue $ cName command):requiredArgs ++ op
 usage :: IO a
 usage = do
   putStrLn $ "Usage: initstore-fs <" ++ (blue "command") ++ "> [args]"
+  putStrLn "Environment:"
+  putStrLn $ "  " ++ envDatabaseName ++ ": database connection string"
+  putStrLn $ "  " ++ envStoreName ++ ": path to migration store"
   putStrLn "Commands:"
   forM_ commands $ \command -> do
           putStrLn $ "  " ++ usageString command
