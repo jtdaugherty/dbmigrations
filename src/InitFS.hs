@@ -97,7 +97,7 @@ data AppState = AppState { appOptions :: [CommandOption]
 type AppT a = ReaderT AppState IO a
 
 -- The type of actions that are invoked to handle specific commands
-type CommandHandler = AppT ()
+type CommandHandler = MigrationMap -> AppT ()
 
 -- Options which can be used to alter command behavior
 data CommandOption = Test
@@ -262,11 +262,10 @@ confirmCreation migrationId deps = do
   return $ result == 'y'
 
 newCommand :: CommandHandler
-newCommand = do
+newCommand mapping = do
   required <- asks appRequiredArgs
   store <- asks appStore
   let [migrationId] = required
-  mapping <- liftIO $ loadMigrations store
   fullPath <- liftIO $ fullMigrationName store migrationId
 
   when (isJust $ Map.lookup migrationId mapping) $
@@ -291,10 +290,7 @@ newCommand = do
                putStrLn $ red "Migration creation cancelled."
 
 upgradeCommand :: CommandHandler
-upgradeCommand = do
-  store <- asks appStore
-  mapping <- liftIO $ loadMigrations store
-
+upgradeCommand mapping = do
   isTesting <- hasOption Test
   withConnection $ \(AnyIConnection conn) -> do
         ensureBootstrappedBackend conn >> commit conn
@@ -312,10 +308,7 @@ upgradeCommand = do
                  putStrLn "Database successfully upgraded."
 
 upgradeListCommand :: CommandHandler
-upgradeListCommand = do
-  store <- asks appStore
-  mapping <- liftIO $ loadMigrations store
-
+upgradeListCommand mapping = do
   withConnection $ \(AnyIConnection conn) -> do
         ensureBootstrappedBackend conn >> commit conn
         migrationNames <- missingMigrations conn mapping
@@ -391,11 +384,9 @@ lookupMigration mapping name = do
     Just m' -> return m'
 
 applyCommand :: CommandHandler
-applyCommand = do
+applyCommand mapping = do
   required <- asks appRequiredArgs
-  store <- asks appStore
   let [migrationId] = required
-  mapping <- liftIO $ loadMigrations store
 
   withConnection $ \(AnyIConnection conn) -> do
         ensureBootstrappedBackend conn >> commit conn
@@ -405,11 +396,9 @@ applyCommand = do
         putStrLn "Successfully applied migrations."
 
 revertCommand :: CommandHandler
-revertCommand = do
+revertCommand mapping = do
   required <- asks appRequiredArgs
-  store <- asks appStore
   let [migrationId] = required
-  mapping <- liftIO $ loadMigrations store
 
   withConnection $ \(AnyIConnection conn) ->
       liftIO $ do
@@ -420,11 +409,9 @@ revertCommand = do
         putStrLn "Successfully reverted migrations."
 
 testCommand :: CommandHandler
-testCommand = do
+testCommand mapping = do
   required <- asks appRequiredArgs
-  store <- asks appStore
   let [migrationId] = required
-  mapping <- liftIO $ loadMigrations store
 
   withConnection $ \(AnyIConnection conn) -> do
         ensureBootstrappedBackend conn >> commit conn
@@ -510,4 +497,6 @@ main = do
 
   if (length args) < (length $ cRequired command) then
       usageSpecific command else
-      (runReaderT (cHandler command) st) `catchSql` reportSqlError
+      do
+        mapping <- loadMigrations $ appStore st
+        (runReaderT ((cHandler command) mapping) st) `catchSql` reportSqlError
