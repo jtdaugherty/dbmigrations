@@ -90,7 +90,7 @@ data AppState = AppState { appOptions :: [CommandOption]
                          , appCommand :: Command
                          , appRequiredArgs :: [String]
                          , appOptionalArgs :: [String]
-                         , appStorePath :: String
+                         , appStore :: FilesystemStore
                          , appDatabaseConnStr :: Maybe DbConnDescriptor
                          }
 
@@ -264,9 +264,8 @@ confirmCreation migrationId deps = do
 newCommand :: CommandHandler
 newCommand = do
   required <- asks appRequiredArgs
-  fsPath <- asks appStorePath
+  store <- asks appStore
   let [migrationId] = required
-      store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
   fullPath <- liftIO $ fullMigrationName store migrationId
 
@@ -293,8 +292,7 @@ newCommand = do
 
 upgradeCommand :: CommandHandler
 upgradeCommand = do
-  fsPath <- asks appStorePath
-  let store = FSStore { storePath = fsPath }
+  store <- asks appStore
   mapping <- liftIO $ loadMigrations store
 
   isTesting <- hasOption Test
@@ -315,8 +313,7 @@ upgradeCommand = do
 
 upgradeListCommand :: CommandHandler
 upgradeListCommand = do
-  fsPath <- asks appStorePath
-  let store = FSStore { storePath = fsPath }
+  store <- asks appStore
   mapping <- liftIO $ loadMigrations store
 
   withConnection $ \(AnyIConnection conn) -> do
@@ -396,9 +393,8 @@ lookupMigration mapping name = do
 applyCommand :: CommandHandler
 applyCommand = do
   required <- asks appRequiredArgs
-  fsPath <- asks appStorePath
+  store <- asks appStore
   let [migrationId] = required
-      store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
 
   withConnection $ \(AnyIConnection conn) -> do
@@ -411,9 +407,8 @@ applyCommand = do
 revertCommand :: CommandHandler
 revertCommand = do
   required <- asks appRequiredArgs
-  fsPath <- asks appStorePath
+  store <- asks appStore
   let [migrationId] = required
-      store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
 
   withConnection $ \(AnyIConnection conn) ->
@@ -427,9 +422,8 @@ revertCommand = do
 testCommand :: CommandHandler
 testCommand = do
   required <- asks appRequiredArgs
-  fsPath <- asks appStorePath
+  store <- asks appStore
   let [migrationId] = required
-      store = FSStore { storePath = fsPath }
   mapping <- liftIO $ loadMigrations store
 
   withConnection $ \(AnyIConnection conn) -> do
@@ -511,7 +505,7 @@ main = do
                     , appRequiredArgs = required
                     , appOptionalArgs = optional
                     , appDatabaseConnStr = DbConnDescriptor <$> mDbConnStr
-                    , appStorePath = storePathStr
+                    , appStore = FSStore { storePath = storePathStr }
                     }
 
   if (length args) < (length $ cRequired command) then
