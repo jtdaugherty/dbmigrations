@@ -155,6 +155,10 @@ optionMap :: [(String, CommandOption)]
 optionMap = [ ("--test", Test)
             , ("--no-ask", NoAsk)]
 
+optionUsage :: CommandOption -> String
+optionUsage Test = "Perform the action in a transaction and issue a rollback when finished"
+optionUsage NoAsk = "Do not interactively ask any questions, just do it"
+
 hasOption :: CommandOption -> AppT Bool
 hasOption o = asks ((o `elem`) . appOptions)
 
@@ -448,6 +452,10 @@ usage = do
           putStrLn $ "  " ++ usageString command
           putStrLn $ "    " ++ cDescription command
           putStrLn ""
+
+  putStrLn "Options:"
+  forM_ optionMap $ \(name, option) -> do
+          putStrLn $ "  " ++ name ++ ": " ++ optionUsage option
   exitWith (ExitFailure 1)
 
 usageSpecific :: Command -> IO a
