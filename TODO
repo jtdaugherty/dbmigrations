@@ -1,12 +1,12 @@
 
-- InitFS: add a flag (--summary) to upgrade, apply, and revert; remove
+- Moo: add a flag (--summary) to upgrade, apply, and revert; remove
   upgrade-list command; have --summary show the user what will be done
   without actually doing it.
 
-- InitFS "new" confirmation: display deps in columns, sorted
+- Moo "new" confirmation: display deps in columns, sorted
   alphabetically, so we don't have to invoke a pager
 
-- InitFS "new" command deps selection: allow j/k navigation a la darcs
+- Moo "new" command deps selection: allow j/k navigation a la darcs
 
 - make filesystem store operations die if they find a migration name
   with no corresponding disk file
