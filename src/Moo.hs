@@ -156,7 +156,8 @@ optionMap = [ ("--test", Test)
             , ("--no-ask", NoAsk)]
 
 optionUsage :: CommandOption -> String
-optionUsage Test = "Perform the action in a transaction and issue a rollback when finished"
+optionUsage Test = "Perform the action in a transaction and issue a \
+                   \rollback when finished"
 optionUsage NoAsk = "Do not interactively ask any questions, just do it"
 
 hasOption :: CommandOption -> AppT Bool
@@ -176,38 +177,54 @@ isCommandOption s = take 2 s == "--"
 convertOptions :: [String] -> Either String ([CommandOption], [String])
 convertOptions args = if null unsupportedOptions
                       then Right (supportedOptions, rest)
-                      else Left $ "Unsupported option(s): " ++ intercalate ", " unsupportedOptions
+                      else Left unsupported
     where
       allOptions = filter isCommandOption args
       supportedOptions = catMaybes $ map (\s -> lookup s optionMap) args
-      unsupportedOptions = [ s | s <- allOptions, not $ isSupportedCommandOption s ]
+      unsupportedOptions = [ s | s <- allOptions
+                           , not $ isSupportedCommandOption s ]
       rest = [arg | arg <- args, not $ isCommandOption arg]
+      unsupported = "Unsupported option(s): "
+                    ++ intercalate ", " unsupportedOptions
 
 commands :: [Command]
-commands = [ Command "new" ["migration_name"] [] [NoAsk] "Create a new empty migration" newCommand
+commands = [ Command "new" ["migration_name"] [] [NoAsk]
+                         "Create a new empty migration"
+                         newCommand
            , Command "apply" ["migration_name"] [] []
-                         "Apply the specified migration and its dependencies" applyCommand
+                         "Apply the specified migration and its dependencies"
+                         applyCommand
            , Command "revert" ["migration_name"] [] []
-                         "Revert the specified migration and those that depend on it" revertCommand
+                         "Revert the specified migration and those that depend\
+                          \ on it"
+                          revertCommand
            , Command "test" ["migration_name"] [] []
-                         "Test the specified migration by applying and reverting it in a transaction, then roll back"
+                         "Test the specified migration by applying and \
+                         \reverting it in a transaction, then roll back"
                          testCommand
            , Command "upgrade" [] [] [Test]
-                         "Install all migrations that have not yet been installed" upgradeCommand
+                         "Install all migrations that have not yet been \
+                         \installed"
+                         upgradeCommand
            , Command "upgrade-list" [] [] []
-                         "Show the list of migrations to be installed during an upgrade" upgradeListCommand
+                         "Show the list of migrations to be installed during \
+                         \an upgrade"
+                         upgradeListCommand
            ]
 
 data AnyIConnection = forall c. (IConnection c) => AnyIConnection c
 
 makeConnection :: DbConnDescriptor -> IO AnyIConnection
-makeConnection (DbConnDescriptor connStr) = AnyIConnection <$> connectSqlite3 connStr
+makeConnection (DbConnDescriptor connStr) =
+    AnyIConnection <$> connectSqlite3 connStr
 
 withConnection :: (AnyIConnection -> IO a) -> AppT a
 withConnection act = do
   mDbPath <- asks appDatabaseConnStr
-  when (isNothing mDbPath) $ error "Error: Database connection string not specified, please set DBM_DATABASE"
-  liftIO $ bracket (makeConnection $ fromJust mDbPath) (\(AnyIConnection conn) -> disconnect conn) act
+  when (isNothing mDbPath) $ error "Error: Database connection string not \
+                                   \specified, please set DBM_DATABASE"
+  liftIO $ bracket (makeConnection $ fromJust mDbPath)
+             (\(AnyIConnection conn) -> disconnect conn) act
 
 interactiveAskDeps :: MigrationMap -> IO [String]
 interactiveAskDeps mapping = do
@@ -246,9 +263,13 @@ interactiveAskDeps' mapping (name:rest) = do
             -- load migration
             let Just m = Map.lookup name mapping
             -- print out description, timestamp, deps
-            when (isJust $ mDesc m) (putStrLn $ (blue "  Description: ") ++ (fromJust $ mDesc m))
+            when (isJust $ mDesc m)
+                     (putStrLn $ (blue "  Description: ") ++
+                                   (fromJust $ mDesc m))
             putStrLn $ (blue "      Created: ") ++ (show $ mTimestamp m)
-            when (not $ null $ mDeps m) $ putStrLn $ (blue "  Deps: ") ++ (intercalate "\n        " $ mDeps m)
+            when (not $ null $ mDeps m)
+                     (putStrLn $ (blue "  Deps: ") ++
+                                   (intercalate "\n        " $ mDeps m))
             -- ask again
             interactiveAskDeps' mapping (name:rest)
           Quit -> do
@@ -280,7 +301,8 @@ newCommand mapping = do
   -- Default behavior: ask for dependencies
   deps <- ifOption NoAsk (return [])
                            (liftIO $ do
-                              putStrLn $ "Selecting dependencies for new migration: " ++ migrationId
+                              putStrLn $ "Selecting dependencies for new \
+                                         \migration: " ++ migrationId
                               interactiveAskDeps mapping)
 
   result <- liftIO $ confirmCreation migrationId deps
@@ -289,7 +311,8 @@ newCommand mapping = do
                status <- createNewMigration store migrationId deps
                case status of
                  Left e -> putStrLn (red e) >> (exitWith (ExitFailure 1))
-                 Right _ -> putStrLn $ "Migration created successfully: " ++ (green $ show fullPath)
+                 Right _ -> putStrLn $ "Migration created successfully: " ++
+                            (green $ show fullPath)
              False -> do
                putStrLn $ red "Migration creation cancelled."
 
@@ -299,7 +322,9 @@ upgradeCommand mapping = do
   withConnection $ \(AnyIConnection conn) -> do
         ensureBootstrappedBackend conn >> commit conn
         migrationNames <- missingMigrations conn mapping
-        when (null migrationNames) (putStrLn "Database is up to date." >> exitSuccess)
+        when (null migrationNames) $ do
+                           putStrLn "Database is up to date."
+                           exitSuccess
         forM_ migrationNames $ \migrationName -> do
             m <- lookupMigration mapping migrationName
             apply m mapping conn
@@ -316,7 +341,9 @@ upgradeListCommand mapping = do
   withConnection $ \(AnyIConnection conn) -> do
         ensureBootstrappedBackend conn >> commit conn
         migrationNames <- missingMigrations conn mapping
-        when (null migrationNames) (putStrLn "Database is up to date." >> exitSuccess)
+        when (null migrationNames) $ do
+                               putStrLn "Database is up to date."
+                               exitSuccess
         putStrLn "Migrations to install:"
         forM_ migrationNames (putStrLn . ("  " ++) . green)
 
@@ -325,7 +352,8 @@ reportSqlError e = do
   putStrLn $ "\n" ++ (red $ "A database error occurred: " ++ seErrorMsg e)
   exitWith (ExitFailure 1)
 
-apply :: (IConnection b, Backend b IO) => Migration -> MigrationMap -> b -> IO [Migration]
+apply :: (IConnection b, Backend b IO)
+         => Migration -> MigrationMap -> b -> IO [Migration]
 apply m mapping backend = do
   -- Get the list of migrations to apply
   toApply' <- migrationsToApply mapping backend m
@@ -351,7 +379,8 @@ apply m mapping backend = do
         applyMigration conn it
         putStrLn $ green "done."
 
-revert :: (IConnection b, Backend b IO) => Migration -> MigrationMap -> b -> IO [Migration]
+revert :: (IConnection b, Backend b IO)
+          => Migration -> MigrationMap -> b -> IO [Migration]
 revert m mapping backend = do
   -- Get the list of migrations to revert
   toRevert' <- liftIO $ migrationsToRevert mapping backend m
@@ -423,7 +452,9 @@ testCommand mapping = do
         migrationNames <- missingMigrations conn mapping
         -- If the migration is already installed, remove it as part of
         -- the test
-        when (not $ migrationId `elem` migrationNames) $ (revert m mapping conn) >> return ()
+        when (not $ migrationId `elem` migrationNames) $
+             do revert m mapping conn
+                return ()
         applied <- apply m mapping conn
         forM_ (reverse applied) $ \migration -> do
                              revert migration mapping conn
@@ -431,12 +462,15 @@ testCommand mapping = do
         putStrLn "Successfully tested migrations."
 
 usageString :: Command -> String
-usageString command = intercalate " " ((blue $ cName command):requiredArgs ++ optionalArgs ++ options)
+usageString command =
+    intercalate " " ((blue $ cName command):requiredArgs ++
+                                           optionalArgs ++ options)
     where
       requiredArgs = map (\s -> "<" ++ s ++ ">") $ cRequired command
       optionalArgs = map (\s -> "[" ++ s ++ "]") $ cOptional command
       options = map (\s -> "[" ++ s ++ "]") $ optionStrings
-      optionStrings = map (\o -> fromJust $ lookup o flippedOptions) $ cAllowedOptions command
+      optionStrings = map (\o -> fromJust $ lookup o flippedOptions) $
+                      cAllowedOptions command
       flippedOptions = map (\(a,b) -> (b,a)) optionMap
 
 usage :: IO a
@@ -494,7 +528,8 @@ main = do
   let mDbConnStr = lookup envDatabaseName env
       storePathStr = case lookup envStoreName env of
                        Just sp -> sp
-                       Nothing -> error $ "Error: missing required environment variable " ++ envStoreName
+                       Nothing -> error $ "Error: missing required environment \
+                                          \variable " ++ envStoreName
 
   let (required,optional) = splitAt (length $ cRequired command) args
       st = AppState { appOptions = opts
@@ -515,4 +550,5 @@ main = do
             forM_ es $ \err -> do
                              putStrLn $ "  " ++ show err
           Right mapping -> do
-            (runReaderT ((cHandler command) mapping) st) `catchSql` reportSqlError
+            (runReaderT ((cHandler command) mapping) st)
+            `catchSql` reportSqlError
