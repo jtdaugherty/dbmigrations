@@ -1,4 +1,6 @@
 
+- Moo: Use sys.argv[0] in usage string
+
 - InitFS: add a flag (--summary) to upgrade, apply, and revert; remove
   upgrade-list command; have --summary show the user what will be done
   without actually doing it.
@@ -7,8 +9,6 @@
   alphabetically, so we don't have to invoke a pager
 
 - InitFS "new" command deps selection: allow j/k navigation a la darcs
-
-- Rename InitFS / initstore-fs
 
 - make filesystem store operations die if they find a migration name
   with no corresponding disk file
