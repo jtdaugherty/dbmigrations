@@ -206,7 +206,7 @@ makeConnection (DbConnDescriptor connStr) = AnyIConnection <$> connectSqlite3 co
 withConnection :: (AnyIConnection -> IO a) -> AppT a
 withConnection act = do
   mDbPath <- asks appDatabaseConnStr
-  when (isNothing mDbPath) $ error "Error: Database connection string not specified"
+  when (isNothing mDbPath) $ error "Error: Database connection string not specified, please set DBM_DATABASE"
   liftIO $ bracket (makeConnection $ fromJust mDbPath) (\(AnyIConnection conn) -> disconnect conn) act
 
 interactiveAskDeps :: MigrationMap -> IO [String]
