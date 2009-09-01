@@ -16,6 +16,10 @@ Flag testing
     Description:     Build for testing
     Default:         False
 
+Flag store-manager
+    Description:     Build the experimental / incomplete store-manager program
+    Default:         False
+
 Library
   Build-Depends:
     base,
@@ -75,6 +79,9 @@ Executable store-manager
     base,
     hscurses == 1.3.0.*
 
+  if !flag(testing)
+    Buildable:     False
+  end
   Hs-Source-Dirs:  src
   Main-is:         StoreManager.hs
   Ghc-options:     -Werror
