@@ -13,6 +13,8 @@ import Database.Schema.Migrations.Migration
     , newMigration
     )
 
+import Control.Applicative ( (<$>) )
+
 migrationTableName :: String
 migrationTableName = "installed_migrations"
 
@@ -27,11 +29,7 @@ revertSql = "DROP TABLE " ++ migrationTableName
 -- need be; this implementation is provided with the hope that you
 -- won't /have/ to do that.
 instance (IConnection conn) => Backend conn IO where
-    isBootstrapped conn = do
-      -- if 'installed_migrations' is in the list of tables,
-      -- bootstrapping has been performed.
-      tables <- getTables conn
-      return $ migrationTableName `elem` tables
+    isBootstrapped conn = elem migrationTableName <$> getTables conn
 
     getBootstrapMigration _ =
         do
