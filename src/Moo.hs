@@ -500,5 +500,11 @@ main = do
   if (length args) < (length $ cRequired command) then
       usageSpecific command else
       do
-        mapping <- loadMigrations $ appStore st
-        (runReaderT ((cHandler command) mapping) st) `catchSql` reportSqlError
+        loadedMapping <- loadMigrations $ appStore st
+        case loadedMapping of
+          Left es -> do
+            putStrLn "There were errors in the migration store:"
+            forM_ es $ \err -> do
+                             putStrLn $ "  " ++ show err
+          Right mapping -> do
+            (runReaderT ((cHandler command) mapping) st) `catchSql` reportSqlError

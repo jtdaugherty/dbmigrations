@@ -258,7 +258,14 @@ main = do
               exitFailure
       else do
         let store = FSStore { storePath = theStorePath }
-        loadMigrations store
+        result <- loadMigrations store
+        case result of
+          Left es -> do
+                      putStrLn "There were errors in the migration store:"
+                      forM_ es $ \err -> do
+                        putStrLn $ "  " ++ show err
+                      exitFailure
+          Right mMap -> return mMap
 
   runCurses theStorePath migrationMap `finally` CursesH.end
     where runCurses sp migrations = do
