@@ -2,7 +2,7 @@
 module Main
     ( main )
 where
-import System.Environment ( getArgs, getEnvironment )
+import System.Environment ( getArgs, getEnvironment, getProgName )
 import System.Exit
     ( exitWith
     , ExitCode(..)
@@ -437,7 +437,9 @@ usageString command = intercalate " " ((blue $ cName command):requiredArgs ++ op
 
 usage :: IO a
 usage = do
-  putStrLn $ "Usage: moo <" ++ (blue "command") ++ "> [args]"
+  progName <- getProgName
+
+  putStrLn $ "Usage: " ++ progName ++ " <" ++ (blue "command") ++ "> [args]"
   putStrLn "Environment:"
   putStrLn $ "  " ++ envDatabaseName ++ ": database connection string"
   putStrLn $ "  " ++ envStoreName ++ ": path to migration store"
