@@ -1,4 +1,9 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+-- |This module provides an abstraction for a /migration store/, a
+-- facility in which 'Migration's can be stored and from which they
+-- can be loaded.  This module also provides functions for taking
+-- 'Migration's from a store and converting them into the appropriate
+-- intermediate types for use with the rest of this library.
 module Database.Schema.Migrations.Store
     ( MigrationStore(..)
     , MapValidationError(..)
