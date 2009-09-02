@@ -1,3 +1,5 @@
+-- |This module provides a high-level interface for the rest of this
+-- library.
 module Database.Schema.Migrations
     ( createNewMigration
     , ensureBootstrappedBackend
@@ -24,6 +26,9 @@ import Database.Schema.Migrations.Migration
     , MonadMigration
     )
 
+-- |Given a 'B.Backend' and a 'MigrationMap', query the backend and
+-- return a list of migration names which are available in the
+-- 'MigrationMap' but which are not installed in the 'B.Backend'.
 missingMigrations :: (B.Backend b m) => b -> MigrationMap -> m [String]
 missingMigrations backend storeMigrationMap = do
   let storeMigrations = Map.keys storeMigrationMap
@@ -33,8 +38,13 @@ missingMigrations backend storeMigrationMap = do
          (Set.fromList storeMigrations)
          (Set.fromList backendMigrations)
 
-createNewMigration :: (MonadMigration m, S.MigrationStore s m) =>
-                      s -> String -> [String] -> m (Either String ())
+-- |Create a new migration and store it in the 'S.MigrationStore',
+-- with some of its fields initially set to defaults.
+createNewMigration :: (MonadMigration m, S.MigrationStore s m)
+                   => s -- ^ The 'S.MigrationStore' in which to create a new migration
+                   -> String -- ^ The name of the new migration to create
+                   -> [String] -- ^ The list of migration names on which the new migration should depend
+                   -> m (Either String ())
 createNewMigration store name deps = do
   available <- S.getMigrations store
   fullPath <- S.fullMigrationName store name
@@ -50,6 +60,10 @@ createNewMigration store name deps = do
       S.saveMigration store newWithDefaults
       return $ Right ()
 
+-- |Given a 'B.Backend', ensure that the backend is ready for use by
+-- bootstrapping it.  This entails installing the appropriate database
+-- elements to track installed migrations.  If the backend is already
+-- bootstrapped, this has no effect.
 ensureBootstrappedBackend :: (B.Backend b m) => b -> m ()
 ensureBootstrappedBackend backend = do
   bsStatus <- B.isBootstrapped backend
