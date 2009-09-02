@@ -52,12 +52,6 @@ import Database.HDBC
     , SqlError
     )
 import Database.Schema.Migrations
-    ( migrationsToApply
-    , migrationsToRevert
-    , missingMigrations
-    , createNewMigration
-    , ensureBootstrappedBackend
-    )
 import Database.Schema.Migrations.Filesystem
 import Database.Schema.Migrations.Migration
     ( Migration(..)
@@ -71,8 +65,12 @@ import Database.Schema.Migrations.Backend
 import Database.Schema.Migrations.Store
     ( loadMigrations
     , fullMigrationName
+    , depGraphFromMapping
     )
 import Database.Schema.Migrations.Backend.HDBC ()
+import Database.Schema.Migrations.Dependencies
+    ( DependencyGraph
+    )
 
 -- A command has a name, a number of required arguments' labels, a
 -- number of optional arguments' labels, and an action to invoke.
@@ -92,12 +90,14 @@ data AppState = AppState { appOptions :: [CommandOption]
                          , appOptionalArgs :: [String]
                          , appStore :: FilesystemStore
                          , appDatabaseConnStr :: Maybe DbConnDescriptor
+                         , appMigrationMap :: MigrationMap
+                         , appDependencyGraph :: DependencyGraph Migration
                          }
 
 type AppT a = ReaderT AppState IO a
 
 -- The type of actions that are invoked to handle specific commands
-type CommandHandler = MigrationMap -> AppT ()
+type CommandHandler = AppT ()
 
 -- Options which can be used to alter command behavior
 data CommandOption = Test
@@ -263,9 +263,10 @@ confirmCreation migrationId deps = do
   return $ result == 'y'
 
 newCommand :: CommandHandler
-newCommand mapping = do
+newCommand = do
   required <- asks appRequiredArgs
   store <- asks appStore
+  mapping <- asks appMigrationMap
   let [migrationId] = required
   fullPath <- liftIO $ fullMigrationName store migrationId
 
@@ -293,7 +294,8 @@ newCommand mapping = do
                putStrLn "Migration creation cancelled."
 
 upgradeCommand :: CommandHandler
-upgradeCommand mapping = do
+upgradeCommand = do
+  mapping <- asks appMigrationMap
   isTesting <- hasOption Test
   withConnection $ \(AnyIConnection conn) -> do
         ensureBootstrappedBackend conn >> commit conn
@@ -313,7 +315,8 @@ upgradeCommand mapping = do
                  putStrLn "Database successfully upgraded."
 
 upgradeListCommand :: CommandHandler
-upgradeListCommand mapping = do
+upgradeListCommand = do
+  mapping <- asks appMigrationMap
   withConnection $ \(AnyIConnection conn) -> do
         ensureBootstrappedBackend conn >> commit conn
         migrationNames <- missingMigrations conn mapping
@@ -393,8 +396,9 @@ lookupMigration mapping name = do
     Just m' -> return m'
 
 applyCommand :: CommandHandler
-applyCommand mapping = do
+applyCommand = do
   required <- asks appRequiredArgs
+  mapping <- asks appMigrationMap
   let [migrationId] = required
 
   withConnection $ \(AnyIConnection conn) -> do
@@ -405,8 +409,9 @@ applyCommand mapping = do
         putStrLn "Successfully applied migrations."
 
 revertCommand :: CommandHandler
-revertCommand mapping = do
+revertCommand = do
   required <- asks appRequiredArgs
+  mapping <- asks appMigrationMap
   let [migrationId] = required
 
   withConnection $ \(AnyIConnection conn) ->
@@ -418,8 +423,9 @@ revertCommand mapping = do
         putStrLn "Successfully reverted migrations."
 
 testCommand :: CommandHandler
-testCommand mapping = do
+testCommand = do
   required <- asks appRequiredArgs
+  mapping <- asks appMigrationMap
   let [migrationId] = required
 
   withConnection $ \(AnyIConnection conn) -> do
@@ -508,23 +514,31 @@ main = do
                                           \variable " ++ envStoreName
 
   let (required,optional) = splitAt (length $ cRequired command) args
-      st = AppState { appOptions = opts
-                    , appCommand = command
-                    , appRequiredArgs = required
-                    , appOptionalArgs = optional
-                    , appDatabaseConnStr = DbConnDescriptor <$> mDbConnStr
-                    , appStore = FSStore { storePath = storePathStr }
-                    }
+      store = FSStore { storePath = storePathStr }
 
   if (length args) < (length $ cRequired command) then
       usageSpecific command else
       do
-        loadedMapping <- loadMigrations $ appStore st
+        loadedMapping <- loadMigrations store
         case loadedMapping of
           Left es -> do
             putStrLn "There were errors in the migration store:"
             forM_ es $ \err -> do
                              putStrLn $ "  " ++ show err
           Right mapping -> do
-            (runReaderT ((cHandler command) mapping) st)
-            `catchSql` reportSqlError
+            case depGraphFromMapping mapping of
+              Left e -> do
+                putStrLn $ "Error: " ++ show e
+                exitWith (ExitFailure 1)
+              Right dgr -> do
+                let st = AppState { appOptions = opts
+                                  , appCommand = command
+                                  , appRequiredArgs = required
+                                  , appOptionalArgs = optional
+                                  , appDatabaseConnStr = DbConnDescriptor <$> mDbConnStr
+                                  , appStore = FSStore { storePath = storePathStr }
+                                  , appMigrationMap = mapping
+                                  , appDependencyGraph = dgr
+                                  }
+                (runReaderT (cHandler command) st)
+                         `catchSql` reportSqlError
