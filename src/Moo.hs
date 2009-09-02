@@ -104,30 +104,6 @@ data CommandOption = Test
                    | NoAsk
                    deriving (Eq)
 
-reset :: String
-reset = "\027[0m"
-
-red :: String -> String
-red s = "\27[31m" ++ s ++ reset
-
-green :: String -> String
-green s = "\27[32m" ++ s ++ reset
-
-blue :: String -> String
-blue s = "\27[34m" ++ s ++ reset
-
--- yellow :: String -> String
--- yellow s = "\27[33m" ++ s ++ reset
-
--- magenta :: String -> String
--- magenta s = "\27[35m" ++ s ++ reset
-
--- cyan :: String -> String
--- cyan s = "\27[36m" ++ s ++ reset
-
--- white :: String -> String
--- white s = "\27[37m" ++ s ++ reset
-
 unbufferedGetChar :: IO Char
 unbufferedGetChar = do
   bufferingMode <- hGetBuffering stdin
@@ -251,7 +227,7 @@ askDepsChoices = [ ('y', Yes)
 interactiveAskDeps' :: MigrationMap -> [String] -> IO [String]
 interactiveAskDeps' _ [] = return []
 interactiveAskDeps' mapping (name:rest) = do
-  result <- prompt ("Depend on '" ++ (green name) ++ "'?") askDepsChoices
+  result <- prompt ("Depend on '" ++ name ++ "'?") askDepsChoices
   if (result == Done) then return [] else
       do
         case result of
@@ -264,11 +240,11 @@ interactiveAskDeps' mapping (name:rest) = do
             let Just m = Map.lookup name mapping
             -- print out description, timestamp, deps
             when (isJust $ mDesc m)
-                     (putStrLn $ (blue "  Description: ") ++
+                     (putStrLn $ "  Description: " ++
                                    (fromJust $ mDesc m))
-            putStrLn $ (blue "      Created: ") ++ (show $ mTimestamp m)
+            putStrLn $ "      Created: " ++ (show $ mTimestamp m)
             when (not $ null $ mDeps m)
-                     (putStrLn $ (blue "  Deps: ") ++
+                     (putStrLn $ "  Deps: " ++
                                    (intercalate "\n        " $ mDeps m))
             -- ask again
             interactiveAskDeps' mapping (name:rest)
@@ -279,10 +255,10 @@ interactiveAskDeps' mapping (name:rest) = do
 confirmCreation :: String -> [String] -> IO Bool
 confirmCreation migrationId deps = do
   putStrLn ""
-  putStrLn $ "Confirm: create migration '" ++ (green migrationId) ++ "'"
+  putStrLn $ "Confirm: create migration '" ++ migrationId ++ "'"
   if (null deps) then putStrLn "  (No dependencies)"
      else putStrLn "with dependencies:"
-  forM_ deps $ \d -> putStrLn $ "  " ++ (green d)
+  forM_ deps $ \d -> putStrLn $ "  " ++ d
   result <- prompt "Are you sure?" [('y', 'y'), ('n', 'n')]
   return $ result == 'y'
 
@@ -295,7 +271,7 @@ newCommand mapping = do
 
   when (isJust $ Map.lookup migrationId mapping) $
        liftIO $ do
-         putStrLn $ red $ "Migration " ++ (show fullPath) ++ " already exists"
+         putStrLn $ "Migration " ++ (show fullPath) ++ " already exists"
          exitWith (ExitFailure 1)
 
   -- Default behavior: ask for dependencies
@@ -310,11 +286,11 @@ newCommand mapping = do
              True -> do
                status <- createNewMigration store migrationId deps
                case status of
-                 Left e -> putStrLn (red e) >> (exitWith (ExitFailure 1))
+                 Left e -> putStrLn e >> (exitWith (ExitFailure 1))
                  Right _ -> putStrLn $ "Migration created successfully: " ++
-                            (green $ show fullPath)
+                            show fullPath
              False -> do
-               putStrLn $ red "Migration creation cancelled."
+               putStrLn "Migration creation cancelled."
 
 upgradeCommand :: CommandHandler
 upgradeCommand mapping = do
@@ -345,11 +321,11 @@ upgradeListCommand mapping = do
                                putStrLn "Database is up to date."
                                exitSuccess
         putStrLn "Migrations to install:"
-        forM_ migrationNames (putStrLn . ("  " ++) . green)
+        forM_ migrationNames (putStrLn . ("  " ++))
 
 reportSqlError :: SqlError -> IO a
 reportSqlError e = do
-  putStrLn $ "\n" ++ (red $ "A database error occurred: " ++ seErrorMsg e)
+  putStrLn $ "\n" ++ "A database error occurred: " ++ seErrorMsg e
   exitWith (ExitFailure 1)
 
 apply :: (IConnection b, Backend b IO)
@@ -359,7 +335,7 @@ apply m mapping backend = do
   toApply' <- migrationsToApply mapping backend m
   toApply <- case toApply' of
                Left e -> do
-                 putStrLn $ red $ "Error: " ++ e
+                 putStrLn $ "Error: " ++ e
                  exitWith (ExitFailure 1)
                Right ms -> return ms
 
@@ -375,9 +351,9 @@ apply m mapping backend = do
                      " already installed."
 
       applyIt conn it = do
-        putStr $ "Applying: " ++ (green $ mId it) ++ "... "
+        putStr $ "Applying: " ++ mId it ++ "... "
         applyMigration conn it
-        putStrLn $ green "done."
+        putStrLn "done."
 
 revert :: (IConnection b, Backend b IO)
           => Migration -> MigrationMap -> b -> IO [Migration]
@@ -386,7 +362,7 @@ revert m mapping backend = do
   toRevert' <- liftIO $ migrationsToRevert mapping backend m
   toRevert <- case toRevert' of
                 Left e -> do
-                  putStrLn $ red $ "Error: " ++ e
+                  putStrLn $ "Error: " ++ e
                   exitWith (ExitFailure 1)
                 Right ms -> return ms
 
@@ -402,9 +378,9 @@ revert m mapping backend = do
                    " not installed."
 
       revertIt conn it = do
-        putStr $ "Reverting: " ++ (green $ mId it) ++ "... "
+        putStr $ "Reverting: " ++ mId it ++ "... "
         revertMigration conn it
-        putStrLn $ green "done."
+        putStrLn "done."
 
 lookupMigration :: MigrationMap -> String -> IO Migration
 lookupMigration mapping name = do
@@ -412,7 +388,7 @@ lookupMigration mapping name = do
   case theMigration of
     Nothing -> do
       liftIO $ do
-        putStrLn $ red $ "No such migration: " ++ name
+        putStrLn $ "No such migration: " ++ name
         exitWith (ExitFailure 1)
     Just m' -> return m'
 
@@ -463,8 +439,8 @@ testCommand mapping = do
 
 usageString :: Command -> String
 usageString command =
-    intercalate " " ((blue $ cName command):requiredArgs ++
-                                           optionalArgs ++ options)
+    intercalate " " ((cName command):requiredArgs ++
+                                    optionalArgs ++ options)
     where
       requiredArgs = map (\s -> "<" ++ s ++ ">") $ cRequired command
       optionalArgs = map (\s -> "[" ++ s ++ "]") $ cOptional command
@@ -477,7 +453,7 @@ usage :: IO a
 usage = do
   progName <- getProgName
 
-  putStrLn $ "Usage: " ++ progName ++ " <" ++ (blue "command") ++ "> [args]"
+  putStrLn $ "Usage: " ++ progName ++ " <command> [args]"
   putStrLn "Environment:"
   putStrLn $ "  " ++ envDatabaseName ++ ": database connection string"
   putStrLn $ "  " ++ envStoreName ++ ": path to migration store"
