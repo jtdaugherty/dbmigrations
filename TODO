@@ -1,4 +1,17 @@
 
+- Unify DependencyGraph and MigrationMap into an encapsulating type,
+  and use that where we use MigrationMap and DependencyGraph in
+  high-level settings.  If possible, even make this type completely
+  divorced from Migrations, i.e.,
+
+    data StoreData a = StoreData { storeDataMapping :: Map String a
+                                 , storeDataDependencies :: DependencyGraph a
+                                 }
+
+  - Migrations: make functions take a DependencyGraph instead of a
+    MigrationMap, make them also return [Migration] instead of
+    accounting for dependency graph construction errors
+
 - Moo: add a flag (--summary) to upgrade, apply, and revert; remove
   upgrade-list command; have --summary show the user what will be done
   without actually doing it.
