@@ -24,25 +24,28 @@ class (Eq a, Ord a) => Dependable a where
 
 -- |A DependencyGraph represents a collection of objects together with
 -- a graph of their dependency relationships.
-data DependencyGraph a = DG { objectMap :: [(a, Int)] -- Map from object to its graph index
-                            , nameMap :: [(String, Int)] -- Map from object depid to its graph index
-                            , graph :: Gr String String
+data DependencyGraph a = DG { depGraphObjectMap :: [(a, Int)]
+                            , depGraphNameMap :: [(String, Int)]
+                            , depGraph :: Gr String String
                             }
 
 instance (Eq a) => Eq (DependencyGraph a) where
-    g1 == g2 = ((nodes $ graph g1) == (nodes $ graph g2) &&
-                (edges $ graph g1) == (edges $ graph g2))
+    g1 == g2 = ((nodes $ depGraph g1) == (nodes $ depGraph g2) &&
+                (edges $ depGraph g1) == (edges $ depGraph g2))
 
 instance (Show a) => Show (DependencyGraph a) where
-    show g = "(" ++ (show $ nodes $ graph g) ++ ", " ++ (show $ edges $ graph g) ++ ")"
+    show g = "(" ++ (show $ nodes $ depGraph g) ++ ", " ++ (show $ edges $ depGraph g) ++ ")"
 
 -- XXX: provide details about detected cycles
 mkDepGraph :: (Dependable a) => [a] -> Either String (DependencyGraph a)
-mkDepGraph objects = if hasCycle depGraph
+mkDepGraph objects = if hasCycle theGraph
                      then Left "Invalid dependency graph; cycle detected"
-                     else Right $ DG { objectMap = ids, graph = depGraph, nameMap = names }
+                     else Right $ DG { depGraphObjectMap = ids
+                                     , depGraphNameMap = names
+                                     , depGraph = theGraph
+                                     }
     where
-      depGraph = mkGraph n e
+      theGraph = mkGraph n e
       n = [ (fromJust $ lookup o ids, depId o) | o <- objects ]
       e = [ ( fromJust $ lookup o ids
             , fromJust $ lookup d ids
