@@ -1,6 +1,10 @@
 
 - Write tests for mapping validation logic in Store
 
+- Write convenience functions to access information in StoreData so 1)
+  the code is cleaner and 2) we don't have to export field accessors
+  for StoreData
+
 - Moo: add a flag (--summary) to upgrade, apply, and revert; remove
   upgrade-list command; have --summary show the user what will be done
   without actually doing it.
