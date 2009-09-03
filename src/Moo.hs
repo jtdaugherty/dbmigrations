@@ -44,7 +44,7 @@ import Control.Monad.Trans
     ( liftIO
     )
 import Control.Applicative ( (<$>) )
-import Database.HDBC.Sqlite3 ( connectSqlite3 )
+import Database.HDBC.PostgreSQL ( connectPostgreSQL )
 import Database.HDBC
     ( IConnection(commit, rollback, disconnect)
     , catchSql
@@ -187,7 +187,7 @@ data AnyIConnection = forall c. (IConnection c) => AnyIConnection c
 
 makeConnection :: DbConnDescriptor -> IO AnyIConnection
 makeConnection (DbConnDescriptor connStr) =
-    AnyIConnection <$> connectSqlite3 connStr
+    AnyIConnection <$> connectPostgreSQL connStr
 
 withConnection :: (AnyIConnection -> IO a) -> AppT a
 withConnection act = do
