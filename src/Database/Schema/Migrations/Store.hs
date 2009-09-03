@@ -16,6 +16,7 @@ where
 
 import Data.Maybe ( catMaybes, isJust )
 import Control.Monad ( mzero )
+import Control.Applicative ( (<$>) )
 import qualified Data.Map as Map
 
 import Database.Schema.Migrations.Migration
@@ -72,8 +73,7 @@ loadMigrations store = do
 -- |Validate a migration map.  Returns zero or more validation errors.
 validateMigrationMap :: MigrationMap -> [MapValidationError]
 validateMigrationMap mMap = do
-  (_, m) <- Map.toList mMap
-  validateSingleMigration mMap m
+  validateSingleMigration mMap =<< snd <$> Map.toList mMap
 
 validateSingleMigration :: MigrationMap -> Migration -> [MapValidationError]
 validateSingleMigration mMap m = do
