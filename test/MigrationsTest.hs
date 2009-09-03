@@ -10,6 +10,7 @@ import qualified Data.Map as Map
 import Data.Time.Clock ( UTCTime )
 
 import Database.Schema.Migrations
+import Database.Schema.Migrations.Store ( MigrationMap )
 import Database.Schema.Migrations.Migration
 import Database.Schema.Migrations.Backend
 

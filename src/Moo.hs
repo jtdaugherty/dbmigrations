@@ -55,7 +55,6 @@ import Database.Schema.Migrations
 import Database.Schema.Migrations.Filesystem
 import Database.Schema.Migrations.Migration
     ( Migration(..)
-    , MigrationMap
     )
 import Database.Schema.Migrations.Backend
     ( Backend
@@ -66,6 +65,7 @@ import Database.Schema.Migrations.Store
     ( loadMigrations
     , fullMigrationName
     , depGraphFromMapping
+    , MigrationMap
     )
 import Database.Schema.Migrations.Backend.HDBC ()
 import Database.Schema.Migrations.Dependencies

@@ -20,16 +20,15 @@ import Database.Schema.Migrations.Dependencies
 import qualified Database.Schema.Migrations.Backend as B
 import qualified Database.Schema.Migrations.Store as S
 import Database.Schema.Migrations.Migration
-    ( MigrationMap
-    , Migration(..)
+    ( Migration(..)
     , newMigration
     , MonadMigration
     )
 
--- |Given a 'B.Backend' and a 'MigrationMap', query the backend and
+-- |Given a 'B.Backend' and a 'S.MigrationMap', query the backend and
 -- return a list of migration names which are available in the
--- 'MigrationMap' but which are not installed in the 'B.Backend'.
-missingMigrations :: (B.Backend b m) => b -> MigrationMap -> m [String]
+-- 'S.MigrationMap' but which are not installed in the 'B.Backend'.
+missingMigrations :: (B.Backend b m) => b -> S.MigrationMap -> m [String]
 missingMigrations backend storeMigrationMap = do
   let storeMigrations = Map.keys storeMigrationMap
   backendMigrations <- B.getMigrations backend
@@ -74,7 +73,7 @@ ensureBootstrappedBackend backend = do
 -- |Given a migration mapping computed from a MigrationStore, a
 -- backend, and a migration to apply, return a processing error or a
 -- list of migrations to apply, in order.
-migrationsToApply :: (B.Backend b m) => MigrationMap -> b
+migrationsToApply :: (B.Backend b m) => S.MigrationMap -> b
                   -> Migration -> m (Either String [Migration])
 migrationsToApply mapping backend migration = do
   let graph' = S.depGraphFromMapping mapping
@@ -95,7 +94,7 @@ migrationsToApply mapping backend migration = do
 -- |Given a migration mapping computed from a MigrationStore, a
 -- backend, and a migration to revert, return a processing error or a
 -- list of migrations to revert, in order.
-migrationsToRevert :: (B.Backend b m) => MigrationMap -> b
+migrationsToRevert :: (B.Backend b m) => S.MigrationMap -> b
                   -> Migration -> m (Either String [Migration])
 migrationsToRevert mapping backend migration = do
   let graph' = S.depGraphFromMapping mapping

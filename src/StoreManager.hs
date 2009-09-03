@@ -12,9 +12,6 @@ import UI.HSCurses.Widgets
 import qualified UI.HSCurses.Curses as Curses
 import qualified UI.HSCurses.CursesHelper as CursesH
 
-import Database.Schema.Migrations.Migration
-    ( MigrationMap
-    )
 import Database.Schema.Migrations.Filesystem
 import Database.Schema.Migrations.Store
 

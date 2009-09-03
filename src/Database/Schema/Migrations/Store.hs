@@ -7,6 +7,7 @@
 module Database.Schema.Migrations.Store
     ( MigrationStore(..)
     , MapValidationError(..)
+    , MigrationMap
     , loadMigrations
     , depGraphFromMapping
     , validateMigrationMap
@@ -19,13 +20,14 @@ import qualified Data.Map as Map
 
 import Database.Schema.Migrations.Migration
     ( Migration(..)
-    , MigrationMap
     )
 import Database.Schema.Migrations.Dependencies
     ( DependencyGraph(..)
     , mkDepGraph
     , depsOf
     )
+
+type MigrationMap = Map.Map String Migration
 
 -- |A type class for types which represent a storage facility (and a
 -- monad context in which to operate on the store).  A MigrationStore
