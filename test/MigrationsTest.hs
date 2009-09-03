@@ -10,7 +10,7 @@ import qualified Data.Map as Map
 import Data.Time.Clock ( UTCTime )
 
 import Database.Schema.Migrations
-import Database.Schema.Migrations.Store ( MigrationMap )
+import Database.Schema.Migrations.Store
 import Database.Schema.Migrations.Migration
 import Database.Schema.Migrations.Backend
 
@@ -34,7 +34,7 @@ instance Backend TestBackend TestM where
 -- |Given a backend and a store, what are the list of migrations
 -- missing in the backend that are available in the store?
 type MissingMigrationTestCase = (MigrationMap, TestBackend, Migration,
-                                 Either String [Migration])
+                                 [Migration])
 
 ts :: UTCTime
 ts = read "2009-04-15 10:02:06 UTC"
@@ -49,11 +49,11 @@ blankMigration = Migration { mTimestamp = ts
                            }
 
 missingMigrationsTestcases :: [MissingMigrationTestCase]
-missingMigrationsTestcases =  [ (m, [], one, Right [one])
-                              , (m, [one], one, Right [])
-                              , (m, [one], two, Right [two])
-                              , (m, [one, two], one, Right [])
-                              , (m, [one, two], two, Right [])
+missingMigrationsTestcases =  [ (m, [], one, [one])
+                              , (m, [one], one, [])
+                              , (m, [one], two, [two])
+                              , (m, [one, two], one, [])
+                              , (m, [one, two], two, [])
                               ]
     where
       one = blankMigration { mId = "one" }
@@ -62,7 +62,9 @@ missingMigrationsTestcases =  [ (m, [], one, Right [one])
 
 mkTest :: MissingMigrationTestCase -> Test
 mkTest (mapping, backend, theMigration, expected) =
-  let TestM act = migrationsToApply mapping backend theMigration
+  let Right graph = depGraphFromMapping mapping
+      storeData = StoreData mapping graph
+      TestM act = migrationsToApply storeData backend theMigration
       result = runIdentity act
   in expected ~=? result
 

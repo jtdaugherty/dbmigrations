@@ -7,10 +7,10 @@
 module Database.Schema.Migrations.Store
     ( MigrationStore(..)
     , MapValidationError(..)
+    , StoreData(..)
     , MigrationMap
     , loadMigrations
     , depGraphFromMapping
-    , validateMigrationMap
     )
 where
 
@@ -29,6 +29,10 @@ import Database.Schema.Migrations.Dependencies
     )
 
 type MigrationMap = Map.Map String Migration
+
+data StoreData = StoreData { storeDataMapping :: MigrationMap
+                           , storeDataGraph :: DependencyGraph Migration
+                           }
 
 -- |A type class for types which represent a storage facility (and a
 -- monad context in which to operate on the store).  A MigrationStore
@@ -54,21 +58,37 @@ class (Monad m) => MigrationStore s m where
 data MapValidationError = DependencyReferenceError String String
                           -- ^ A migration claims a dependency on a
                           -- migration that does not exist.
+                        | DependencyGraphError String
+                          -- ^ An error was encountered when
+                          -- constructing the dependency graph for
+                          -- this store.
 
 instance Show MapValidationError where
     show (DependencyReferenceError from to) =
         "Migration " ++ (show from) ++ " references nonexistent dependency " ++ show to
+    show (DependencyGraphError msg) =
+        "There was an error constructing the dependency graph: " ++ msg
 
 -- |Load migrations from the specified 'MigrationStore', validate the
 -- loaded migrations, and return errors or a 'MigrationMap' on
 -- success.
-loadMigrations :: (MigrationStore s m) => s -> m (Either [MapValidationError] MigrationMap)
+loadMigrations :: (MigrationStore s m) => s -> m (Either [MapValidationError] StoreData)
 loadMigrations store = do
   migrations <- getMigrations store
   loaded <- mapM (\name -> loadMigration store name) migrations
   let mMap = Map.fromList $ [ (mId e, e) | e <- catMaybes $ loaded ]
       validationErrors = validateMigrationMap mMap
-  return $ if null validationErrors then Right mMap else Left validationErrors
+
+  case null validationErrors of
+    False -> return $ Left validationErrors
+    True -> do
+      -- Construct a dependency graph and, if that succeeds, return
+      -- StoreData.
+      case depGraphFromMapping mMap of
+        Left e -> return $ Left [DependencyGraphError e]
+        Right gr -> return $ Right StoreData { storeDataMapping = mMap
+                                             , storeDataGraph = gr
+                                             }
 
 -- |Validate a migration map.  Returns zero or more validation errors.
 validateMigrationMap :: MigrationMap -> [MapValidationError]

@@ -64,13 +64,9 @@ import Database.Schema.Migrations.Backend
 import Database.Schema.Migrations.Store
     ( loadMigrations
     , fullMigrationName
-    , depGraphFromMapping
-    , MigrationMap
+    , StoreData(..)
     )
 import Database.Schema.Migrations.Backend.HDBC ()
-import Database.Schema.Migrations.Dependencies
-    ( DependencyGraph
-    )
 
 -- A command has a name, a number of required arguments' labels, a
 -- number of optional arguments' labels, and an action to invoke.
@@ -90,8 +86,7 @@ data AppState = AppState { appOptions :: [CommandOption]
                          , appOptionalArgs :: [String]
                          , appStore :: FilesystemStore
                          , appDatabaseConnStr :: Maybe DbConnDescriptor
-                         , appMigrationMap :: MigrationMap
-                         , appDependencyGraph :: DependencyGraph Migration
+                         , appStoreData :: StoreData
                          }
 
 type AppT a = ReaderT AppState IO a
@@ -202,13 +197,13 @@ withConnection act = do
   liftIO $ bracket (makeConnection $ fromJust mDbPath)
              (\(AnyIConnection conn) -> disconnect conn) act
 
-interactiveAskDeps :: MigrationMap -> IO [String]
-interactiveAskDeps mapping = do
+interactiveAskDeps :: StoreData -> IO [String]
+interactiveAskDeps storeData = do
   -- For each migration in the store, starting with the most recently
   -- added, ask the user if it should be added to a dependency list
-  let migrations = Map.elems mapping
+  let migrations = Map.elems $ storeDataMapping storeData
       sorted = sortBy compareTimestamps migrations
-  interactiveAskDeps' mapping (map mId sorted)
+  interactiveAskDeps' storeData (map mId sorted)
       where
         compareTimestamps m1 m2 = compare (mTimestamp m2) (mTimestamp m1)
 
@@ -224,20 +219,20 @@ askDepsChoices = [ ('y', Yes)
                  , ('q', Quit)
                  ]
 
-interactiveAskDeps' :: MigrationMap -> [String] -> IO [String]
+interactiveAskDeps' :: StoreData -> [String] -> IO [String]
 interactiveAskDeps' _ [] = return []
-interactiveAskDeps' mapping (name:rest) = do
+interactiveAskDeps' storeData (name:rest) = do
   result <- prompt ("Depend on '" ++ name ++ "'?") askDepsChoices
   if (result == Done) then return [] else
       do
         case result of
           Yes -> do
-            next <- interactiveAskDeps' mapping rest
+            next <- interactiveAskDeps' storeData rest
             return $ name:next
-          No -> interactiveAskDeps' mapping rest
+          No -> interactiveAskDeps' storeData rest
           View -> do
             -- load migration
-            let Just m = Map.lookup name mapping
+            let Just m = Map.lookup name $ storeDataMapping storeData
             -- print out description, timestamp, deps
             when (isJust $ mDesc m)
                      (putStrLn $ "  Description: " ++
@@ -247,7 +242,7 @@ interactiveAskDeps' mapping (name:rest) = do
                      (putStrLn $ "  Deps: " ++
                                    (intercalate "\n        " $ mDeps m))
             -- ask again
-            interactiveAskDeps' mapping (name:rest)
+            interactiveAskDeps' storeData (name:rest)
           Quit -> do
             exitWith (ExitFailure 1)
           Done -> return []
@@ -266,11 +261,11 @@ newCommand :: CommandHandler
 newCommand = do
   required <- asks appRequiredArgs
   store <- asks appStore
-  mapping <- asks appMigrationMap
+  storeData <- asks appStoreData
   let [migrationId] = required
   fullPath <- liftIO $ fullMigrationName store migrationId
 
-  when (isJust $ Map.lookup migrationId mapping) $
+  when (isJust $ Map.lookup migrationId $ storeDataMapping storeData) $
        liftIO $ do
          putStrLn $ "Migration " ++ (show fullPath) ++ " already exists"
          exitWith (ExitFailure 1)
@@ -280,7 +275,7 @@ newCommand = do
                            (liftIO $ do
                               putStrLn $ "Selecting dependencies for new \
                                          \migration: " ++ migrationId
-                              interactiveAskDeps mapping)
+                              interactiveAskDeps storeData)
 
   result <- liftIO $ confirmCreation migrationId deps
   liftIO $ case result of
@@ -295,17 +290,17 @@ newCommand = do
 
 upgradeCommand :: CommandHandler
 upgradeCommand = do
-  mapping <- asks appMigrationMap
+  storeData <- asks appStoreData
   isTesting <- hasOption Test
   withConnection $ \(AnyIConnection conn) -> do
         ensureBootstrappedBackend conn >> commit conn
-        migrationNames <- missingMigrations conn mapping
+        migrationNames <- missingMigrations conn storeData
         when (null migrationNames) $ do
                            putStrLn "Database is up to date."
                            exitSuccess
         forM_ migrationNames $ \migrationName -> do
-            m <- lookupMigration mapping migrationName
-            apply m mapping conn
+            m <- lookupMigration storeData migrationName
+            apply m storeData conn
         case isTesting of
           True -> do
                  rollback conn
@@ -316,10 +311,10 @@ upgradeCommand = do
 
 upgradeListCommand :: CommandHandler
 upgradeListCommand = do
-  mapping <- asks appMigrationMap
+  storeData <- asks appStoreData
   withConnection $ \(AnyIConnection conn) -> do
         ensureBootstrappedBackend conn >> commit conn
-        migrationNames <- missingMigrations conn mapping
+        migrationNames <- missingMigrations conn storeData
         when (null migrationNames) $ do
                                putStrLn "Database is up to date."
                                exitSuccess
@@ -332,15 +327,10 @@ reportSqlError e = do
   exitWith (ExitFailure 1)
 
 apply :: (IConnection b, Backend b IO)
-         => Migration -> MigrationMap -> b -> IO [Migration]
-apply m mapping backend = do
+         => Migration -> StoreData -> b -> IO [Migration]
+apply m storeData backend = do
   -- Get the list of migrations to apply
-  toApply' <- migrationsToApply mapping backend m
-  toApply <- case toApply' of
-               Left e -> do
-                 putStrLn $ "Error: " ++ e
-                 exitWith (ExitFailure 1)
-               Right ms -> return ms
+  toApply <- migrationsToApply storeData backend m
 
   -- Apply them
   if (null toApply) then
@@ -359,15 +349,10 @@ apply m mapping backend = do
         putStrLn "done."
 
 revert :: (IConnection b, Backend b IO)
-          => Migration -> MigrationMap -> b -> IO [Migration]
-revert m mapping backend = do
+          => Migration -> StoreData -> b -> IO [Migration]
+revert m storeData backend = do
   -- Get the list of migrations to revert
-  toRevert' <- liftIO $ migrationsToRevert mapping backend m
-  toRevert <- case toRevert' of
-                Left e -> do
-                  putStrLn $ "Error: " ++ e
-                  exitWith (ExitFailure 1)
-                Right ms -> return ms
+  toRevert <- liftIO $ migrationsToRevert storeData backend m
 
   -- Revert them
   if (null toRevert) then
@@ -385,9 +370,9 @@ revert m mapping backend = do
         revertMigration conn it
         putStrLn "done."
 
-lookupMigration :: MigrationMap -> String -> IO Migration
-lookupMigration mapping name = do
-  let theMigration = Map.lookup name mapping
+lookupMigration :: StoreData -> String -> IO Migration
+lookupMigration storeData name = do
+  let theMigration = Map.lookup name $ storeDataMapping storeData
   case theMigration of
     Nothing -> do
       liftIO $ do
@@ -398,48 +383,48 @@ lookupMigration mapping name = do
 applyCommand :: CommandHandler
 applyCommand = do
   required <- asks appRequiredArgs
-  mapping <- asks appMigrationMap
+  storeData <- asks appStoreData
   let [migrationId] = required
 
   withConnection $ \(AnyIConnection conn) -> do
         ensureBootstrappedBackend conn >> commit conn
-        m <- lookupMigration mapping migrationId
-        apply m mapping conn
+        m <- lookupMigration storeData migrationId
+        apply m storeData conn
         commit conn
         putStrLn "Successfully applied migrations."
 
 revertCommand :: CommandHandler
 revertCommand = do
   required <- asks appRequiredArgs
-  mapping <- asks appMigrationMap
+  storeData <- asks appStoreData
   let [migrationId] = required
 
   withConnection $ \(AnyIConnection conn) ->
       liftIO $ do
         ensureBootstrappedBackend conn >> commit conn
-        m <- lookupMigration mapping migrationId
-        revert m mapping conn
+        m <- lookupMigration storeData migrationId
+        revert m storeData conn
         commit conn
         putStrLn "Successfully reverted migrations."
 
 testCommand :: CommandHandler
 testCommand = do
   required <- asks appRequiredArgs
-  mapping <- asks appMigrationMap
+  storeData <- asks appStoreData
   let [migrationId] = required
 
   withConnection $ \(AnyIConnection conn) -> do
         ensureBootstrappedBackend conn >> commit conn
-        m <- lookupMigration mapping migrationId
-        migrationNames <- missingMigrations conn mapping
+        m <- lookupMigration storeData migrationId
+        migrationNames <- missingMigrations conn storeData
         -- If the migration is already installed, remove it as part of
         -- the test
         when (not $ migrationId `elem` migrationNames) $
-             do revert m mapping conn
+             do revert m storeData conn
                 return ()
-        applied <- apply m mapping conn
+        applied <- apply m storeData conn
         forM_ (reverse applied) $ \migration -> do
-                             revert migration mapping conn
+                             revert migration storeData conn
         rollback conn
         putStrLn "Successfully tested migrations."
 
@@ -519,26 +504,19 @@ main = do
   if (length args) < (length $ cRequired command) then
       usageSpecific command else
       do
-        loadedMapping <- loadMigrations store
-        case loadedMapping of
+        loadedStoreData <- loadMigrations store
+        case loadedStoreData of
           Left es -> do
             putStrLn "There were errors in the migration store:"
             forM_ es $ \err -> do
                              putStrLn $ "  " ++ show err
-          Right mapping -> do
-            case depGraphFromMapping mapping of
-              Left e -> do
-                putStrLn $ "Error: " ++ show e
-                exitWith (ExitFailure 1)
-              Right dgr -> do
-                let st = AppState { appOptions = opts
-                                  , appCommand = command
-                                  , appRequiredArgs = required
-                                  , appOptionalArgs = optional
-                                  , appDatabaseConnStr = DbConnDescriptor <$> mDbConnStr
-                                  , appStore = FSStore { storePath = storePathStr }
-                                  , appMigrationMap = mapping
-                                  , appDependencyGraph = dgr
-                                  }
-                (runReaderT (cHandler command) st)
-                         `catchSql` reportSqlError
+          Right storeData -> do
+            let st = AppState { appOptions = opts
+                              , appCommand = command
+                              , appRequiredArgs = required
+                              , appOptionalArgs = optional
+                              , appDatabaseConnStr = DbConnDescriptor <$> mDbConnStr
+                              , appStore = FSStore { storePath = storePathStr }
+                              , appStoreData = storeData
+                              }
+            (runReaderT (cHandler command) st) `catchSql` reportSqlError

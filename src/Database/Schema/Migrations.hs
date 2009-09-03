@@ -28,9 +28,9 @@ import Database.Schema.Migrations.Migration
 -- |Given a 'B.Backend' and a 'S.MigrationMap', query the backend and
 -- return a list of migration names which are available in the
 -- 'S.MigrationMap' but which are not installed in the 'B.Backend'.
-missingMigrations :: (B.Backend b m) => b -> S.MigrationMap -> m [String]
-missingMigrations backend storeMigrationMap = do
-  let storeMigrations = Map.keys storeMigrationMap
+missingMigrations :: (B.Backend b m) => b -> S.StoreData -> m [String]
+missingMigrations backend storeData = do
+  let storeMigrations = Map.keys $ S.storeDataMapping storeData
   backendMigrations <- B.getMigrations backend
 
   return $ Set.toList $ Set.difference
@@ -71,43 +71,35 @@ ensureBootstrappedBackend backend = do
     False -> B.getBootstrapMigration backend >>= B.applyMigration backend
 
 -- |Given a migration mapping computed from a MigrationStore, a
--- backend, and a migration to apply, return a processing error or a
--- list of migrations to apply, in order.
-migrationsToApply :: (B.Backend b m) => S.MigrationMap -> b
-                  -> Migration -> m (Either String [Migration])
-migrationsToApply mapping backend migration = do
-  let graph' = S.depGraphFromMapping mapping
-  case graph' of
-    Left e -> return $ Left e
-    Right g -> run g
+-- backend, and a migration to apply, return a list of migrations to
+-- apply, in order.
+migrationsToApply :: (B.Backend b m) => S.StoreData -> b
+                  -> Migration -> m [Migration]
+migrationsToApply storeData backend migration = do
+  let mapping = S.storeDataMapping storeData
+      graph = S.storeDataGraph storeData
 
-  where
-    run graph = do
-      allMissing <- missingMigrations backend mapping
+  allMissing <- missingMigrations backend storeData
 
-      let deps = (dependencies graph $ mId migration) ++ [mId migration]
-          namesToInstall = [ e | e <- deps, e `elem` allMissing ]
-          loadedMigrations = catMaybes $ map (\k -> Map.lookup k mapping) namesToInstall
+  let deps = (dependencies graph $ mId migration) ++ [mId migration]
+      namesToInstall = [ e | e <- deps, e `elem` allMissing ]
+      loadedMigrations = catMaybes $ map (\k -> Map.lookup k mapping) namesToInstall
 
-      return $ Right loadedMigrations
+  return loadedMigrations
 
 -- |Given a migration mapping computed from a MigrationStore, a
--- backend, and a migration to revert, return a processing error or a
--- list of migrations to revert, in order.
-migrationsToRevert :: (B.Backend b m) => S.MigrationMap -> b
-                  -> Migration -> m (Either String [Migration])
-migrationsToRevert mapping backend migration = do
-  let graph' = S.depGraphFromMapping mapping
-  case graph' of
-    Left e -> return $ Left e
-    Right g -> run g
+-- backend, and a migration to revert, return a list of migrations to
+-- revert, in order.
+migrationsToRevert :: (B.Backend b m) => S.StoreData -> b
+                   -> Migration -> m [Migration]
+migrationsToRevert storeData backend migration = do
+  let mapping = S.storeDataMapping storeData
+      graph = S.storeDataGraph storeData
 
-  where
-    run graph = do
-      allInstalled <- B.getMigrations backend
+  allInstalled <- B.getMigrations backend
 
-      let rDeps = (reverseDependencies graph $ mId migration) ++ [mId migration]
-          namesToRevert = [ e | e <- rDeps, e `elem` allInstalled ]
-          loadedMigrations = catMaybes $ map (\k -> Map.lookup k mapping) namesToRevert
+  let rDeps = (reverseDependencies graph $ mId migration) ++ [mId migration]
+      namesToRevert = [ e | e <- rDeps, e `elem` allInstalled ]
+      loadedMigrations = catMaybes $ map (\k -> Map.lookup k mapping) namesToRevert
 
-      return $ Right loadedMigrations
+  return loadedMigrations

@@ -22,7 +22,7 @@ help :: String
 help = "q:quit"
 
 data MMState = MMState
-    { mmMigrations :: MigrationMap
+    { mmStoreData :: StoreData
     , mmStatus :: String
     , mmStyles :: [CursesH.CursesStyle]
     , mmStorePath :: FilePath
@@ -46,9 +46,9 @@ instance Widget MainWidget where
     draw pos sz hint w = draw pos sz hint (mkRealMainWidget (Just sz) w)
     minSize w = minSize (mkRealMainWidget Nothing w)
 
-runMM :: FilePath -> MigrationMap -> [CursesH.CursesStyle] -> MM a -> IO a
-runMM sp migrations cstyles mm =
-    evalStateT mm (MMState { mmMigrations = migrations
+runMM :: FilePath -> StoreData -> [CursesH.CursesStyle] -> MM a -> IO a
+runMM sp storeData cstyles mm =
+    evalStateT mm (MMState { mmStoreData = storeData
                            , mmStyles = cstyles
                            , mmStatus = sp ++ " loaded."
                            , mmStorePath = sp
@@ -135,9 +135,9 @@ migrationListOptions = do
 
 mkMigrationListWidget :: MM MigrationListWidget
 mkMigrationListWidget = do
-  migrationMap <- gets mmMigrations
+  storeData <- gets mmStoreData
   sz <- getSize
-  let rows = map (migrationRow $ getWidth sz) (Map.keys migrationMap)
+  let rows = map (migrationRow $ getWidth sz) (Map.keys $ storeDataMapping storeData)
   opts <- migrationListOptions
   return $ newTableWidget opts rows
     where migrationRow w s = [TableCell $ newTextWidget
@@ -248,7 +248,7 @@ main :: IO ()
 main = do
   args <- getArgs
   let theStorePath = args !! 0
-  migrationMap <-
+  storeData <-
       if length args /= 1
       then do p <- getProgName
               putStrLn ("Usage: " ++ p ++ " <store-path>")
@@ -262,11 +262,11 @@ main = do
                       forM_ es $ \err -> do
                         putStrLn $ "  " ++ show err
                       exitFailure
-          Right mMap -> return mMap
+          Right theStoreData -> return theStoreData
 
-  runCurses theStorePath migrationMap `finally` CursesH.end
-    where runCurses sp migrations = do
+  runCurses theStorePath storeData `finally` CursesH.end
+    where runCurses sp storeData = do
             CursesH.start
             cstyles <- CursesH.convertStyles styles
             Curses.cursSet Curses.CursorInvisible
-            runMM sp migrations cstyles mmMain
+            runMM sp storeData cstyles mmMain
