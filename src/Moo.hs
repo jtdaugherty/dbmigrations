@@ -232,7 +232,7 @@ askDepsChoices = [ ('y', (Yes, Just "yes, depend on this migration"))
                  , ('q', (Quit, Just "cancel this operation and quit"))
                  ]
 
-interactiveAskDeps' :: MigrationMap -> [String] -> IO [String]
+interactiveAskDeps' :: StoreData -> [String] -> IO [String]
 interactiveAskDeps' _ [] = return []
 interactiveAskDeps' storeData (name:rest) = do
   result <- prompt ("Depend on '" ++ name ++ "'?") askDepsChoices
