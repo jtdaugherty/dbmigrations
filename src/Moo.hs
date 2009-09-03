@@ -244,6 +244,7 @@ interactiveAskDeps' storeData (name:rest) = do
             -- ask again
             interactiveAskDeps' storeData (name:rest)
           Quit -> do
+            putStrLn "cancelled."
             exitWith (ExitFailure 1)
           Done -> return []
 
