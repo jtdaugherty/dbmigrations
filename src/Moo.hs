@@ -99,6 +99,13 @@ data CommandOption = Test
                    | NoAsk
                    deriving (Eq)
 
+data AnyIConnection = forall c. (IConnection c) => AnyIConnection c
+
+data AskDepsChoice = Yes | No | View | Done | Quit
+                     deriving (Eq)
+
+type PromptChoices a = [(Char, (a, Maybe String))]
+
 unbufferedGetChar :: IO Char
 unbufferedGetChar = do
   bufferingMode <- hGetBuffering stdin
@@ -195,8 +202,6 @@ commands = [ Command "new" ["migration_name"] [] [NoAsk]
                          upgradeListCommand
            ]
 
-data AnyIConnection = forall c. (IConnection c) => AnyIConnection c
-
 makeConnection :: DbConnDescriptor -> IO AnyIConnection
 makeConnection (DbConnDescriptor connStr) =
     AnyIConnection <$> connectPostgreSQL connStr
@@ -218,11 +223,6 @@ interactiveAskDeps storeData = do
   interactiveAskDeps' storeData (map mId sorted)
       where
         compareTimestamps m1 m2 = compare (mTimestamp m2) (mTimestamp m1)
-
-data AskDepsChoice = Yes | No | View | Done | Quit
-                     deriving (Eq)
-
-type PromptChoices a = [(Char, (a, Maybe String))]
 
 askDepsChoices :: PromptChoices AskDepsChoice
 askDepsChoices = [ ('y', (Yes, Just "yes, depend on this migration"))
