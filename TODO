@@ -1,4 +1,7 @@
 
+- Pull out high-level code from Moo into Database.Schema.Migrations to
+  improve the high-level library API
+
 - Write tests for mapping validation logic in Store
 
 - Write convenience functions to access information in StoreData so 1)
