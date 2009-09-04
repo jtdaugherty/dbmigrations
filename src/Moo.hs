@@ -390,9 +390,8 @@ lookupMigration storeData name = do
   let theMigration = Map.lookup name $ storeDataMapping storeData
   case theMigration of
     Nothing -> do
-      liftIO $ do
-        putStrLn $ "No such migration: " ++ name
-        exitWith (ExitFailure 1)
+      putStrLn $ "No such migration: " ++ name
+      exitWith (ExitFailure 1)
     Just m' -> return m'
 
 applyCommand :: CommandHandler
@@ -414,13 +413,12 @@ revertCommand = do
   storeData <- asks appStoreData
   let [migrationId] = required
 
-  withConnection $ \(AnyIConnection conn) ->
-      liftIO $ do
-        ensureBootstrappedBackend conn >> commit conn
-        m <- lookupMigration storeData migrationId
-        revert m storeData conn
-        commit conn
-        putStrLn "Successfully reverted migrations."
+  withConnection $ \(AnyIConnection conn) -> do
+      ensureBootstrappedBackend conn >> commit conn
+      m <- lookupMigration storeData migrationId
+      revert m storeData conn
+      commit conn
+      putStrLn "Successfully reverted migrations."
 
 testCommand :: CommandHandler
 testCommand = do
