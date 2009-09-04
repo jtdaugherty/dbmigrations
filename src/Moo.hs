@@ -3,69 +3,34 @@ module Main
     ( main )
 where
 import System.Environment ( getArgs, getEnvironment, getProgName )
-import System.Exit
-    ( exitWith
-    , ExitCode(..)
-    , exitSuccess
-    )
-import System.IO
-    ( stdout
-    , hFlush
-    , hGetBuffering
-    , hSetBuffering
-    , stdin
-    , BufferMode(..)
-    )
-import Control.Exception
-    ( bracket
-    )
-import Data.Maybe
-    ( listToMaybe
-    , catMaybes
-    , isJust
-    , fromJust
-    , isNothing
-    )
-import Data.List
-    ( intercalate
-    , sortBy
-    )
+import System.Exit ( exitWith, ExitCode(..), exitSuccess )
+import System.IO ( stdout, hFlush, hGetBuffering
+                 , hSetBuffering, stdin, BufferMode(..)
+                 )
+import Control.Exception ( bracket )
+import Data.Maybe ( listToMaybe, catMaybes, isJust
+                  , fromJust, isNothing
+                  )
+import Data.List ( intercalate, sortBy)
 import qualified Data.Map as Map
-import Control.Monad.Reader
-    ( ReaderT
-    , asks
-    , runReaderT
-    )
-import Control.Monad
-    ( when
-    , forM_
-    )
-import Control.Monad.Trans
-    ( liftIO
-    )
+import Control.Monad.Reader ( ReaderT, asks, runReaderT )
+import Control.Monad ( when, forM_ )
+import Control.Monad.Trans ( liftIO )
 import Control.Applicative ( (<$>) )
 import Database.HDBC.PostgreSQL ( connectPostgreSQL )
-import Database.HDBC
-    ( IConnection(commit, rollback, disconnect)
-    , catchSql
-    , seErrorMsg
-    , SqlError
-    )
+import Database.HDBC ( IConnection(commit, rollback, disconnect)
+                     , catchSql, seErrorMsg, SqlError
+                     )
 import Database.Schema.Migrations
 import Database.Schema.Migrations.Filesystem
-import Database.Schema.Migrations.Migration
-    ( Migration(..)
-    )
-import Database.Schema.Migrations.Backend
-    ( Backend
-    , applyMigration
-    , revertMigration
-    )
-import Database.Schema.Migrations.Store
-    ( loadMigrations
-    , fullMigrationName
-    , StoreData(..)
-    )
+import Database.Schema.Migrations.Migration ( Migration(..) )
+import Database.Schema.Migrations.Backend ( Backend, applyMigration
+                                          , revertMigration
+                                          )
+import Database.Schema.Migrations.Store ( loadMigrations
+                                        , fullMigrationName
+                                        , StoreData(..)
+                                        )
 import Database.Schema.Migrations.Backend.HDBC ()
 
 -- A command has a name, a number of required arguments' labels, a
