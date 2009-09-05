@@ -257,7 +257,9 @@ newCommand = do
                                          \migration: " ++ migrationId
                               interactiveAskDeps storeData)
 
-  result <- liftIO $ confirmCreation migrationId deps
+  result <- ifOption NoAsk (return True)
+            (liftIO $ confirmCreation migrationId deps)
+
   liftIO $ case result of
              True -> do
                status <- createNewMigration store migrationId deps
