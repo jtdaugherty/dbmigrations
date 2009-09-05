@@ -118,11 +118,6 @@ optionUsage NoAsk = "Do not interactively ask any questions, just do it"
 hasOption :: CommandOption -> AppT Bool
 hasOption o = asks ((o `elem`) . appOptions)
 
-ifOption :: CommandOption -> AppT a -> AppT a -> AppT a
-ifOption opt yes no = do
-  result <- hasOption opt
-  if result then yes else no
-
 isSupportedCommandOption :: String -> Bool
 isSupportedCommandOption s = isJust $ lookup s optionMap
 
@@ -243,31 +238,34 @@ newCommand = do
   store <- asks appStore
   storeData <- asks appStoreData
   let [migrationId] = required
-  fullPath <- liftIO $ fullMigrationName store migrationId
+  noAsk <- hasOption NoAsk
 
-  when (isJust $ Map.lookup migrationId $ storeDataMapping storeData) $
-       liftIO $ do
-         putStrLn $ "Migration " ++ (show fullPath) ++ " already exists"
-         exitWith (ExitFailure 1)
+  liftIO $ do
+    fullPath <- fullMigrationName store migrationId
 
-  -- Default behavior: ask for dependencies
-  deps <- ifOption NoAsk (return [])
-                           (liftIO $ do
-                              putStrLn $ "Selecting dependencies for new \
-                                         \migration: " ++ migrationId
-                              interactiveAskDeps storeData)
+    when (isJust $ Map.lookup migrationId $ storeDataMapping storeData) $
+         do
+           putStrLn $ "Migration " ++ (show fullPath) ++ " already exists"
+           exitWith (ExitFailure 1)
 
-  result <- ifOption NoAsk (return True)
-            (liftIO $ confirmCreation migrationId deps)
+    -- Default behavior: ask for dependencies
+    deps <- if noAsk then (return []) else
+            do
+              putStrLn $ "Selecting dependencies for new \
+                         \migration: " ++ migrationId
+              interactiveAskDeps storeData
 
-  liftIO $ case result of
-             True -> do
+    result <- if noAsk then (return True) else
+              (confirmCreation migrationId deps)
+
+    case result of
+      True -> do
                status <- createNewMigration store migrationId deps
                case status of
                  Left e -> putStrLn e >> (exitWith (ExitFailure 1))
                  Right _ -> putStrLn $ "Migration created successfully: " ++
                             show fullPath
-             False -> do
+      False -> do
                putStrLn "Migration creation cancelled."
 
 upgradeCommand :: CommandHandler
