@@ -45,9 +45,10 @@ createNewMigration :: (MonadMigration m, S.MigrationStore s m)
                    -> m (Either String ())
 createNewMigration store name deps = do
   available <- S.getMigrations store
-  fullPath <- S.fullMigrationName store name
   case name `elem` available of
-    True -> return $ Left $ "Migration " ++ (show fullPath) ++ " already exists"
+    True -> do
+      fullPath <- S.fullMigrationName store name
+      return $ Left $ "Migration " ++ (show fullPath) ++ " already exists"
     False -> do
       new <- newMigration name
       let newWithDefaults = new { mDesc = Just "(Description here.)"
