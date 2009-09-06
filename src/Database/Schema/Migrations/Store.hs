@@ -10,6 +10,7 @@ module Database.Schema.Migrations.Store
 
     , StoreData(..)
     , storeMigrations
+    , storeLookup
 
     , MigrationMap
     , loadMigrations
@@ -75,6 +76,10 @@ instance Show MapValidationError where
 storeMigrations :: StoreData -> [Migration]
 storeMigrations storeData =
     Map.elems $ storeDataMapping storeData
+
+storeLookup :: StoreData -> String -> Maybe Migration
+storeLookup storeData migrationName =
+    Map.lookup migrationName $ storeDataMapping storeData
 
 -- |Load migrations from the specified 'MigrationStore', validate the
 -- loaded migrations, and return errors or a 'MigrationMap' on

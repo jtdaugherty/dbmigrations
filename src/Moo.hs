@@ -12,7 +12,6 @@ import Data.Maybe ( listToMaybe, catMaybes, isJust
                   , fromJust, isNothing
                   )
 import Data.List ( intercalate, sortBy)
-import qualified Data.Map as Map
 import Control.Monad.Reader ( ReaderT, asks, runReaderT )
 import Control.Monad ( when, forM_ )
 import Control.Monad.Trans ( liftIO )
@@ -31,6 +30,7 @@ import Database.Schema.Migrations.Store ( loadMigrations
                                         , fullMigrationName
                                         , StoreData(..)
                                         , storeMigrations
+                                        , storeLookup
                                         )
 import Database.Schema.Migrations.Backend.HDBC ()
 
@@ -205,7 +205,7 @@ interactiveAskDeps' storeData (name:rest) = do
           No -> interactiveAskDeps' storeData rest
           View -> do
             -- load migration
-            let Just m = Map.lookup name $ storeDataMapping storeData
+            let Just m = storeLookup storeData name
             -- print out description, timestamp, deps
             when (isJust $ mDesc m)
                      (putStrLn $ "  Description: " ++
@@ -243,7 +243,7 @@ newCommand = do
   liftIO $ do
     fullPath <- fullMigrationName store migrationId
 
-    when (isJust $ Map.lookup migrationId $ storeDataMapping storeData) $
+    when (isJust $ storeLookup storeData migrationId) $
          do
            putStrLn $ "Migration " ++ (show fullPath) ++ " already exists"
            exitWith (ExitFailure 1)
@@ -352,7 +352,7 @@ revert m storeData backend = do
 
 lookupMigration :: StoreData -> String -> IO Migration
 lookupMigration storeData name = do
-  let theMigration = Map.lookup name $ storeDataMapping storeData
+  let theMigration = storeLookup storeData name
   case theMigration of
     Nothing -> do
       putStrLn $ "No such migration: " ++ name
