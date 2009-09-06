@@ -76,14 +76,13 @@ ensureBootstrappedBackend backend = do
 migrationsToApply :: (B.Backend b m) => S.StoreData -> b
                   -> Migration -> m [Migration]
 migrationsToApply storeData backend migration = do
-  let mapping = S.storeDataMapping storeData
-      graph = S.storeDataGraph storeData
+  let graph = S.storeDataGraph storeData
 
   allMissing <- missingMigrations backend storeData
 
   let deps = (dependencies graph $ mId migration) ++ [mId migration]
       namesToInstall = [ e | e <- deps, e `elem` allMissing ]
-      loadedMigrations = catMaybes $ map (\k -> Map.lookup k mapping) namesToInstall
+      loadedMigrations = catMaybes $ map (S.storeLookup storeData) namesToInstall
 
   return loadedMigrations
 
@@ -93,13 +92,12 @@ migrationsToApply storeData backend migration = do
 migrationsToRevert :: (B.Backend b m) => S.StoreData -> b
                    -> Migration -> m [Migration]
 migrationsToRevert storeData backend migration = do
-  let mapping = S.storeDataMapping storeData
-      graph = S.storeDataGraph storeData
+  let graph = S.storeDataGraph storeData
 
   allInstalled <- B.getMigrations backend
 
   let rDeps = (reverseDependencies graph $ mId migration) ++ [mId migration]
       namesToRevert = [ e | e <- rDeps, e `elem` allInstalled ]
-      loadedMigrations = catMaybes $ map (\k -> Map.lookup k mapping) namesToRevert
+      loadedMigrations = catMaybes $ map (S.storeLookup storeData) namesToRevert
 
   return loadedMigrations
