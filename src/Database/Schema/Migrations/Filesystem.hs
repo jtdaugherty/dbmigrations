@@ -1,4 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+-- |This module provides a type for interacting with a
+-- filesystem-backed 'MigrationStore'.
 module Database.Schema.Migrations.Filesystem
     ( FilesystemStore(..)
     , migrationFromFile
@@ -23,9 +25,6 @@ import Database.Schema.Migrations.Filesystem.Parse
 import Database.Schema.Migrations.Filesystem.Serialize
 import Database.Schema.Migrations.Store
 
--- |Code for parsing and serializing Migrations to disk files, and an
--- instance of MigrationStore for filesystem-backed migrations.
-
 type FieldProcessor = String -> Migration -> Maybe Migration
 
 data FilesystemStore = FSStore { storePath :: FilePath }
@@ -34,7 +33,6 @@ filenameExtension :: String
 filenameExtension = ".m"
 
 instance MigrationStore FilesystemStore IO where
-
     fullMigrationName s name =
         return $ storePath s </> name ++ filenameExtension
 
@@ -60,7 +58,7 @@ isMigrationFilename path = takeExtension path == filenameExtension
 
 -- |Given a file path, read and parse the migration at the specified
 -- path and, if successful, return the migration and its claimed
--- dependencies.
+-- dependencies.  Otherwise return a parsing error message.
 migrationFromFile :: FilesystemStore -> String -> IO (Either String Migration)
 migrationFromFile store name = do
   path <- fullMigrationName store name
