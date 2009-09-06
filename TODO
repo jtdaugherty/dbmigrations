@@ -7,12 +7,13 @@ TODO for Initial Release
 - Decide on better filesystem migration file extension (.m is already
   taken)
 
-- Write a README documenting how to use 'moo'
-
 - Choose license
 
 General
 =======
+
+- Support listing migration dependencies on multiple lines, since
+  listing them all on one line (present parsing format) is terrible
 
 - Use a CPP define to conditionally export code that needs to be
   tested, but isn't part of the public API
