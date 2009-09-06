@@ -1,11 +1,24 @@
 
+TODO for Initial Release
+========================
+
+- Write tests for mapping validation logic in Store
+
+- Decide on better filesystem migration file extension (.m is already
+  taken)
+
+- Write a README documenting how to use 'moo'
+
+- Choose license
+
+General
+=======
+
 - Use a CPP define to conditionally export code that needs to be
   tested, but isn't part of the public API
 
 - Pull out high-level code from Moo into Database.Schema.Migrations to
   improve the high-level library API
-
-- Write tests for mapping validation logic in Store
 
 - Write convenience functions to access information in StoreData so 1)
   the code is cleaner and 2) we don't have to export field accessors
@@ -22,14 +35,6 @@
 
 - make filesystem store operations die if they find a migration name
   with no corresponding disk file
-
-- possibly limit how big a migration file can be to prevent tarpits (1
-  MB?)
-
-- how best (easiest for user) to tell tools how to access migration
-  store and backend?  environment variables? configuration file?
-  command-line arguments?  probably not *required* args, since you
-  need to be able to invoke the tools quickly and easily
 
 Testing
 =======
@@ -53,7 +58,7 @@ StoreManager
 
 - let user select dependencies
 
-- tool to show dependency hierarchy
+- show dependency hierarchy
 
 - support for creating and editing migrations
 
