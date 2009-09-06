@@ -1,0 +1,64 @@
+
+moo: the dbmigrations management tool
+-------------------------------------
+
+Before using moo, you must set two environment variables:
+
+  DBM_DATABASE
+
+    The database connection string for the database you'll be
+    managing.  Currently, only PostgreSQL is supported and the format
+    of this value is a PostgreSQL database connection string, i.e.,
+
+      "dbname=XXX user=XXX password=XXX host=XXX"
+
+    where each setting is optional.
+
+  DBM_MIGRATION_STORE
+
+    The path to the filesystem directory where your migrations will be
+    kept.  moo will create new migrations in this directory and use
+    the migrations in this directory when updating the database
+    schema.  Initially, you'll probably set this to an extant (but
+    empty) directory.  moo will not create it for you.
+
+Commands
+--------
+
+  new <migration name>: create a new migration with the given name and
+    save it in the migration store.  This command will prompt you for
+    dependencies on other migrations and ask for confirmation before
+    creating the migration in the store.  If you use the --no-ask
+    flag, the migration will be created immediately with no
+    dependencies.
+
+  apply <migration name>: apply the specified migration (and its
+    dependencies) to the database.  This operation will be performed
+    in a single transaction which will be rolled back if an error
+    occurs.  moo will output updates as each migration is applied.
+
+  revert <migration name>: revert the specified migration (and its
+    reverse dependencies -- the migrations which depend on it) from
+    the database.  This operation will be performed in a single
+    transaction which will be rolled back if an error occurs.  moo
+    will output updates as each migration is reverted.
+
+  test <migration name>: once you've created a migration, you might
+    find it useful to test the migration to be sure that it is
+    syntactically valid; the "test" command will apply the specified
+    migration and revert it (if revert SQL is specified in the
+    migration).  It will perform both of these operations in a
+    transaction and then issue a rollback.
+
+  upgrade: this will apply all migrations in the migration store which
+    have not yet been applied to the database.  Each migration will be
+    applied with its dependenciees in the correct order.  All of the
+    migrations will be applied together in a single transaction.  By
+    default, this transaction is committed; if you use the --test
+    flag, the transaction will be rolled back, allowing you to test
+    the entire upgrade process.
+
+  upgrade-list: this will list the migrations that the "upgrade"
+    command would apply if you were to run it.  In other words, this
+    will list all migrations which have not yet been applied to the
+    database.
