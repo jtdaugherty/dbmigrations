@@ -1,4 +1,7 @@
 {-# LANGUAGE TypeSynonymInstances #-}
+-- |This module types and functions for representing a dependency
+-- graph of arbitrary objects and functions for querying such graphs
+-- to get dependency and reverse dependency information.
 module Database.Schema.Migrations.Dependencies
     ( Dependable(..)
     , DependencyGraph(..)
@@ -14,19 +17,29 @@ import Data.Graph.Inductive.PatriciaTree ( Gr )
 
 import Database.Schema.Migrations.CycleDetection ( hasCycle )
 
--- |Dependable objects supply a representation of their identifiers,
+-- |'Dependable' objects supply a representation of their identifiers,
 -- and a list of other objects upon which they depend.
 class (Eq a, Ord a) => Dependable a where
-    -- |The identifiers of the objects on which 'a' depends.
+    -- |The identifiers of the objects on which @a@ depends.
     depsOf :: a -> [String]
-    -- |The identifier of a Dependable object.
+    -- |The identifier of a 'Dependable' object.
     depId :: a -> String
 
--- |A DependencyGraph represents a collection of objects together with
--- a graph of their dependency relationships.
+-- |A 'DependencyGraph' represents a collection of objects together
+-- with a graph of their dependency relationships.  This is intended
+-- to be used with instances of 'Dependable'.
 data DependencyGraph a = DG { depGraphObjectMap :: [(a, Int)]
+                            -- ^ A mapping of 'Dependable' objects to
+                            -- their graph vertex indices.
                             , depGraphNameMap :: [(String, Int)]
+                            -- ^ A mapping of 'Dependable' object
+                            -- identifiers to their graph vertex
+                            -- indices.
                             , depGraph :: Gr String String
+                            -- ^ A directed 'Gr' (graph) of the
+                            -- 'Dependable' objects' dependency
+                            -- relationships, with 'String' vertex and
+                            -- edge labels.
                             }
 
 instance (Eq a) => Eq (DependencyGraph a) where
@@ -37,6 +50,9 @@ instance (Show a) => Show (DependencyGraph a) where
     show g = "(" ++ (show $ nodes $ depGraph g) ++ ", " ++ (show $ edges $ depGraph g) ++ ")"
 
 -- XXX: provide details about detected cycles
+-- |Build a dependency graph from a list of 'Dependable's.  Return the
+-- graph on success or return an error message if the graph cannot be
+-- constructed (e.g., if the graph contains a cycle).
 mkDepGraph :: (Dependable a) => [a] -> Either String (DependencyGraph a)
 mkDepGraph objects = if hasCycle theGraph
                      then Left "Invalid dependency graph; cycle detected"
