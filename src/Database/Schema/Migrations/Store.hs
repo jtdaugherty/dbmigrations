@@ -7,7 +7,10 @@
 module Database.Schema.Migrations.Store
     ( MigrationStore(..)
     , MapValidationError(..)
+
     , StoreData(..)
+    , storeMigrations
+
     , MigrationMap
     , loadMigrations
     , depGraphFromMapping
@@ -68,6 +71,10 @@ instance Show MapValidationError where
         "Migration " ++ (show from) ++ " references nonexistent dependency " ++ show to
     show (DependencyGraphError msg) =
         "There was an error constructing the dependency graph: " ++ msg
+
+storeMigrations :: StoreData -> [Migration]
+storeMigrations storeData =
+    Map.elems $ storeDataMapping storeData
 
 -- |Load migrations from the specified 'MigrationStore', validate the
 -- loaded migrations, and return errors or a 'MigrationMap' on

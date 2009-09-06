@@ -30,6 +30,7 @@ import Database.Schema.Migrations.Backend ( Backend, applyMigration
 import Database.Schema.Migrations.Store ( loadMigrations
                                         , fullMigrationName
                                         , StoreData(..)
+                                        , storeMigrations
                                         )
 import Database.Schema.Migrations.Backend.HDBC ()
 
@@ -178,8 +179,7 @@ interactiveAskDeps :: StoreData -> IO [String]
 interactiveAskDeps storeData = do
   -- For each migration in the store, starting with the most recently
   -- added, ask the user if it should be added to a dependency list
-  let migrations = Map.elems $ storeDataMapping storeData
-      sorted = sortBy compareTimestamps migrations
+  let sorted = sortBy compareTimestamps $ storeMigrations storeData
   interactiveAskDeps' storeData (map mId sorted)
       where
         compareTimestamps m1 m2 = compare (mTimestamp m2) (mTimestamp m1)
