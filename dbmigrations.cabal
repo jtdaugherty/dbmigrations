@@ -9,8 +9,13 @@ Description:         A library and program for the creation,
                      migrations and the installation tool
                      automatically installs or reverts migrations
                      accordingly, using transactions for safety.
+
+                     This package is written to support any
+                     HDBC-supported database, although at present only
+                     PostgreSQL is fully supported.
+
 Category:            Database
-Author:              Jonathan Daugherty
+Author:              Jonathan Daugherty <drcygnus@gmail.com>
 Maintainer:          Jonathan Daugherty <drcygnus@gmail.com>
 Build-Type:          Simple
 Cabal-Version:       >= 1.2
