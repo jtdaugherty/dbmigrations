@@ -10,7 +10,6 @@ module Database.Schema.Migrations
 where
 
 import qualified Data.Set as Set
-import qualified Data.Map as Map
 import Data.Maybe ( catMaybes )
 
 import Database.Schema.Migrations.Dependencies
@@ -30,11 +29,11 @@ import Database.Schema.Migrations.Migration
 -- 'S.MigrationMap' but which are not installed in the 'B.Backend'.
 missingMigrations :: (B.Backend b m) => b -> S.StoreData -> m [String]
 missingMigrations backend storeData = do
-  let storeMigrations = Map.keys $ S.storeDataMapping storeData
+  let storeMigrationNames = map mId $ S.storeMigrations storeData
   backendMigrations <- B.getMigrations backend
 
   return $ Set.toList $ Set.difference
-         (Set.fromList storeMigrations)
+         (Set.fromList storeMigrationNames)
          (Set.fromList backendMigrations)
 
 -- |Create a new migration and store it in the 'S.MigrationStore',
