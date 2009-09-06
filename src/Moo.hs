@@ -28,7 +28,7 @@ import Database.Schema.Migrations.Backend ( Backend, applyMigration
                                           )
 import Database.Schema.Migrations.Store ( loadMigrations
                                         , fullMigrationName
-                                        , StoreData(..)
+                                        , StoreData
                                         , storeMigrations
                                         , storeLookup
                                         )
