@@ -6,9 +6,9 @@ Description:         A library and program for the creation,
                      (called /migrations/) into a relational database.
                      In particular, this package lets the migration
                      author express explicit dependencies between
-                     migrations and the installation tool
-                     automatically installs or reverts migrations
-                     accordingly, using transactions for safety.
+                     migrations and the management tool automatically
+                     installs or reverts migrations accordingly, using
+                     transactions for safety.
 
                      This package is written to support any
                      HDBC-supported database, although at present only
