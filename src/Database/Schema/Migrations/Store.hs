@@ -7,13 +7,15 @@
 module Database.Schema.Migrations.Store
     ( MigrationStore(..)
     , MapValidationError(..)
-
     , StoreData(..)
+    , MigrationMap
+
+    -- * High-level Store API
+    , loadMigrations
     , storeMigrations
     , storeLookup
 
-    , MigrationMap
-    , loadMigrations
+    -- * Miscellaneous Functions
     , depGraphFromMapping
     )
 where
@@ -32,6 +34,9 @@ import Database.Schema.Migrations.Dependencies
     , depsOf
     )
 
+-- |A mapping from migration name to 'Migration'.  This is exported
+-- for testing purposes, but you'll want to interface with this
+-- through the encapsulating 'StoreData' type.
 type MigrationMap = Map.Map String Migration
 
 data StoreData = StoreData { storeDataMapping :: MigrationMap
@@ -73,17 +78,22 @@ instance Show MapValidationError where
     show (DependencyGraphError msg) =
         "There was an error constructing the dependency graph: " ++ msg
 
+-- |A convenience function for extracting the list of 'Migration's
+-- extant in the specified 'StoreData'.
 storeMigrations :: StoreData -> [Migration]
 storeMigrations storeData =
     Map.elems $ storeDataMapping storeData
 
+-- |A convenience function for looking up a 'Migration' by name in the
+-- specified 'StoreData'.
 storeLookup :: StoreData -> String -> Maybe Migration
 storeLookup storeData migrationName =
     Map.lookup migrationName $ storeDataMapping storeData
 
 -- |Load migrations from the specified 'MigrationStore', validate the
 -- loaded migrations, and return errors or a 'MigrationMap' on
--- success.
+-- success.  Generally speaking, this will be the first thing you
+-- should call once you have constructed a 'MigrationStore'.
 loadMigrations :: (MigrationStore s m) => s -> m (Either [MapValidationError] StoreData)
 loadMigrations store = do
   migrations <- getMigrations store
@@ -116,6 +126,7 @@ validateSingleMigration mMap m = do
 
 -- |Create a 'DependencyGraph' from a 'MigrationMap'; returns Left if
 -- the dependency graph cannot be constructed (e.g., due to a
--- dependency cycle) or Right on success.
+-- dependency cycle) or Right on success.  Generally speaking, you
+-- won't want to use this directly; use 'loadMigrations' instead.
 depGraphFromMapping :: MigrationMap -> Either String (DependencyGraph Migration)
 depGraphFromMapping mapping = mkDepGraph $ Map.elems mapping
