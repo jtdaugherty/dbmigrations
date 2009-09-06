@@ -1,4 +1,7 @@
 
+- Use a CPP define to conditionally export code that needs to be
+  tested, but isn't part of the public API
+
 - Pull out high-level code from Moo into Database.Schema.Migrations to
   improve the high-level library API
 
