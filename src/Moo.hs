@@ -58,7 +58,7 @@ data AppState = AppState { appOptions :: [CommandOption]
 type AppT a = ReaderT AppState IO a
 
 -- The type of actions that are invoked to handle specific commands
-type CommandHandler = AppT ()
+type CommandHandler = StoreData -> AppT ()
 
 -- Options which can be used to alter command behavior
 data CommandOption = Test
@@ -233,10 +233,9 @@ confirmCreation migrationId deps = do
                          ]
 
 newCommand :: CommandHandler
-newCommand = do
+newCommand storeData = do
   required <- asks appRequiredArgs
   store <- asks appStore
-  storeData <- asks appStoreData
   let [migrationId] = required
   noAsk <- hasOption NoAsk
 
@@ -269,8 +268,7 @@ newCommand = do
                putStrLn "Migration creation cancelled."
 
 upgradeCommand :: CommandHandler
-upgradeCommand = do
-  storeData <- asks appStoreData
+upgradeCommand storeData = do
   isTesting <- hasOption Test
   withConnection $ \(AnyIConnection conn) -> do
         ensureBootstrappedBackend conn >> commit conn
@@ -290,8 +288,7 @@ upgradeCommand = do
                  putStrLn "Database successfully upgraded."
 
 upgradeListCommand :: CommandHandler
-upgradeListCommand = do
-  storeData <- asks appStoreData
+upgradeListCommand storeData = do
   withConnection $ \(AnyIConnection conn) -> do
         ensureBootstrappedBackend conn >> commit conn
         migrationNames <- missingMigrations conn storeData
@@ -360,9 +357,8 @@ lookupMigration storeData name = do
     Just m' -> return m'
 
 applyCommand :: CommandHandler
-applyCommand = do
+applyCommand storeData = do
   required <- asks appRequiredArgs
-  storeData <- asks appStoreData
   let [migrationId] = required
 
   withConnection $ \(AnyIConnection conn) -> do
@@ -373,9 +369,8 @@ applyCommand = do
         putStrLn "Successfully applied migrations."
 
 revertCommand :: CommandHandler
-revertCommand = do
+revertCommand storeData = do
   required <- asks appRequiredArgs
-  storeData <- asks appStoreData
   let [migrationId] = required
 
   withConnection $ \(AnyIConnection conn) -> do
@@ -386,9 +381,8 @@ revertCommand = do
       putStrLn "Successfully reverted migrations."
 
 testCommand :: CommandHandler
-testCommand = do
+testCommand storeData = do
   required <- asks appRequiredArgs
-  storeData <- asks appStoreData
   let [migrationId] = required
 
   withConnection $ \(AnyIConnection conn) -> do
@@ -497,4 +491,4 @@ main = do
                               , appStore = FSStore { storePath = storePathStr }
                               , appStoreData = storeData
                               }
-            (runReaderT (cHandler command) st) `catchSql` reportSqlError
+            (runReaderT (cHandler command $ storeData) st) `catchSql` reportSqlError
