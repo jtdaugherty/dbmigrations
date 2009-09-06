@@ -42,7 +42,7 @@ createNewMigration :: (MonadMigration m, S.MigrationStore s m)
                    => s -- ^ The 'S.MigrationStore' in which to create a new migration
                    -> String -- ^ The name of the new migration to create
                    -> [String] -- ^ The list of migration names on which the new migration should depend
-                   -> m (Either String ())
+                   -> m (Either String Migration)
 createNewMigration store name deps = do
   available <- S.getMigrations store
   case name `elem` available of
@@ -57,7 +57,7 @@ createNewMigration store name deps = do
                                 , mDeps = deps
                                 }
       S.saveMigration store newWithDefaults
-      return $ Right ()
+      return $ Right newWithDefaults
 
 -- |Given a 'B.Backend', ensure that the backend is ready for use by
 -- bootstrapping it.  This entails installing the appropriate database
