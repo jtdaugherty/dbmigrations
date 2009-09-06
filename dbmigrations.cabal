@@ -3,7 +3,7 @@ Version:             0.1
 Synopsis:            An implementation of relational database "migrations"
 Description:         A library and program for the creation,
                      management, and installation of schema updates
-                     (called /migrations/) into a relational database.
+                     (called /migrations/) for a relational database.
                      In particular, this package lets the migration
                      author express explicit dependencies between
                      migrations and the management tool automatically
