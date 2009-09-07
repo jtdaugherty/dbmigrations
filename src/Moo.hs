@@ -52,6 +52,7 @@ data AppState = AppState { appOptions :: [CommandOption]
                          , appOptionalArgs :: [String]
                          , appStore :: FilesystemStore
                          , appDatabaseConnStr :: Maybe DbConnDescriptor
+                         , appDatabaseType :: Maybe String
                          , appStoreData :: StoreData
                          }
 
@@ -163,16 +164,32 @@ commands = [ Command "new" ["migration_name"] [] [NoAsk]
                          upgradeListCommand
            ]
 
-makeConnection :: DbConnDescriptor -> IO AnyIConnection
-makeConnection (DbConnDescriptor connStr) =
-    AnyIConnection <$> connectPostgreSQL connStr
+databaseTypes :: [(String, String -> IO AnyIConnection)]
+databaseTypes = [ ("postgresql", fmap AnyIConnection . connectPostgreSQL)
+                ]
+
+makeConnection :: String -> DbConnDescriptor -> IO AnyIConnection
+makeConnection dbType (DbConnDescriptor connStr) =
+    case lookup dbType databaseTypes of
+      Nothing -> error $ "Unsupported database type " ++ show dbType ++
+                 "(supported types: " ++
+                 intercalate "," (map fst databaseTypes) ++ ")"
+      Just mkConnection -> mkConnection connStr
 
 withConnection :: (AnyIConnection -> IO a) -> AppT a
 withConnection act = do
   mDbPath <- asks appDatabaseConnStr
-  when (isNothing mDbPath) $ error "Error: Database connection string not \
-                                   \specified, please set DBM_DATABASE"
-  liftIO $ bracket (makeConnection $ fromJust mDbPath)
+  when (isNothing mDbPath) $ error $ "Error: Database connection string not \
+                                     \specified, please set " ++ envDatabaseName
+
+  mDbType <- asks appDatabaseType
+  when (isNothing mDbType) $
+       error $ "Error: Database type not specified, " ++
+                 "please set " ++ envDatabaseType ++
+                 " (supported types: " ++
+                 intercalate "," (map fst databaseTypes) ++ ")"
+
+  liftIO $ bracket (makeConnection (fromJust mDbType) (fromJust mDbPath))
              (\(AnyIConnection conn) -> disconnect conn) act
 
 interactiveAskDeps :: StoreData -> IO [String]
@@ -419,6 +436,8 @@ usage = do
   putStrLn $ "Usage: " ++ progName ++ " <command> [args]"
   putStrLn "Environment:"
   putStrLn $ "  " ++ envDatabaseName ++ ": database connection string"
+  putStrLn $ "  " ++ envDatabaseType ++ ": database type, one of " ++
+               (intercalate "," $ map fst databaseTypes)
   putStrLn $ "  " ++ envStoreName ++ ": path to migration store"
   putStrLn "Commands:"
   forM_ commands $ \command -> do
@@ -438,6 +457,9 @@ usageSpecific command = do
 
 findCommand :: String -> Maybe Command
 findCommand name = listToMaybe [ c | c <- commands, cName c == name ]
+
+envDatabaseType :: String
+envDatabaseType = "DBM_DATABASE_TYPE"
 
 envDatabaseName :: String
 envDatabaseName = "DBM_DATABASE"
@@ -465,6 +487,7 @@ main = do
   -- operations only require the store path.
   env <- getEnvironment
   let mDbConnStr = lookup envDatabaseName env
+      mDbType = lookup envDatabaseType env
       storePathStr = case lookup envStoreName env of
                        Just sp -> sp
                        Nothing -> error $ "Error: missing required environment \
@@ -488,6 +511,7 @@ main = do
                               , appRequiredArgs = required
                               , appOptionalArgs = optional
                               , appDatabaseConnStr = DbConnDescriptor <$> mDbConnStr
+                              , appDatabaseType = mDbType
                               , appStore = FSStore { storePath = storePathStr }
                               , appStoreData = storeData
                               }
