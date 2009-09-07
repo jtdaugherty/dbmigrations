@@ -4,15 +4,24 @@ moo: the dbmigrations management tool
 
 Before using moo, you must set two environment variables:
 
+  DBM_DATABASE_TYPE
+
+    The type of database you'll be managing.  The only supported value
+    at present is "postgresql".  This will determine the format of
+    DBM_DATABASE.
+
   DBM_DATABASE
 
     The database connection string for the database you'll be
-    managing.  Currently, only PostgreSQL is supported and the format
-    of this value is a PostgreSQL database connection string, i.e.,
+    managing.  The connection strings for each supported database type
+    are as follows:
 
-      "dbname=XXX user=XXX password=XXX host=XXX"
+    DBM_DATABASE_TYPE=postgresql:
 
-    where each setting is optional.
+      The format of this value is a PostgreSQL database connection
+      string, i.e., that described at:
+
+      http://www.postgresql.org/docs/8.1/static/libpq.html#LIBPQ-CONNECT
 
   DBM_MIGRATION_STORE
 
