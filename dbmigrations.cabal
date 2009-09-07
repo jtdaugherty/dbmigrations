@@ -19,7 +19,9 @@ Author:              Jonathan Daugherty <drcygnus@gmail.com>
 Maintainer:          Jonathan Daugherty <drcygnus@gmail.com>
 Build-Type:          Simple
 License:             BSD3
+License-File:        LICENSE
 Cabal-Version:       >= 1.2
+Data-Files:          README MOO.TXT
 
 Flag testing
     Description:     Build for testing
