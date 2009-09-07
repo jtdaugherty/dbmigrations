@@ -18,6 +18,7 @@ Category:            Database
 Author:              Jonathan Daugherty <drcygnus@gmail.com>
 Maintainer:          Jonathan Daugherty <drcygnus@gmail.com>
 Build-Type:          Simple
+License:             BSD3
 Cabal-Version:       >= 1.2
 
 Flag testing
