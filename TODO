@@ -2,8 +2,6 @@
 TODO for Initial Release
 ========================
 
-- Write tests for mapping validation logic in Store
-
 - Decide on better filesystem migration file extension (.m is already
   taken)
 
@@ -38,7 +36,7 @@ General
 Testing
 =======
 
-- improve test coverage
+- Write tests for mapping validation logic in Store
 
 - Make tests display warning if they can't run the postgres tests due
   to tools not being present (createdb, dropdb) -- check that those
