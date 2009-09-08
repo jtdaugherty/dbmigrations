@@ -21,6 +21,7 @@ Build-Type:          Simple
 License:             BSD3
 License-File:        LICENSE
 Cabal-Version:       >= 1.2
+Homepage:            http://repos.codevine.org/dbmigrations/
 Data-Files:          README MOO.TXT
 
 Flag testing
