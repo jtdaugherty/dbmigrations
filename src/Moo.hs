@@ -46,6 +46,7 @@ data Command = Command { cName :: String
 
 newtype DbConnDescriptor = DbConnDescriptor String
 
+-- Application state which can be accessed by any command handler.
 data AppState = AppState { appOptions :: [CommandOption]
                          , appCommand :: Command
                          , appRequiredArgs :: [String]
@@ -56,6 +57,7 @@ data AppState = AppState { appOptions :: [CommandOption]
                          , appStoreData :: StoreData
                          }
 
+-- The monad in which the application runs.
 type AppT a = ReaderT AppState IO a
 
 -- The type of actions that are invoked to handle specific commands
@@ -66,13 +68,21 @@ data CommandOption = Test
                    | NoAsk
                    deriving (Eq)
 
+-- Type wrapper for IConnection instances so the makeConnection
+-- function can return any type of connection.
 data AnyIConnection = forall c. (IConnection c) => AnyIConnection c
 
+-- The types for choices the user can make when being prompted for
+-- dependencies.
 data AskDepsChoice = Yes | No | View | Done | Quit
                      deriving (Eq)
 
+-- A general type for a set of choices that the user can make at a
+-- prompt.
 type PromptChoices a = [(Char, (a, Maybe String))]
 
+-- Get an input character in non-buffered mode, then restore the
+-- original buffering setting.
 unbufferedGetChar :: IO Char
 unbufferedGetChar = do
   bufferingMode <- hGetBuffering stdin
@@ -81,15 +91,21 @@ unbufferedGetChar = do
   hSetBuffering stdin bufferingMode
   return c
 
+-- Given a PromptChoices, build a multi-line help string for those
+-- choices using the description information in the choice list.
 mkPromptHelp :: PromptChoices a -> String
 mkPromptHelp choices =
     intercalate "" [ [c] ++ ": " ++ (fromJust msg) ++ "\n" |
                      (c, (_, msg)) <- choices, isJust msg ]
 
+-- Does the specified prompt choice list have any help messages in it?
 hasHelp :: PromptChoices a -> Bool
 hasHelp = (> 0) . length . (filter hasMsg)
     where hasMsg (_, (_, m)) = isJust m
 
+-- Prompt the user for a choice, given a prompt and a list of possible
+-- choices.  Let the user get help for the available choices, and loop
+-- until the user makes a valid choice.
 prompt :: (Eq a) => String -> PromptChoices a -> IO a
 prompt _ [] = error "prompt requires a list of choices"
 prompt message choiceMap = do
@@ -108,24 +124,32 @@ prompt message choiceMap = do
       helpChar = if hasHelp choiceMap then "h" else ""
       choiceMapWithHelp = choiceMap ++ [('h', (undefined, Just "this help"))]
 
+-- Different command-line option strings and their constructors.
 optionMap :: [(String, CommandOption)]
 optionMap = [ ("--test", Test)
             , ("--no-ask", NoAsk)]
 
+-- Usage information for each CommandOption.
 optionUsage :: CommandOption -> String
 optionUsage Test = "Perform the action in a transaction and issue a \
                    \rollback when finished"
 optionUsage NoAsk = "Do not interactively ask any questions, just do it"
 
+-- Is the specified option turned on in the application state?
 hasOption :: CommandOption -> AppT Bool
 hasOption o = asks ((o `elem`) . appOptions)
 
+-- Is the specified option string mapped to an option constructor?
 isSupportedCommandOption :: String -> Bool
 isSupportedCommandOption s = isJust $ lookup s optionMap
 
+-- Does the specified string appear to be a command-line option?
 isCommandOption :: String -> Bool
 isCommandOption s = take 2 s == "--"
 
+-- Given a list of strings, convert it into a list of well-typed
+-- command options and remaining arguments, or return an error if any
+-- options are unsupported.
 convertOptions :: [String] -> Either String ([CommandOption], [String])
 convertOptions args = if null unsupportedOptions
                       then Right (supportedOptions, rest)
@@ -139,6 +163,8 @@ convertOptions args = if null unsupportedOptions
       unsupported = "Unsupported option(s): "
                     ++ intercalate ", " unsupportedOptions
 
+-- The available commands; used to dispatch from the command line and
+-- used to generate usage output.
 commands :: [Command]
 commands = [ Command "new" ["migration_name"] [] [NoAsk]
                          "Create a new empty migration"
@@ -164,10 +190,16 @@ commands = [ Command "new" ["migration_name"] [] [NoAsk]
                          upgradeListCommand
            ]
 
+-- The values of DBM_DATABASE_TYPE and their corresponding connection
+-- factory functions.
 databaseTypes :: [(String, String -> IO AnyIConnection)]
 databaseTypes = [ ("postgresql", fmap AnyIConnection . connectPostgreSQL)
                 ]
 
+-- Given a database type string and a database connection string,
+-- return a database connection or raise an error if the database
+-- connection cannot be established, or if the database type is not
+-- supported.
 makeConnection :: String -> DbConnDescriptor -> IO AnyIConnection
 makeConnection dbType (DbConnDescriptor connStr) =
     case lookup dbType databaseTypes of
@@ -176,6 +208,9 @@ makeConnection dbType (DbConnDescriptor connStr) =
                  intercalate "," (map fst databaseTypes) ++ ")"
       Just mkConnection -> mkConnection connStr
 
+-- Given an action that needs a database connection, connect to the
+-- database using the application configuration and invoke the action
+-- with the connection.  Return its result.
 withConnection :: (AnyIConnection -> IO a) -> AppT a
 withConnection act = do
   mDbPath <- asks appDatabaseConnStr
@@ -192,6 +227,8 @@ withConnection act = do
   liftIO $ bracket (makeConnection (fromJust mDbType) (fromJust mDbPath))
              (\(AnyIConnection conn) -> disconnect conn) act
 
+-- Interactively ask the user about which dependencies should be used
+-- when creating a new migration.
 interactiveAskDeps :: StoreData -> IO [String]
 interactiveAskDeps storeData = do
   -- For each migration in the store, starting with the most recently
@@ -201,6 +238,7 @@ interactiveAskDeps storeData = do
       where
         compareTimestamps m1 m2 = compare (mTimestamp m2) (mTimestamp m1)
 
+-- The choices the user can make when being prompted for dependencies.
 askDepsChoices :: PromptChoices AskDepsChoice
 askDepsChoices = [ ('y', (Yes, Just "yes, depend on this migration"))
                  , ('n', (No, Just "no, do not depend on this migration"))
@@ -209,6 +247,9 @@ askDepsChoices = [ ('y', (Yes, Just "yes, depend on this migration"))
                  , ('q', (Quit, Just "cancel this operation and quit"))
                  ]
 
+-- Recursive function to prompt the user for dependencies and let the
+-- user view information about potential dependencies.  Returns a list
+-- of migration names which were selected.
 interactiveAskDeps' :: StoreData -> [String] -> IO [String]
 interactiveAskDeps' _ [] = return []
 interactiveAskDeps' storeData (name:rest) = do
@@ -238,6 +279,8 @@ interactiveAskDeps' storeData (name:rest) = do
             exitWith (ExitFailure 1)
           Done -> return []
 
+-- Given a migration name and selected dependencies, get the user's
+-- confirmation that a migration should be created.
 confirmCreation :: String -> [String] -> IO Bool
 confirmCreation migrationId deps = do
   putStrLn ""
