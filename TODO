@@ -2,33 +2,34 @@
 General
 =======
 
-- Support listing migration dependencies on multiple lines, since
-  listing them all on one line (present parsing format) is terrible
+- Migration file format: support listing migration dependencies on
+  multiple lines, since listing them all on one line (present parsing
+  format) is terrible
 
 - Use a CPP define to conditionally export code that needs to be
-  tested, but isn't part of the public API
+  tested, but isn't part of the public API, and set this define in the
+  Cabal configuration for the 'test' executable
 
 - Pull out high-level code from Moo into Database.Schema.Migrations to
-  improve the high-level library API
+  improve the high-level library API, and make Moo a (relatively) thin
+  wrapper around that API
 
 - Write convenience functions to access information in StoreData so 1)
   the code is cleaner and 2) we don't have to export field accessors
   for StoreData
 
-- Moo: add a flag (--summary) to upgrade, apply, and revert; remove
-  upgrade-list command; have --summary show the user what will be done
-  without actually doing it.
-
 - Moo "new" confirmation: display deps in columns, sorted
   alphabetically, so we don't have to invoke a pager
 
-- Moo "new" command deps selection: allow j/k navigation a la darcs
+- Moo "new" confirmation: display deps in columns, sorted
+  alphabetically, so we don't feel the need to invoke a pager
 
-- make filesystem store operations die if they find a migration name
-  with no corresponding disk file
+- Moo "new" command deps selection: allow j/k navigation a la darcs
 
 Testing
 =======
+
+- Generally improve test coverage
 
 - Write tests for mapping validation logic in Store
 
