@@ -14,7 +14,7 @@ import qualified FilesystemTest
 import qualified CycleDetectionTest
 
 import Control.Monad ( forM )
-import Control.Exception ( finally, catch )
+import Control.Exception ( finally, catch, SomeException )
 
 import Database.HDBC ( IConnection(disconnect) )
 --import Database.HDBC.Sqlite3 ( connectSqlite3 )
@@ -50,9 +50,12 @@ loadTests = do
 tempPgDatabase :: String
 tempPgDatabase = "dbmigrations_test"
 
+ignoreException :: SomeException -> IO ()
+ignoreException _ = return ()
+
 setupPostgresDb :: IO PostgreSQL.Connection
 setupPostgresDb = do
-  teardownPostgresDb `catch` (\_ -> return ())
+  teardownPostgresDb `catch` ignoreException
 
   -- create database
   status <- system $ "createdb " ++ tempPgDatabase
