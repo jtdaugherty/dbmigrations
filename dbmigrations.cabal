@@ -60,6 +60,11 @@ Library
           Database.Schema.Migrations.Backend.HDBC
           Database.Schema.Migrations.Store
 
+  Other-Modules:
+          Database.Schema.Migrations.CycleDetection
+          Database.Schema.Migrations.Filesystem.Parse
+          Database.Schema.Migrations.Filesystem.Serialize
+
 Executable test
   Build-Depends:
     HDBC-postgresql,
