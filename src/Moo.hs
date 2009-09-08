@@ -11,7 +11,7 @@ import Control.Exception ( bracket )
 import Data.Maybe ( listToMaybe, catMaybes, isJust
                   , fromJust, isNothing
                   )
-import Data.List ( intercalate, sortBy)
+import Data.List ( intercalate, sortBy, isPrefixOf )
 import Control.Monad.Reader ( ReaderT, asks, runReaderT )
 import Control.Monad ( when, forM_ )
 import Control.Monad.Trans ( liftIO )
@@ -145,7 +145,7 @@ isSupportedCommandOption s = isJust $ lookup s optionMap
 
 -- Does the specified string appear to be a command-line option?
 isCommandOption :: String -> Bool
-isCommandOption s = take 2 s == "--"
+isCommandOption s = "--" `isPrefixOf` s
 
 -- Given a list of strings, convert it into a list of well-typed
 -- command options and remaining arguments, or return an error if any
