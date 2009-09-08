@@ -30,7 +30,7 @@ type FieldProcessor = String -> Migration -> Maybe Migration
 data FilesystemStore = FSStore { storePath :: FilePath }
 
 filenameExtension :: String
-filenameExtension = ".m"
+filenameExtension = ".txt"
 
 instance MigrationStore FilesystemStore IO where
     fullMigrationName s name =
