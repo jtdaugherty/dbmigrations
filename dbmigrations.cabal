@@ -14,6 +14,10 @@ Description:         A library and program for the creation,
                      HDBC-supported database, although at present only
                      PostgreSQL is fully supported.
 
+                     To get started, see the included 'README' and
+                     'MOO.TXT' files and the usage output for the
+                     'moo' command.
+
 Category:            Database
 Author:              Jonathan Daugherty <drcygnus@gmail.com>
 Maintainer:          Jonathan Daugherty <drcygnus@gmail.com>
