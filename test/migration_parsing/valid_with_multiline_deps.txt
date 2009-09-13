@@ -1,0 +1,15 @@
+Description: A valid full migration.
+Created: 2009-04-15 10:02:06 UTC
+
+Depends:
+  one
+  two
+  three
+
+Apply:
+
+  CREATE TABLE test (
+    a int
+  );
+
+Revert: DROP TABLE test;

@@ -2,10 +2,6 @@
 General
 =======
 
-- Migration file format: support listing migration dependencies on
-  multiple lines, since listing them all on one line (present parsing
-  format) is terrible
-
 - Use a CPP define to conditionally export code that needs to be
   tested, but isn't part of the public API, and set this define in the
   Cabal configuration for the 'test' executable

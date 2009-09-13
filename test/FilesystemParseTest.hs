@@ -47,6 +47,9 @@ migrationParsingTestCases :: [MigrationParsingTestCase]
 migrationParsingTestCases = [ ("valid_full", Right valid_full)
                             , ("valid_with_comments"
                               , Right (valid_full { mId = "valid_with_comments" }))
+                            , ("valid_with_multiline_deps"
+                              , Right (valid_full { mId = "valid_with_multiline_deps"
+                                                  , mDeps = ["one", "two", "three"] } ))
                             , ("valid_no_depends"
                               , Right (valid_full { mId = "valid_no_depends", mDeps = [] }))
                             , ("valid_no_desc"

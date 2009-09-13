@@ -25,11 +25,18 @@ migrationParser = do
 
 parseDepsList :: Parser [String]
 parseDepsList =
-    let parseMID = many1 (alphaNum <|> oneOf "-._")
-    in do
-      deps <- sepBy parseMID whitespace
-      eol
-      return deps
+    depsList <|> (many whitespace >> eol >> return [])
+    where
+      parseMID = many1 (alphaNum <|> oneOf "-._")
+      separator = discard $ spaces >> many (newline >> spaces)
+      depsList = do
+        many whitespace
+        first <- parseMID
+        rest <- many $ try $ do
+                   separator
+                   parseMID
+        eol
+        return (first : rest)
 
 discard :: Parser a -> Parser ()
 discard = (>> return ())
