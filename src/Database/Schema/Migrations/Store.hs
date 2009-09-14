@@ -17,6 +17,7 @@ module Database.Schema.Migrations.Store
 
     -- * Miscellaneous Functions
     , depGraphFromMapping
+    , validateSingleMigration
     )
 where
 
@@ -118,6 +119,9 @@ validateMigrationMap :: MigrationMap -> [MapValidationError]
 validateMigrationMap mMap = do
   validateSingleMigration mMap =<< snd <$> Map.toList mMap
 
+-- |Validate a single migration.  Looks up the migration's
+-- dependencies in the specified 'MigrationMap' and returns a
+-- 'MapValidationError' for each one that does not exist in the map.
 validateSingleMigration :: MigrationMap -> Migration -> [MapValidationError]
 validateSingleMigration mMap m = do
   depId <- depsOf m
