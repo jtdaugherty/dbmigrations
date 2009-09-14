@@ -12,6 +12,7 @@ import qualified FilesystemSerializeTest
 import qualified FilesystemParseTest
 import qualified FilesystemTest
 import qualified CycleDetectionTest
+import qualified StoreTest
 
 import Control.Monad ( forM )
 import Control.Exception ( finally, catch, SomeException )
@@ -45,6 +46,7 @@ loadTests = do
                   , FilesystemSerializeTest.tests
                   , MigrationsTest.tests
                   , CycleDetectionTest.tests
+                  , StoreTest.tests
                   ]
 
 tempPgDatabase :: String
