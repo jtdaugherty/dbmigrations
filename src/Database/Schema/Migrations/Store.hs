@@ -71,6 +71,7 @@ data MapValidationError = DependencyReferenceError String String
                           -- ^ An error was encountered when
                           -- constructing the dependency graph for
                           -- this store.
+                          deriving (Eq)
 
 instance Show MapValidationError where
     show (DependencyReferenceError from to) =
