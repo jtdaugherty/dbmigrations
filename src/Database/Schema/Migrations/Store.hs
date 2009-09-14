@@ -17,6 +17,7 @@ module Database.Schema.Migrations.Store
 
     -- * Miscellaneous Functions
     , depGraphFromMapping
+    , validateMigrationMap
     , validateSingleMigration
     )
 where
