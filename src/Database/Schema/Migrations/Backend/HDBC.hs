@@ -4,7 +4,7 @@ module Database.Schema.Migrations.Backend.HDBC
     ()
 where
 
-import Database.HDBC ( quickQuery, fromSql, toSql, IConnection(getTables, run) )
+import Database.HDBC ( quickQuery', fromSql, toSql, IConnection(getTables, run) )
 
 import Database.Schema.Migrations.Backend
     ( Backend(..) )
@@ -55,5 +55,5 @@ instance (IConnection conn) => Backend conn IO where
         return ()
 
     getMigrations conn = do
-      results <- quickQuery conn ("SELECT migration_id FROM " ++ migrationTableName) []
+      results <- quickQuery' conn ("SELECT migration_id FROM " ++ migrationTableName) []
       return $ map (\(h:_) -> fromSql h) results
