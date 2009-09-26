@@ -18,17 +18,18 @@ import Control.Monad ( forM )
 import Control.Exception ( finally, catch, SomeException )
 
 import Database.HDBC ( IConnection(disconnect) )
---import Database.HDBC.Sqlite3 ( connectSqlite3 )
+import Database.HDBC.Sqlite3 ( connectSqlite3 )
 import qualified Database.HDBC.PostgreSQL as PostgreSQL
 
 loadTests :: IO [Test]
 loadTests = do
 
---  sqliteConn <- connectSqlite3 ":memory:"
+  sqliteConn <- connectSqlite3 ":memory:"
   pgConn <- setupPostgresDb
 
-  let backends = [ -- ("Sqlite", BackendTest.tests sqliteConn)
-                   ("PostgreSQL", BackendTest.tests pgConn `finally`
+  let backends = [ ("Sqlite", (BackendTest.tests sqliteConn) `finally`
+                                (disconnect sqliteConn))
+                 , ("PostgreSQL", (BackendTest.tests pgConn) `finally`
                                     (disconnect pgConn >> teardownPostgresDb))
                  ]
 
