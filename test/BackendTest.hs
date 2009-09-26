@@ -53,7 +53,7 @@ applyMigrationFailure conn = do
     m1 <- newMigration "second"
     m2 <- newMigration "third"
 
-    let m1' = m1 { mApply = "CREATE TABLE valid (a int)" }
+    let m1' = m1 { mApply = "CREATE TABLE validButTemporary (a int)" }
     let m2' = m2 { mApply = "INVALID SQL" }
 
     -- Apply the migrations, ignore exceptions
@@ -70,10 +70,10 @@ revertMigrationFailure conn = do
     m1 <- newMigration "second"
     m2 <- newMigration "third"
 
-    let m1' = m1 { mApply = "CREATE TABLE valid (a int)"
-                 , mRevert = Just "DROP TABLE valid"}
-    let m2' = m2 { mApply = "SELECT * FROM valid"
-                 , mRevert = Just "INVALID SQL"}
+    let m1' = m1 { mApply = "CREATE TABLE validRMF (a int)"
+                 , mRevert = Just "DROP TABLE validRMF"}
+    let m2' = m2 { mApply = "SELECT * FROM validRMF"
+                 , mRevert = Just "INVALID REVERT SQL"}
 
     applyMigration conn m1'
     applyMigration conn m2'
