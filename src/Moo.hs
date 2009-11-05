@@ -206,7 +206,7 @@ makeConnection :: String -> DbConnDescriptor -> IO AnyIConnection
 makeConnection dbType (DbConnDescriptor connStr) =
     case lookup dbType databaseTypes of
       Nothing -> error $ "Unsupported database type " ++ show dbType ++
-                 "(supported types: " ++
+                 " (supported types: " ++
                  intercalate "," (map fst databaseTypes) ++ ")"
       Just mkConnection -> mkConnection connStr
 
