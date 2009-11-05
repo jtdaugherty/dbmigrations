@@ -4,7 +4,7 @@ module Database.Schema.Migrations.Backend.HDBC
     ()
 where
 
-import Database.HDBC ( quickQuery', fromSql, toSql, IConnection(getTables, run) )
+import Database.HDBC ( quickQuery', fromSql, toSql, IConnection(getTables, run, runRaw) )
 
 import Database.Schema.Migrations.Backend
     ( Backend(..) )
@@ -40,7 +40,7 @@ instance (IConnection conn) => Backend conn IO where
                      }
 
     applyMigration conn m = do
-      run conn (mApply m) []
+      runRaw conn (mApply m)
       run conn ("INSERT INTO " ++ migrationTableName ++
                 " (migration_id) VALUES (?)") [toSql $ mId m]
       return ()
@@ -48,7 +48,7 @@ instance (IConnection conn) => Backend conn IO where
     revertMigration conn m = do
         case mRevert m of
           Nothing -> return ()
-          Just query -> run conn query [] >> return ()
+          Just query -> runRaw conn query
         -- Remove migration from installed_migrations in either case.
         run conn ("DELETE FROM " ++ migrationTableName ++
                   " WHERE migration_id = ?") [toSql $ mId m]

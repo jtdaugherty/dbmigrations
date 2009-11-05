@@ -1,7 +1,4 @@
-module BackendTest
-    ( tests
-    )
-where
+module BackendTest where
 
 import Test.HUnit
 import Control.Monad ( (=<<), forM_ )
@@ -18,6 +15,7 @@ tests conn = do
              , bootstrapTest
              , isBootstrappedTrueTest
              , applyMigrationFailure
+             , applyMigrationSuccess
              , revertMigrationFailure
              , revertMigrationNothing
              , revertMigrationJust
@@ -46,6 +44,19 @@ isBootstrappedFalseTest conn = do
 ignoreSqlExceptions :: IO a -> IO (Maybe a)
 ignoreSqlExceptions act = (act >>= return . Just) `catchSql`
                        (\_ -> return Nothing)
+
+applyMigrationSuccess :: (IConnection a) => a -> IO ()
+applyMigrationSuccess conn = do
+    m1 <- newMigration "validMigration"
+
+    let m1' = m1 { mApply = "CREATE TABLE valid1 (a int); CREATE TABLE valid2 (a int);" }
+
+    -- Apply the migrations, ignore exceptions
+    withTransaction conn $ \conn' -> applyMigration conn' m1'
+
+    -- Check that none of the migrations were installed
+    assertEqual "Installed migrations" ["root", "validMigration"] =<< getMigrations conn
+    assertEqual "Installed tables" ["installed_migrations", "valid1", "valid2"] =<< getTables conn
 
 -- |Does a failure to apply a migration imply a transaction rollback?
 applyMigrationFailure :: (IConnection a) => a -> IO ()
