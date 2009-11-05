@@ -2,6 +2,8 @@
 General
 =======
 
+- Have 'moo' output supported database types
+
 - Use a CPP define to conditionally export code that needs to be
   tested, but isn't part of the public API, and set this define in the
   Cabal configuration for the 'test' executable
