@@ -65,7 +65,7 @@ Library
           Database.Schema.Migrations.Filesystem.Parse
           Database.Schema.Migrations.Filesystem.Serialize
 
-Executable test
+Executable dbmigrations-tests
   Build-Depends:
     HDBC-postgresql,
     HDBC-sqlite3,

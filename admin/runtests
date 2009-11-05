@@ -3,6 +3,7 @@ set -e
 HERE=$(dirname $0)
 ROOT=$HERE/..
 
+EXE=dbmigrations-tests
 TEST=$HERE/../test
 BUILDDIR=$TEST/dist
 cabal configure -f testing --builddir=$BUILDDIR
@@ -10,4 +11,4 @@ cabal build --builddir=$BUILDDIR --ghc-options="-Wall -Werror"
 
 cd test
 
-./dist/build/test/test data
+./dist/build/$EXE/$EXE
