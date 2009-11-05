@@ -17,6 +17,7 @@ import Control.Monad ( when, forM_ )
 import Control.Monad.Trans ( liftIO )
 import Control.Applicative ( (<$>) )
 import Database.HDBC.PostgreSQL ( connectPostgreSQL )
+import Database.HDBC.Sqlite3 ( connectSqlite3 )
 import Database.HDBC ( IConnection(commit, rollback, disconnect)
                      , catchSql, seErrorMsg, SqlError
                      )
@@ -194,6 +195,7 @@ commands = [ Command "new" ["migration_name"] [] [NoAsk]
 -- factory functions.
 databaseTypes :: [(String, String -> IO AnyIConnection)]
 databaseTypes = [ ("postgresql", fmap AnyIConnection . connectPostgreSQL)
+                , ("sqlite3", fmap AnyIConnection . connectSqlite3)
                 ]
 
 -- Given a database type string and a database connection string,

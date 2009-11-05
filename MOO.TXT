@@ -23,6 +23,11 @@ Before using moo, you must set two environment variables:
 
       http://www.postgresql.org/docs/8.1/static/libpq.html#LIBPQ-CONNECT
 
+    DBM_DATABASE_TYPE=sqlite3:
+
+      The format of this value is a filesystem path to the Sqlite3
+      database to be used.
+
   DBM_MIGRATION_STORE
 
     The path to the filesystem directory where your migrations will be
