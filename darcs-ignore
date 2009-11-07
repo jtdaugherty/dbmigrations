@@ -114,3 +114,4 @@
 
 # Custom
 (^|/)dist(/|$)
+^.dist-scion(/|$)
