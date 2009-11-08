@@ -39,20 +39,29 @@ Testing
 StoreManager
 ============
 
-- Add abillity to modify the dependency list of a migration
+Use cases:
 
-  - don't ask about dependencies that would result in a
-  graph cycle
+ - View all migrations in a flat list structure, sortable by creation
+   timestamp or name
 
-- list migrations
+ - View all migrations in a tree structure indicating dependencies
 
-- let user select dependencies
+ - Create a new migration
 
-- show dependency hierarchy
+ - Edit the description of a migration
 
-- support for creating and editing migrations
+ - Add a dependency to a migration
 
-  - editing: fire up editor with migration in a temp file, when editor
-    closes, parse the migration and tell the user if there was a
-    problem, then ask to re-invoke editor or quit. if no parse error,
-    overwrite original migration file with temp file contents.
+   - don't ask about dependencies that would result in a
+     dependency cycle
+
+ - Remove a dependency from a migration
+
+ - Delete a migration (questionable whether this should be automated)
+
+ - View and edit the apply and revert instructions of a migration
+
+   - editing: fire up editor with migration in a temp file, when
+     editor closes, parse the migration and tell the user if there was
+     a problem, then ask to re-invoke editor or quit. if no parse
+     error, overwrite original migration file with temp file contents.
