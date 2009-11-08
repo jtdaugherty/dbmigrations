@@ -41,10 +41,15 @@ StoreManager
 
 Use cases:
 
- - View all migrations in a flat list structure, sortable by creation
-   timestamp or name
+ - Different layouts:
 
- - View all migrations in a tree structure indicating dependencies
+   - View all migrations in a flat list structure, sortable by
+     creation timestamp or name
+
+   - View all migrations in a tree structure indicating dependencies
+
+   - Something like F1 and F2 to change viewing modes, each with their
+     own event loops and interfaces
 
  - Create a new migration
 
@@ -52,8 +57,8 @@ Use cases:
 
  - Add a dependency to a migration
 
-   - don't ask about dependencies that would result in a
-     dependency cycle
+   - don't ask about dependencies that would result in a dependency
+     cycle
 
  - Remove a dependency from a migration
 
@@ -61,7 +66,8 @@ Use cases:
 
  - View and edit the apply and revert instructions of a migration
 
-   - editing: fire up editor with migration in a temp file, when
-     editor closes, parse the migration and tell the user if there was
-     a problem, then ask to re-invoke editor or quit. if no parse
-     error, overwrite original migration file with temp file contents.
+   - editing: fire up ($EDITOR || vi) with migration in a temp file,
+     when editor closes, parse the migration and tell the user if
+     there was a problem, then ask to re-invoke editor or quit. if no
+     parse error, overwrite original migration file with temp file
+     contents.
