@@ -1,272 +1,227 @@
-
 module Main where
 
-import Control.Exception
+import Control.Applicative ( (<$>) )
 import Control.Monad.State
-import Data.Maybe ( fromJust, isNothing )
 import qualified Data.Map as Map
-import System.Environment (getArgs, getProgName)
-import System.Exit (exitFailure)
+import System.Environment
+    ( getArgs
+    , getProgName
+    , getEnvironment
+    )
+import System.Exit
+    ( exitFailure
+    )
+import System.IO
+    ( Handle
+    , hClose
+    , openTempFile
+    , hPutStr
+    )
+import System.Directory
+    ( getTemporaryDirectory
+    )
+import System.Process
+import System.Posix.Files
+    ( removeLink
+    )
 
-import UI.HSCurses.Widgets
-import qualified UI.HSCurses.Curses as Curses
-import qualified UI.HSCurses.CursesHelper as CursesH
+import Data.Maybe
+    ( fromJust
+    )
 
+import Graphics.Vty
+import Graphics.Vty.Widgets.All
 import Database.Schema.Migrations.Filesystem
+import Database.Schema.Migrations.Migration
+    ( Migration(..)
+    )
 import Database.Schema.Migrations.Store
 
-title :: String
-title = "Migration Manager"
+-- XXX Generalize over all MigrationStore instances
+data AppState = AppState { appStoreData :: StoreData
+                         , appStore :: FilesystemStore
+                         , appMigrationList :: SimpleList
+                         , appVty :: Vty
+                         }
 
-help :: String
-help = "q:quit"
+type AppM = StateT AppState IO
 
-data MMState = MMState
-    { mmStoreData :: StoreData
-    , mmStatus :: String
-    , mmStyles :: [CursesH.CursesStyle]
-    , mmStorePath :: FilePath
-    }
+titleAttr :: Attr
+titleAttr = def_attr
+            `with_back_color` blue
+            `with_fore_color` bright_white
 
-type MM = StateT MMState IO
+bodyAttr :: Attr
+bodyAttr = def_attr
+           `with_back_color` black
+           `with_fore_color` bright_white
 
-type ToplineWidget = TextWidget
-type HelpLineWidget = TextWidget
-type StatusBarWidget = TableWidget
-type MigrationListWidget = TableWidget
+fieldAttr :: Attr
+fieldAttr = def_attr
+            `with_back_color` black
+            `with_fore_color` bright_green
 
-data MainWidget = MainWidget
-    { toplineWidget :: ToplineWidget
-    , helplineWidget :: HelpLineWidget
-    , statusbarWidget :: StatusBarWidget
-    , migrationListWidget :: MigrationListWidget
-    }
+selAttr :: Attr
+selAttr = def_attr
+           `with_back_color` yellow
+           `with_fore_color` black
 
-instance Widget MainWidget where
-    draw pos sz hint w = draw pos sz hint (mkRealMainWidget (Just sz) w)
-    minSize w = minSize (mkRealMainWidget Nothing w)
+scrollListUp :: AppState -> AppState
+scrollListUp appst =
+    appst { appMigrationList = scrollUp $ appMigrationList appst }
 
-runMM :: FilePath -> StoreData -> [CursesH.CursesStyle] -> MM a -> IO a
-runMM sp storeData cstyles mm =
-    evalStateT mm (MMState { mmStoreData = storeData
-                           , mmStyles = cstyles
-                           , mmStatus = sp ++ " loaded."
-                           , mmStorePath = sp
-                           })
+scrollListDown :: AppState -> AppState
+scrollListDown appst =
+    appst { appMigrationList = scrollDown $ appMigrationList appst }
 
-getSize :: MM (Int, Int)
-getSize = liftIO $ Curses.scrSize
+eventloop :: (Widget a) => AppM a -> (Event -> AppM Bool) -> AppM ()
+eventloop uiBuilder handle = do
+  w <- uiBuilder
+  vty <- gets appVty
+  evt <- liftIO $ do
+           (img, _) <- mkImage vty w
+           update vty $ pic_for_image img
+           next_event vty
+  next <- handle evt
+  if next then
+      eventloop uiBuilder handle else
+      return ()
 
-styles :: [CursesH.Style]
-styles = [ CursesH.defaultStyle
-         , CursesH.AttributeStyle [CursesH.Bold] CursesH.GreenF CursesH.DarkBlueB
-         ]
+continue :: AppM Bool
+continue = return True
 
-nthStyle :: Int -> MM CursesH.CursesStyle
-nthStyle n =
-    do cs <- gets mmStyles
-       return $ cs !! n
+stop :: AppM Bool
+stop = return False
 
-defStyle :: MM CursesH.CursesStyle
-defStyle = nthStyle 0
+handleEvent :: Event -> AppM Bool
+handleEvent (EvKey KUp []) = modify scrollListUp >> continue
+handleEvent (EvKey KDown []) = modify scrollListDown >> continue
+handleEvent (EvKey (KASCII 'q') []) = stop
+handleEvent (EvKey (KASCII 'e') []) = editCurrentMigration >> continue
+handleEvent (EvResize w h) = do
+  let wSize = appropriateListWindow $ DisplayRegion (toEnum w) (toEnum h)
+  modify (\appst -> appst { appMigrationList = (appMigrationList appst) { scrollWindowSize = wSize }})
+  continue
+handleEvent _ = continue
 
-lineStyle :: MM CursesH.CursesStyle
-lineStyle = nthStyle 1
+withTempFile :: (MonadIO m) => (Handle -> FilePath -> m a) -> m a
+withTempFile act = do
+  (tempFilePath, newFile) <- liftIO $ createTempFile
+  result <- act newFile tempFilePath
+  liftIO $ cleanup newFile tempFilePath
+  return result
+  where
+    createTempFile = do
+                     tempDir <- getTemporaryDirectory
+                     openTempFile tempDir "migration.txt"
 
-lineDrawingStyle :: MM DrawingStyle
-lineDrawingStyle = do
-  s <- lineStyle
-  return $ mkDrawingStyle s
+    cleanup handle tempFilePath = do
+                     (hClose handle) `catch` (\_ -> return ())
+                     removeLink tempFilePath
 
-lineOptions :: MM TextWidgetOptions
-lineOptions = do
-  sz <- getSize
-  ds <- lineDrawingStyle
-  return $ TWOptions { twopt_size = TWSizeFixed (1, getWidth sz)
-                     , twopt_style = ds
-                     , twopt_halign = AlignLeft
-                     }
+editCurrentMigration :: AppM ()
+editCurrentMigration = do
+  -- Get the current migration
+  m <- gets getSelectedMigration
+  store <- gets appStore
+  migrationPath <- fullMigrationName store $ mId m
+  vty <- gets appVty
 
-mkToplineWidget :: MM ToplineWidget
-mkToplineWidget = do
-  opts <- lineOptions
-  return $ newTextWidget (opts { twopt_halign = AlignCenter }) title
+  withTempFile $ \tempHandle tempPath ->
+      liftIO $ do
+        -- Copy the migration to a temporary file
+        readFile migrationPath >>= hPutStr tempHandle
+        hClose tempHandle
 
-mkHelpLineWidget :: MM HelpLineWidget
-mkHelpLineWidget = do
-  opts <- lineOptions
-  return $ newTextWidget opts help
+        shutdown vty
 
--- We need to insert a dummy widget at the lower-right corner of the
--- window, i.e. at the lower-right corner of the message
--- line. Otherwise, an error occurs because drawing a character to
--- this position moves the cursor to the next line, which doesn't
--- exist.
-mkStatusBarWidget :: MM StatusBarWidget
-mkStatusBarWidget = do
-  sz <- getSize
-  msg <- gets mmStatus
-  let width = getWidth sz
-      opts = TWOptions { twopt_size = TWSizeFixed (1, width - 1)
-                       , twopt_style = defaultDrawingStyle
-                       , twopt_halign = AlignLeft
-                       }
-      tw = newTextWidget opts msg
-      row = [TableCell tw, TableCell $ EmptyWidget (1,1)]
-      tabOpts = defaultTBWOptions { tbwopt_minSize = (1, width) }
-  return $ newTableWidget tabOpts [row]
+        currentEnv <- getEnvironment
+        let editor = maybe "vi" id $ lookup "EDITOR" currentEnv
 
--- nlines = height of status line + height of help line + height of
--- top line
-nlines :: Int
-nlines = 3
+        -- Invoke an editor to edit the temporary file
+        (_, _, _, pHandle) <- createProcess $ shell $ editor ++ " " ++ tempPath
+        waitForProcess pHandle
 
-migrationListHeight :: (Int, Int) -> Int
-migrationListHeight (h, _) = h - nlines
+  -- Reinitialize application state
+  put =<< (liftIO $ mkState store)
 
-migrationListOptions :: MM TableWidgetOptions
-migrationListOptions = do
-  sz <- getSize
-  return $ TBWOptions { tbwopt_fillCol = Nothing
-                      , tbwopt_fillRow = None
-                      , tbwopt_activeCols = [0]
-                      , tbwopt_minSize = (migrationListHeight sz, getWidth sz)
-                      }
+  -- XXX update the list window based on the (possibly new) terminal
+  -- size
 
-mkMigrationListWidget :: MM MigrationListWidget
-mkMigrationListWidget = do
-  storeData <- gets mmStoreData
-  sz <- getSize
-  let rows = map (migrationRow $ getWidth sz) (Map.keys $ storeDataMapping storeData)
-  opts <- migrationListOptions
-  return $ newTableWidget opts rows
-    where migrationRow w s = [TableCell $ newTextWidget
-                              (defaultTWOptions { twopt_size = TWSizeFixed (1, w) }) s]
+  -- XXX Once the editor closes, validate the temporary file
 
-validPos :: Pos -> TableWidget -> Bool
-validPos pos w = (getWidth pos) `elem` (tbwopt_activeCols $ tbw_options w) &&
-                 (getHeight pos) < (length $ tbw_rows w) &&
-                 (getHeight pos) >= 0 &&
-                 (getWidth pos) >= 0
+  -- Replace the original migration with the contents of the temporary
+  -- file
 
-moveUp :: TableWidget -> TableWidget
-moveUp orig =
-    if isNothing (tbw_pos orig) then orig
-    else
-        let oldPos = fromJust $ tbw_pos orig
-            newPos = ((getHeight $ oldPos) - 1, getWidth oldPos)
-        in if validPos newPos orig
-           then orig { tbw_pos = Just newPos }
-           else orig
+  -- Update the application state
 
-moveDown :: TableWidget -> TableWidget
-moveDown orig =
-    if isNothing (tbw_pos orig) then orig
-    else
-        let oldPos = fromJust $ tbw_pos orig
-            newPos = ((getHeight $ oldPos) + 1, getWidth oldPos)
-        in if validPos newPos orig
-           then orig { tbw_pos = Just newPos }
-           else orig
+getSelectedMigration :: AppState -> Migration
+getSelectedMigration appst = fromJust $ Map.lookup (fst $ getSelected list) mMap
+    where mMap = storeDataMapping $ appStoreData appst
+          list = appMigrationList appst
 
-mkMainWidget :: MM MainWidget
-mkMainWidget = do
-  tlw <- mkToplineWidget
-  clw <- mkMigrationListWidget
-  blw <- mkHelpLineWidget
-  msglw <- mkStatusBarWidget
-  return $ MainWidget tlw blw msglw clw
+buildUi :: AppState -> Box
+buildUi appst =
+    let header = text titleAttr (" " ++ (storePath $ appStore appst) ++ " ")
+                 <++> hFill titleAttr '-' 1
+                 <++> text titleAttr " Store Manager "
+        status = text bodyAttr $ maybe "<no description>" id $ mDesc $ getSelectedMigration appst
+        helpBar = text titleAttr "q:quit e:edit "
+                  <++> hFill titleAttr '-' 1
+    in header
+        <--> appMigrationList appst
+        <--> helpBar
+        <--> status
 
-mkRealMainWidget :: Maybe Size -> MainWidget -> TableWidget
-mkRealMainWidget msz w =
-    let cells = [ TableCell $ toplineWidget w
-                , TableCell $ migrationListWidget w
-                , TableCell $ helplineWidget w
-                , TableCell $ statusbarWidget w ]
-        rows = map singletonRow cells
-        opts = case msz of
-                 Nothing -> defaultTBWOptions
-                 Just sz -> defaultTBWOptions { tbwopt_minSize = sz }
-        in newTableWidget opts rows
+uiFromState :: AppM Box
+uiFromState = buildUi <$> get
 
-updateStateDependentWidgets :: MainWidget -> MM MainWidget
-updateStateDependentWidgets w = do
-  statusbar <- mkStatusBarWidget -- update the message line with the
-                                 -- state's status
-  return $ w { statusbarWidget = statusbar }
+readStore :: FilesystemStore -> IO StoreData
+readStore store = do
+  result <- loadMigrations store
+  case result of
+    Left es -> do
+                putStrLn "There were errors in the migration store:"
+                forM_ es $ \err -> do
+                    putStrLn $ "  " ++ show err
+                exitFailure
+    Right theStoreData -> return theStoreData
 
-updateStatus :: String -> MM ()
-updateStatus msg = do
-  st <- get
-  put st { mmStatus = msg }
+mkState :: FilesystemStore -> IO AppState
+mkState fsStore = do
+  vty <- mkVty
+  sz <- display_bounds $ terminal vty
+  storeData <- readStore fsStore
+  let migrationList = mkSimpleList bodyAttr selAttr (appropriateListWindow sz) migrationNames
+      migrationNames = Map.keys $ storeDataMapping storeData
+  return $ AppState { appStoreData = storeData
+                    , appStore = fsStore
+                    , appMigrationList = migrationList
+                    , appVty = vty
+                    }
 
-move :: Direction -> MainWidget -> MM MainWidget
-move dir w = do
-  let listWidget = case dir of
-                     DirUp -> moveUp orig
-                     DirDown -> moveDown orig
-                     _ -> orig
-      orig = migrationListWidget w
-  w' <- updateStateDependentWidgets w
-  return $ w' { migrationListWidget = listWidget }
-
-resize :: Widget w => MM w -> MM ()
-resize f = do
-  liftIO $ do Curses.endWin
-              Curses.resetParams
-              Curses.cursSet Curses.CursorInvisible
-              Curses.refresh
-  w <- f
-  redraw w
-
-redraw :: Widget w => w -> MM ()
-redraw w = do
-  sz <- getSize
-  liftIO $ do draw (0, 0) sz DHNormal w
-              Curses.refresh
-
-eventloop :: MainWidget -> MM ()
-eventloop w = do
-  k <- CursesH.getKey (resize mkMainWidget)
-  case k of
-    Curses.KeyChar 'q' -> return ()
-    Curses.KeyUp       -> process $ move DirUp w
-    Curses.KeyDown     -> process $ move DirDown w
-    _ -> eventloop w
-  where process f = do
-                w' <- f
-                redraw w'
-                eventloop w'
-
-mmMain :: MM ()
-mmMain = do
-  w <- mkMainWidget
-  redraw w
-  eventloop w
+appropriateListWindow :: DisplayRegion -> Int
+appropriateListWindow sz = fromEnum $ region_height sz - 3
 
 main :: IO ()
 main = do
   args <- getArgs
-  let theStorePath = args !! 0
-  storeData <-
-      if length args /= 1
-      then do p <- getProgName
-              putStrLn ("Usage: " ++ p ++ " <store-path>")
-              exitFailure
-      else do
-        let store = FSStore { storePath = theStorePath }
-        result <- loadMigrations store
-        case result of
-          Left es -> do
-                      putStrLn "There were errors in the migration store:"
-                      forM_ es $ \err -> do
-                        putStrLn $ "  " ++ show err
-                      exitFailure
-          Right theStoreData -> return theStoreData
 
-  runCurses theStorePath storeData `finally` CursesH.end
-    where runCurses sp storeData = do
-            CursesH.start
-            cstyles <- CursesH.convertStyles styles
-            Curses.cursSet Curses.CursorInvisible
-            runMM sp storeData cstyles mmMain
+  when (length args /= 1) $ do
+         p <- getProgName
+         putStrLn ("Usage: " ++ p ++ " <store-path>")
+         exitFailure
+
+  let store = FSStore { storePath = theStorePath }
+      theStorePath = args !! 0
+
+  beginState <- mkState store
+
+  -- Capture the new application state because it might contain a new
+  -- Vty.
+  endState <- execStateT (eventloop uiFromState handleEvent) beginState
+  let endVty = appVty endState
+
+  -- Clear the screen.
+  reserve_display $ terminal endVty
+  shutdown endVty

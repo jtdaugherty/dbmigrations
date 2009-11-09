@@ -32,10 +32,6 @@ Flag testing
     Description:     Build for testing
     Default:         False
 
-Flag store-manager
-    Description:     Build the experimental / incomplete store-manager program
-    Default:         False
-
 Library
   Build-Depends:
     base >= 4 && < 5,
@@ -84,7 +80,9 @@ Executable moo
 
 Executable store-manager
   Build-Depends:
-    hscurses >= 1.3 && < 1.4
+    unix >= 2.3 && < 2.4,
+    vty >= 4.0 && < 4.1,
+    vty-ui == 0.2
 
   if !flag(testing)
     Buildable:     False
