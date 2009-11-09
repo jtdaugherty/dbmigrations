@@ -142,18 +142,15 @@ editCurrentMigration = do
         (_, _, _, pHandle) <- createProcess $ shell $ editor ++ " " ++ tempPath
         waitForProcess pHandle
 
+        -- Once the editor closes, validate the temporary file
+        -- XXX
+
+        -- Replace the original migration with the contents of the
+        -- temporary file
+        readFile tempPath >>= writeFile migrationPath
+
   -- Reinitialize application state
   put =<< (liftIO $ mkState store)
-
-  -- XXX update the list window based on the (possibly new) terminal
-  -- size
-
-  -- XXX Once the editor closes, validate the temporary file
-
-  -- Replace the original migration with the contents of the temporary
-  -- file
-
-  -- Update the application state
 
 getSelectedMigration :: AppState -> Migration
 getSelectedMigration appst = fromJust $ Map.lookup (fst $ getSelected list) mMap
