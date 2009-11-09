@@ -4,11 +4,13 @@
 module Database.Schema.Migrations.Filesystem
     ( FilesystemStore(..)
     , migrationFromFile
+    , migrationFromPath
     )
 where
 
 import System.Directory ( getDirectoryContents, doesFileExist )
-import System.FilePath ( (</>), takeExtension, dropExtension )
+import System.FilePath ( (</>), takeExtension, dropExtension
+                       , takeFileName, takeBaseName )
 import Control.Monad.Trans ( MonadIO, liftIO )
 
 import Data.Time.Clock ( UTCTime )
@@ -61,9 +63,16 @@ isMigrationFilename path = takeExtension path == filenameExtension
 -- migration and return the migration if successful.  Otherwise return
 -- a parsing error message.
 migrationFromFile :: FilesystemStore -> String -> IO (Either String Migration)
-migrationFromFile store name = do
-  path <- fullMigrationName store name
+migrationFromFile store name =
+    fullMigrationName store name >>= migrationFromPath
+
+-- |Given a filesystem path, read and parse the file as a migration
+-- return the 'Migration' if successful.  Otherwise return a parsing
+-- error message.
+migrationFromPath :: FilePath -> IO (Either String Migration)
+migrationFromPath path = do
   contents <- readFile path
+  let name = takeBaseName $ takeFileName path
   case parse migrationParser path contents of
     Left _ -> return $ Left $ "Could not parse migration file " ++ (show path)
     Right fields ->
