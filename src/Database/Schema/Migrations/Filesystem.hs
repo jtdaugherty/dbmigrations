@@ -57,9 +57,9 @@ instance (MonadIO m) => MigrationStore FilesystemStore m where
 isMigrationFilename :: FilePath -> Bool
 isMigrationFilename path = takeExtension path == filenameExtension
 
--- |Given a file path, read and parse the migration at the specified
--- path and, if successful, return the migration and its claimed
--- dependencies.  Otherwise return a parsing error message.
+-- |Given a store and migration name, read and parse the associated
+-- migration and return the migration if successful.  Otherwise return
+-- a parsing error message.
 migrationFromFile :: FilesystemStore -> String -> IO (Either String Migration)
 migrationFromFile store name = do
   path <- fullMigrationName store name
