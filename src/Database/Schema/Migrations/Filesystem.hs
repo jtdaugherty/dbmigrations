@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
 -- |This module provides a type for interacting with a
 -- filesystem-backed 'MigrationStore'.
 module Database.Schema.Migrations.Filesystem
@@ -9,6 +9,7 @@ where
 
 import System.Directory ( getDirectoryContents, doesFileExist )
 import System.FilePath ( (</>), takeExtension, dropExtension )
+import Control.Monad.Trans ( MonadIO, liftIO )
 
 import Data.Time.Clock ( UTCTime )
 import Data.Time () -- for UTCTime Show instance
@@ -32,26 +33,26 @@ data FilesystemStore = FSStore { storePath :: FilePath }
 filenameExtension :: String
 filenameExtension = ".txt"
 
-instance MigrationStore FilesystemStore IO where
+instance (MonadIO m) => MigrationStore FilesystemStore m where
     fullMigrationName s name =
         return $ storePath s </> name ++ filenameExtension
 
     loadMigration s theId = do
-      result <- migrationFromFile s theId
+      result <- liftIO $ migrationFromFile s theId
       return $ case result of
                  Left _ -> Nothing
                  Right m -> Just m
 
     getMigrations s = do
-      contents <- getDirectoryContents $ storePath s
+      contents <- liftIO $ getDirectoryContents $ storePath s
       let migrationFilenames = [ f | f <- contents, isMigrationFilename f ]
           fullPaths = [ (f, storePath s </> f) | f <- migrationFilenames ]
-      existing <- filterM (\(_, full) -> doesFileExist full) fullPaths
+      existing <- liftIO $ filterM (\(_, full) -> doesFileExist full) fullPaths
       return [ dropExtension short | (short, _) <- existing ]
 
     saveMigration s m = do
       filename <- fullMigrationName s $ mId m
-      writeFile filename $ serializeMigration m
+      liftIO $ writeFile filename $ serializeMigration m
 
 isMigrationFilename :: FilePath -> Bool
 isMigrationFilename path = takeExtension path == filenameExtension
