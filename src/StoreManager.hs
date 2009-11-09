@@ -212,8 +212,7 @@ main = do
          putStrLn ("Usage: " ++ p ++ " <store-path>")
          exitFailure
 
-  let store = FSStore { storePath = theStorePath }
-      theStorePath = args !! 0
+  let store = FSStore { storePath = args !! 0 }
 
   beginState <- mkState store
 
