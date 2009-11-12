@@ -24,7 +24,7 @@ hasCycle :: Graph g => g a b -> Bool
 hasCycle g = evalState (hasCycle' g) [(n, White) | n <- nodes g]
 
 getMark :: Int -> State CycleDetectionState Mark
-getMark n = gets (fromJust . lookup n) >>= return
+getMark n = gets (fromJust . lookup n)
 
 replace :: [a] -> Int -> a -> [a]
 replace elems index val
