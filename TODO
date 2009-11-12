@@ -53,8 +53,6 @@ Use cases:
 
  - Create a new migration
 
- - Edit the description of a migration
-
  - Add a dependency to a migration
 
    - don't ask about dependencies that would result in a dependency
@@ -64,10 +62,4 @@ Use cases:
 
  - Delete a migration (questionable whether this should be automated)
 
- - View and edit the apply and revert instructions of a migration
-
-   - editing: fire up ($EDITOR || vi) with migration in a temp file,
-     when editor closes, parse the migration and tell the user if
-     there was a problem, then ask to re-invoke editor or quit. if no
-     parse error, overwrite original migration file with temp file
-     contents.
+ - View the apply and revert instructions of a migration
