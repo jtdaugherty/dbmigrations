@@ -137,17 +137,26 @@ editCurrentMigration = do
 
         currentEnv <- getEnvironment
         let editor = maybe "vi" id $ lookup "EDITOR" currentEnv
+            spawnEditor = do
+                         -- Invoke an editor to edit the temporary file
+                         (_, _, _, pHandle) <- createProcess $ shell $ editor ++ " " ++ tempPath
+                         waitForProcess pHandle
 
-        -- Invoke an editor to edit the temporary file
-        (_, _, _, pHandle) <- createProcess $ shell $ editor ++ " " ++ tempPath
-        waitForProcess pHandle
+                         -- Once the editor closes, validate the temporary file
+                         validateResult <- migrationFromPath tempPath
+                         case validateResult of
+                           Left e -> do
+                             putStrLn $ "Error in edited migration: " ++ e
+                             putStrLn $ "Try again? (y/n) "
+                             c <- getChar
+                             if c == 'y' then spawnEditor else return False
+                           Right _ -> return True
 
-        -- Once the editor closes, validate the temporary file
-        -- XXX
+        proceed <- spawnEditor
 
         -- Replace the original migration with the contents of the
         -- temporary file
-        readFile tempPath >>= writeFile migrationPath
+        when (proceed) (readFile tempPath >>= writeFile migrationPath)
 
   -- Reinitialize application state
   put =<< (liftIO $ mkState store)
