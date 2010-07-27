@@ -77,16 +77,3 @@ Executable dbmigrations-tests
 Executable moo
   Hs-Source-Dirs:  src
   Main-is:         Moo.hs
-
-Executable store-manager
-  Build-Depends:
-    unix >= 2.3 && < 2.4,
-    vty >= 4.0 && < 4.1,
-    vty-ui == 0.2
-
-  if !flag(testing)
-    Buildable:     False
-  end
-  Hs-Source-Dirs:  src
-  Main-is:         StoreManager.hs
-  Ghc-options:     -Werror
