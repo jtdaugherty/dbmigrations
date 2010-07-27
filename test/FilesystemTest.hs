@@ -7,7 +7,6 @@ import Database.Schema.Migrations.Filesystem
 import Database.Schema.Migrations.Store ( MigrationStore(..) )
 
 import Test.HUnit
-import Control.Monad ( sequence )
 import qualified Data.Set as Set
 import Common
 
