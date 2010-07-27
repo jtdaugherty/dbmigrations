@@ -38,7 +38,7 @@ Library
     HDBC >= 2.2.1 && < 2.3,
     time >= 1.1 && < 1.2,
     random >= 1.0 && < 1.1,
-    containers >= 0.2 && < 0.3,
+    containers >= 0.2 && < 0.4,
     mtl >= 1.1 && < 1.2,
     parsec >= 2.1 && < 2.2,
     filepath >= 1.1 && < 1.2,
