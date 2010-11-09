@@ -170,7 +170,7 @@ commands :: [Command]
 commands = [ Command "new" ["migration_name"] [] [NoAsk]
                          "Create a new empty migration"
                          newCommand
-           , Command "apply" ["migration_name"] [] []
+           , Command "apply" ["migration_name"] [] [Test]
                          "Apply the specified migration and its dependencies"
                          applyCommand
            , Command "revert" ["migration_name"] [] []
@@ -454,6 +454,7 @@ listCommand _ = do
 
 applyCommand :: CommandHandler
 applyCommand storeData = do
+  isTesting <- hasOption Test
   required <- asks appRequiredArgs
   let [migrationId] = required
 
@@ -461,8 +462,13 @@ applyCommand storeData = do
         ensureBootstrappedBackend conn >> commit conn
         m <- lookupMigration storeData migrationId
         apply m storeData conn
-        commit conn
-        putStrLn "Successfully applied migrations."
+        case isTesting of
+          False -> do
+            commit conn
+            putStrLn "Successfully applied migrations."
+          True -> do
+            rollback conn
+            putStrLn "Migration installation test successful."
 
 revertCommand :: CommandHandler
 revertCommand storeData = do
