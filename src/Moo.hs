@@ -173,7 +173,7 @@ commands = [ Command "new" ["migration_name"] [] [NoAsk]
            , Command "apply" ["migration_name"] [] [Test]
                          "Apply the specified migration and its dependencies"
                          applyCommand
-           , Command "revert" ["migration_name"] [] []
+           , Command "revert" ["migration_name"] [] [Test]
                          "Revert the specified migration and those that depend\
                           \ on it"
                           revertCommand
@@ -472,6 +472,7 @@ applyCommand storeData = do
 
 revertCommand :: CommandHandler
 revertCommand storeData = do
+  isTesting <- hasOption Test
   required <- asks appRequiredArgs
   let [migrationId] = required
 
@@ -479,8 +480,14 @@ revertCommand storeData = do
       ensureBootstrappedBackend conn >> commit conn
       m <- lookupMigration storeData migrationId
       revert m storeData conn
-      commit conn
-      putStrLn "Successfully reverted migrations."
+
+      case isTesting of
+        False -> do
+          commit conn
+          putStrLn "Successfully reverted migrations."
+        True -> do
+          rollback conn
+          putStrLn "Migration uninstallation test successful."
 
 testCommand :: CommandHandler
 testCommand storeData = do
