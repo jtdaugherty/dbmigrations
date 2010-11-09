@@ -76,3 +76,9 @@ Commands
     command would apply if you were to run it.  In other words, this
     will list all migrations which have not yet been applied to the
     database.
+
+  reinstall: this will revert, then reapply a migration, all in a
+    transaction.  If --test is specified, the transaction will be
+    rolled back; otherwise it will be committed.  This is mostly
+    useful in development when a migration applies but is incorrect
+    and needs to be tweaked and reapplied.

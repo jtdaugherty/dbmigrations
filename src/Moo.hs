@@ -189,6 +189,9 @@ commands = [ Command "new" ["migration_name"] [] [NoAsk]
                          "Show the list of migrations to be installed during \
                          \an upgrade"
                          upgradeListCommand
+           , Command "reinstall" ["migration_name"] [] [Test]
+                         "Reinstall a migration by reverting, then reapplying it"
+                         reinstallCommand
            ]
 
 -- The values of DBM_DATABASE_TYPE and their corresponding connection
@@ -417,6 +420,27 @@ lookupMigration storeData name = do
       putStrLn $ "No such migration: " ++ name
       exitWith (ExitFailure 1)
     Just m' -> return m'
+
+reinstallCommand :: CommandHandler
+reinstallCommand storeData = do
+  isTesting <- hasOption Test
+  required <- asks appRequiredArgs
+  let [migrationId] = required
+
+  withConnection $ \(AnyIConnection conn) -> do
+      ensureBootstrappedBackend conn >> commit conn
+      m <- lookupMigration storeData migrationId
+
+      revert m storeData conn
+      apply m storeData conn
+
+      case isTesting of
+        False -> do
+          commit conn
+          putStrLn "Migration successfully reinstalled."
+        True -> do
+          rollback conn
+          putStrLn "Reinstall test successful."
 
 applyCommand :: CommandHandler
 applyCommand storeData = do
