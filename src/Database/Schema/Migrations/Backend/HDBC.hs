@@ -7,7 +7,9 @@ where
 import Database.HDBC ( quickQuery', fromSql, toSql, IConnection(getTables, run, runRaw) )
 
 import Database.Schema.Migrations.Backend
-    ( Backend(..) )
+    ( Backend(..)
+    , rootMigrationName
+    )
 import Database.Schema.Migrations.Migration
     ( Migration(..)
     , newMigration
@@ -33,7 +35,7 @@ instance (IConnection conn) => Backend conn IO where
 
     getBootstrapMigration _ =
         do
-          m <- newMigration "root"
+          m <- newMigration rootMigrationName
           return $ m { mApply = createSql
                      , mRevert = Just revertSql
                      , mDesc = Just "Migration table installation"

@@ -26,6 +26,7 @@ import Database.Schema.Migrations.Filesystem
 import Database.Schema.Migrations.Migration ( Migration(..) )
 import Database.Schema.Migrations.Backend ( Backend, applyMigration
                                           , revertMigration, getMigrations
+                                          , rootMigrationName
                                           )
 import Database.Schema.Migrations.Store ( loadMigrations
                                         , fullMigrationName
@@ -450,7 +451,8 @@ listCommand _ = do
   withConnection $ \(AnyIConnection conn) -> do
       ensureBootstrappedBackend conn >> commit conn
       ms <- getMigrations conn
-      mapM_ putStrLn ms
+      forM_ ms $ \m ->
+          when (not $ m == rootMigrationName) $ putStrLn m
 
 applyCommand :: CommandHandler
 applyCommand storeData = do

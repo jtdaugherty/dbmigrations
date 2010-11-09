@@ -1,11 +1,18 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 module Database.Schema.Migrations.Backend
     ( Backend(..)
+    , rootMigrationName
     )
 where
 
 import Database.Schema.Migrations.Migration
     ( Migration(..) )
+
+-- |Backend instances should use this as the name of the migration
+-- returned by getBootstrapMigration; this migration is special
+-- because it cannot be reverted.
+rootMigrationName :: String
+rootMigrationName = "root"
 
 -- |A Backend represents a database engine backend such as MySQL or
 -- SQLite.  A Backend supplies relatively low-level functions for
