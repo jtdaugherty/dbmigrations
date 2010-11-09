@@ -186,14 +186,13 @@ commands = [ Command "new" ["migration_name"] [] [NoAsk]
                          \installed"
                          upgradeCommand
            , Command "upgrade-list" [] [] []
-                         "Show the list of migrations to be installed during \
-                         \an upgrade"
+                         "Show the list of migrations not yet installed"
                          upgradeListCommand
            , Command "reinstall" ["migration_name"] [] [Test]
                          "Reinstall a migration by reverting, then reapplying it"
                          reinstallCommand
            , Command "list" [] [] []
-                         "List migrations installed in the backend"
+                         "List migrations already installed in the backend"
                          listCommand
            ]
 
