@@ -25,7 +25,7 @@ import Database.Schema.Migrations
 import Database.Schema.Migrations.Filesystem
 import Database.Schema.Migrations.Migration ( Migration(..) )
 import Database.Schema.Migrations.Backend ( Backend, applyMigration
-                                          , revertMigration
+                                          , revertMigration, getMigrations
                                           )
 import Database.Schema.Migrations.Store ( loadMigrations
                                         , fullMigrationName
@@ -192,6 +192,9 @@ commands = [ Command "new" ["migration_name"] [] [NoAsk]
            , Command "reinstall" ["migration_name"] [] [Test]
                          "Reinstall a migration by reverting, then reapplying it"
                          reinstallCommand
+           , Command "list" [] [] []
+                         "List migrations installed in the backend"
+                         listCommand
            ]
 
 -- The values of DBM_DATABASE_TYPE and their corresponding connection
@@ -441,6 +444,13 @@ reinstallCommand storeData = do
         True -> do
           rollback conn
           putStrLn "Reinstall test successful."
+
+listCommand :: CommandHandler
+listCommand _ = do
+  withConnection $ \(AnyIConnection conn) -> do
+      ensureBootstrappedBackend conn >> commit conn
+      ms <- getMigrations conn
+      mapM_ putStrLn ms
 
 applyCommand :: CommandHandler
 applyCommand storeData = do
