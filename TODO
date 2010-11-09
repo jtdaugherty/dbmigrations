@@ -24,6 +24,11 @@ General
 
 - Moo "new" command deps selection: allow j/k navigation a la darcs
 
+Bugs
+====
+
+- Invalid migration files silently ignored
+
 Testing
 =======
 
