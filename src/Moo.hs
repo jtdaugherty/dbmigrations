@@ -345,7 +345,7 @@ upgradeCommand storeData = do
                            exitSuccess
         forM_ migrationNames $ \migrationName -> do
             m <- lookupMigration storeData migrationName
-            apply m storeData conn
+            apply m storeData conn False
         case isTesting of
           True -> do
                  rollback conn
@@ -371,8 +371,8 @@ reportSqlError e = do
   exitWith (ExitFailure 1)
 
 apply :: (IConnection b, Backend b IO)
-         => Migration -> StoreData -> b -> IO [Migration]
-apply m storeData backend = do
+         => Migration -> StoreData -> b -> Bool -> IO [Migration]
+apply m storeData backend complain = do
   -- Get the list of migrations to apply
   toApply <- migrationsToApply storeData backend m
 
@@ -383,9 +383,10 @@ apply m storeData backend = do
 
     where
       nothingToDo = do
-        putStrLn $ "Nothing to do; " ++
-                     (mId m) ++
-                     " already installed."
+        when complain $
+             putStrLn $ "Nothing to do; " ++
+                          (mId m) ++
+                          " already installed."
 
       applyIt conn it = do
         putStr $ "Applying: " ++ mId it ++ "... "
@@ -434,7 +435,7 @@ reinstallCommand storeData = do
       m <- lookupMigration storeData migrationId
 
       revert m storeData conn
-      apply m storeData conn
+      apply m storeData conn True
 
       case isTesting of
         False -> do
@@ -460,7 +461,7 @@ applyCommand storeData = do
   withConnection $ \(AnyIConnection conn) -> do
         ensureBootstrappedBackend conn >> commit conn
         m <- lookupMigration storeData migrationId
-        apply m storeData conn
+        apply m storeData conn True
         case isTesting of
           False -> do
             commit conn
@@ -502,7 +503,7 @@ testCommand storeData = do
         when (not $ migrationId `elem` migrationNames) $
              do revert m storeData conn
                 return ()
-        applied <- apply m storeData conn
+        applied <- apply m storeData conn True
         forM_ (reverse applied) $ \migration -> do
                              revert migration storeData conn
         rollback conn
