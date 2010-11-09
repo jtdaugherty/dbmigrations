@@ -34,10 +34,10 @@ Flag testing
 
 Library
   if impl(ghc >= 6.12.0)
-    ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields -O2
+    ghc-options: -Wall -fwarn-tabs -funbox-strict-fields
                  -fno-warn-unused-do-bind
   else
-    ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields -O2
+    ghc-options: -Wall -fwarn-tabs -funbox-strict-fields
 
   Build-Depends:
     base >= 4 && < 5,
@@ -75,10 +75,10 @@ Executable dbmigrations-tests
     process >= 1.0 && < 1.1
 
   if impl(ghc >= 6.12.0)
-    ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields -O2
+    ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields
                  -fno-warn-unused-do-bind -Wwarn
   else
-    ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields -O2
+    ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields
 
   if !flag(testing)
     Buildable:     False
@@ -92,10 +92,10 @@ Executable moo
     HDBC-sqlite3
 
   if impl(ghc >= 6.12.0)
-    ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields -O2
+    ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields
                  -fno-warn-unused-do-bind
   else
-    ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields -O2
+    ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields
 
   Hs-Source-Dirs:  src
   Main-is:         Moo.hs
