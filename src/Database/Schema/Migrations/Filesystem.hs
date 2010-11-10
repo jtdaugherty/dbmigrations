@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, DeriveDataTypeable, ScopedTypeVariables #-}
 -- |This module provides a type for interacting with a
 -- filesystem-backed 'MigrationStore'.
 module Database.Schema.Migrations.Filesystem
@@ -8,29 +8,43 @@ module Database.Schema.Migrations.Filesystem
     )
 where
 
+import Prelude hiding ( catch )
+
 import System.Directory ( getDirectoryContents, doesFileExist )
 import System.FilePath ( (</>), takeExtension, dropExtension
                        , takeFileName, takeBaseName )
 import Control.Monad.Trans ( MonadIO, liftIO )
+import Data.ByteString.Char8 ( unpack )
 
+import Data.Typeable ( Typeable )
 import Data.Time.Clock ( UTCTime )
 import Data.Time () -- for UTCTime Show instance
+import qualified Data.Map as Map
 
+import Control.Applicative ( (<$>) )
 import Control.Monad ( filterM )
+import Control.Exception ( IOException, Exception(..), throw, catch )
 
-import Text.ParserCombinators.Parsec ( parse )
+import Data.Yaml.YamlLight
 
 import Database.Schema.Migrations.Migration
     ( Migration(..)
     , newMigration
     )
-import Database.Schema.Migrations.Filesystem.Parse
 import Database.Schema.Migrations.Filesystem.Serialize
 import Database.Schema.Migrations.Store
 
 type FieldProcessor = String -> Migration -> Maybe Migration
 
 data FilesystemStore = FSStore { storePath :: FilePath }
+
+data FilesystemStoreError = FilesystemStoreError String
+                            deriving (Show, Typeable)
+
+instance Exception FilesystemStoreError
+
+throwFS :: String -> a
+throwFS = throw . FilesystemStoreError
 
 filenameExtension :: String
 filenameExtension = ".txt"
@@ -71,43 +85,54 @@ migrationFromFile store name =
 -- error message.
 migrationFromPath :: FilePath -> IO (Either String Migration)
 migrationFromPath path = do
-  contents <- readFile path
   let name = takeBaseName $ takeFileName path
-  case parse migrationParser path contents of
-    Left _ -> return $ Left $ "Could not parse migration file " ++ (show path)
-    Right fields ->
-        do
-          let missing = missingFields fields
-          case length missing of
-            0 -> do
-              newM <- newMigration ""
-              case migrationFromFields newM fields of
-                Nothing -> return $ Left $ "Unrecognized field in migration " ++ (show path)
-                Just m -> return $ Right $ m { mId = name }
-            _ -> return $ Left $ "Missing required field(s) in migration " ++ (show path) ++ ": " ++ (show missing)
+  (Right <$> process name) `catch` (\(FilesystemStoreError s) -> return $ Left s)
 
-missingFields :: FieldSet -> [FieldName]
-missingFields fs =
-    [ k | k <- requiredFields, not (k `elem` inputFieldNames) ]
+  where
+    process name = do
+      yaml <- parseYamlFile path `catch` (\(e::IOException) -> throwFS $ show e)
+
+      -- Convert yaml structure into basic key/value map
+      let fields = getFields yaml
+          missing = missingFields fields
+
+      case length missing of
+        0 -> do
+          newM <- newMigration ""
+          case migrationFromFields newM fields of
+            Nothing -> throwFS $ "Error in " ++ (show path) ++ ": unrecognized field found"
+            Just m -> return $ m { mId = name }
+        _ -> throwFS $ "Error in " ++ (show path) ++ ": missing required field(s): " ++ (show missing)
+
+getFields :: YamlLight -> [(String, String)]
+getFields (YMap mp) = map toPair $ Map.assocs mp
     where
-      inputFieldNames = [ n | (n, _) <- fs ]
+      toPair (YStr k, YStr v) = (unpack k, unpack v)
+      toPair (k, v) = throwFS $ "Error in YAML input; expected string key and string value, got " ++ (show (k, v))
+getFields _ = throwFS "Error in YAML input; expected mapping"
+
+missingFields :: [(String, String)] -> [String]
+missingFields fs =
+    [ k | k <- requiredFields, not (k `elem` inputStrings) ]
+    where
+      inputStrings = map fst fs
 
 -- |Given a migration and a list of parsed migration fields, update
 -- the migration from the field values for recognized fields.
-migrationFromFields :: Migration -> FieldSet -> Maybe Migration
+migrationFromFields :: Migration -> [(String, String)] -> Maybe Migration
 migrationFromFields m [] = Just m
 migrationFromFields m ((name, value):rest) = do
   processor <- lookup name fieldProcessors
   newM <- processor value m
   migrationFromFields newM rest
 
-requiredFields :: [FieldName]
+requiredFields :: [String]
 requiredFields = [ "Created"
                  , "Apply"
                  , "Depends"
                  ]
 
-fieldProcessors :: [(FieldName, FieldProcessor)]
+fieldProcessors :: [(String, FieldProcessor)]
 fieldProcessors = [ ("Created", setTimestamp )
                   , ("Description", setDescription )
                   , ("Apply", setApply )
@@ -135,7 +160,4 @@ setRevert :: FieldProcessor
 setRevert revert m = Just $ m { mRevert = Just revert }
 
 setDepends :: FieldProcessor
-setDepends depString m = do
-  case parse parseDepsList "-" depString of
-    Left _ -> Nothing
-    Right depIds -> Just $ m { mDeps = depIds }
+setDepends depString m = Just $ m { mDeps = words depString }

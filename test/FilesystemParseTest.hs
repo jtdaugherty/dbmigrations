@@ -33,7 +33,7 @@ valid_full = Migration {
              , mId = "valid_full"
              , mDesc = Just "A valid full migration."
              , mDeps = ["another_migration"]
-             , mApply = "  CREATE TABLE test (\n    a int\n  );\n"
+             , mApply = "CREATE TABLE test ( a int );"
              , mRevert = Just "DROP TABLE test;"
              }
 
@@ -57,21 +57,21 @@ migrationParsingTestCases = [ ("valid_full", Right valid_full)
                             , ("valid_no_revert"
                               , Right (valid_full { mId = "valid_no_revert", mRevert = Nothing }))
                             , ("invalid_missing_required_fields"
-                              , Left $ "Missing required field(s) in migration " ++
+                              , Left $ "Error in " ++
                                          (show $ fp "invalid_missing_required_fields.txt") ++
-                                         ": [\"Created\",\"Depends\"]")
-                            , ("invalid_deps_list"
-                              , Left $ "Unrecognized field in migration " ++
-                                         (show $ fp "invalid_deps_list.txt"))
+                                         ": missing required field(s): " ++
+                                         "[\"Created\",\"Depends\"]")
                             , ("invalid_field_name"
-                              , Left $ "Unrecognized field in migration " ++
-                                         (show $ fp "invalid_field_name.txt"))
+                              , Left $ "Error in " ++
+                                         (show $ fp "invalid_field_name.txt") ++
+                                         ": unrecognized field found")
                             , ("invalid_syntax"
-                              , Left $ "Could not parse migration file " ++
-                                         (show $ fp "invalid_syntax.txt"))
+                              , Left $ "user error (syntax error: line 7, " ++
+                                         "column 0)")
                             , ("invalid_timestamp"
-                              , Left $ "Unrecognized field in migration " ++
-                                         (show $ fp "invalid_timestamp.txt"))
+                              , Left $ "Error in " ++
+                                         (show $ fp "invalid_timestamp.txt") ++
+                                         ": unrecognized field found")
                             ]
 
 mkParsingTest :: MigrationParsingTestCase -> IO Test

@@ -26,8 +26,9 @@ Migration file format
 
 While the "moo" management tool included in this package will create
 new migration files for you, a description of the file format follows.
-A migration used by this package is a structured document containing
-these fields:
+
+A migration used by this package is a structured document in YAML
+format containing these fields:
 
    Description: (optional) a textual description of the migration
 
@@ -45,13 +46,30 @@ these fields:
         Revert: (optional) The SQL necessary to revert this migration
                 from the database
 
-The format of this file is somewhat flexible; any of the above fields
-may take up a single line, with all text coming after the field name
-and colon constituting the field's value; in the case of multi-line
-values (such as Apply and Revert SQL), multiple lines may follow the
-field name and colon, as long as they are indented by at least one
-whitespace character.  The migration file format also supports
-comments, which are preceded by "#".
+The format of this file is somewhat flexible; please see the YAML 1.2
+format specification for a full description of syntax features.  I
+recommend appending "|" to the Apply and Revert fields if they contain
+multi-line SQL that you want to keep that way, e.g.,
+
+  Apply: |
+    CREATE OR REPLACE FUNCTION ...
+    ...
+    ...
+
+  Revert: |
+    DROP TABLE foo;
+    DROP TABLE bar;
+
+Note that this is only *necessary* when concatenating the lines would
+have a different meaning, e.g.,
+
+  Apply:
+    -- Comment here
+    CREATE TABLE;
+
+Without "|" on the "Apply:" line, the above text would be collapsed to
+"-- Comment here CREATE TABLE;" which is probably not what you want.
+For a full treatment of this behavior, see the YAML spec.
 
 moo: the management tool
 ------------------------

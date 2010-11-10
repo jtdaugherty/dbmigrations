@@ -1,5 +1,5 @@
 Name:                dbmigrations
-Version:             0.3
+Version:             0.4
 Synopsis:            An implementation of relational database "migrations"
 Description:         A library and program for the creation,
                      management, and installation of schema updates
@@ -46,11 +46,12 @@ Library
     random >= 1.0 && < 1.1,
     containers >= 0.2 && < 0.4,
     mtl >= 1.1 && < 1.2,
-    parsec >= 2.1 && < 2.2,
     filepath >= 1.1 && < 1.2,
     directory >= 1.0 && < 1.2,
     fgl >= 5.4 && < 5.5,
-    template-haskell
+    template-haskell,
+    yaml-light >= 0.1 && < 0.2,
+    bytestring >= 0.9 && < 1.0
 
   Hs-Source-Dirs:    src
   Exposed-Modules:
@@ -64,7 +65,6 @@ Library
 
   Other-Modules:
           Database.Schema.Migrations.CycleDetection
-          Database.Schema.Migrations.Filesystem.Parse
           Database.Schema.Migrations.Filesystem.Serialize
 
 Executable dbmigrations-tests

@@ -16,8 +16,7 @@ tests = sequence [getMigrationsTest]
 getMigrationsTest :: IO Test
 getMigrationsTest = do
   let store = FSStore { storePath = testFile "migration_parsing" }
-      expected = Set.fromList [ "invalid_deps_list"
-                              , "invalid_field_name"
+      expected = Set.fromList [ "invalid_field_name"
                               , "invalid_missing_required_fields"
                               , "invalid_syntax"
                               , "invalid_timestamp"
