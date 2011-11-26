@@ -58,4 +58,4 @@ instance (IConnection conn) => Backend conn IO where
 
     getMigrations conn = do
       results <- quickQuery' conn ("SELECT migration_id FROM " ++ migrationTableName) []
-      return $ map (\(h:_) -> fromSql h) results
+      return $ map (fromSql . head) results

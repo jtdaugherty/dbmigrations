@@ -1,7 +1,7 @@
 module BackendTest where
 
 import Test.HUnit
-import Control.Monad ( (=<<), forM_ )
+import Control.Monad ( forM_ )
 
 import Database.Schema.Migrations.Backend.HDBC ()
 import Database.Schema.Migrations.Migration ( Migration(..), newMigration )
