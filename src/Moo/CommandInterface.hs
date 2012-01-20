@@ -1,9 +1,8 @@
 -- |This module defines the MOO command interface, the commnad line options
 -- parser, and helpers to manipulate the Command data structure.
-
-module Moo.CommandInterface 
+module Moo.CommandInterface
     ( commands
-    , commandOptionUsage 
+    , commandOptionUsage
     , findCommand
     , getCommandArgs
     , usageString
@@ -14,8 +13,8 @@ import System.Console.GetOpt
 import Data.Maybe
 import Moo.CommandHandlers
 
-------------------------------------------------------------------------------
--- The available commands; used to dispatch from the command line and
+
+-- |The available commands; used to dispatch from the command line and
 -- used to generate usage output.
 commands :: [Command]
 commands = [ Command "new" ["migration_name"]
@@ -76,32 +75,28 @@ commands = [ Command "new" ["migration_name"]
            ]
 
 
-------------------------------------------------------------------------------
 findCommand :: String -> Maybe Command
 findCommand name = listToMaybe [ c | c <- commands, _cName c == name ]
 
 
-------------------------------------------------------------------------------
 commandOptions :: [ OptDescr (CommandOptions -> IO CommandOptions) ]
 commandOptions =  [ optionTest
                   , optionNoAsk
                   ]
 
-------------------------------------------------------------------------------
+
 optionTest :: OptDescr (CommandOptions -> IO CommandOptions)
 optionTest = Option "t" ["test"]
              (NoArg (\opt -> return opt { _test = True }))
              "Perform the action then rollback when finished"
 
 
-------------------------------------------------------------------------------
 optionNoAsk :: OptDescr (CommandOptions -> IO CommandOptions)
 optionNoAsk = Option "n" ["no-ask"]
               (NoArg (\opt -> return opt { _noAsk = True }))
               "Do not interactively ask any questions, just do it"
 
 
-------------------------------------------------------------------------------
 getCommandArgs :: [String] -> IO ( CommandOptions, [String] )
 getCommandArgs args = do
   let (actions, required, _) =  getOpt RequireOrder commandOptions args
@@ -109,17 +104,14 @@ getCommandArgs args = do
   return ( opts, required )
 
 
-------------------------------------------------------------------------------
 defaultOptions :: IO CommandOptions
 defaultOptions = return $ CommandOptions False False
 
 
-------------------------------------------------------------------------------
 commandOptionUsage :: String
 commandOptionUsage = usageInfo "Options:" commandOptions
 
 
-------------------------------------------------------------------------------
 usageString :: Command -> String
 usageString command =
     unwords (_cName command:optionalArgs ++ options ++ requiredArgs)
@@ -128,6 +120,3 @@ usageString command =
       optionalArgs = map (\s -> "[" ++ s ++ "]") $ _cOptional command
       options = map (\s -> "["++ "--" ++ s ++ "]")  optionStrings
       optionStrings = _cAllowedOptions command
-
-
-------------------------------------------------------------------------------

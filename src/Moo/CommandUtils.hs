@@ -9,8 +9,6 @@ module Moo.CommandUtils
        , withConnection
        ) where
 
-
-------------------------------------------------------------------------------
 import Control.Exception ( bracket )
 import Control.Monad ( when, forM_, unless )
 import Control.Monad.Reader ( asks )
@@ -18,33 +16,24 @@ import Control.Monad.Trans ( liftIO )
 import Data.List ( intercalate, sortBy )
 import Data.Maybe ( fromJust, isNothing, isJust )
 import System.Exit ( exitWith, ExitCode(..) )
-
 import System.IO ( stdout, hFlush, hGetBuffering
-                 , hSetBuffering, stdin, BufferMode(..)
-                 )
-
-
-------------------------------------------------------------------------------
+                 , hSetBuffering, stdin, BufferMode(..) )
 import Database.HDBC ( IConnection, disconnect )
 
 
-------------------------------------------------------------------------------
 import Database.Schema.Migrations ( migrationsToApply, migrationsToRevert )
 import Database.Schema.Migrations.Backend ( Backend
                                           , applyMigration
                                           , revertMigration
                                           )
-
 import Database.Schema.Migrations.Migration ( Migration(..) )
-import Database.Schema.Migrations.Store ( StoreData 
-                                        , storeLookup 
+import Database.Schema.Migrations.Store ( StoreData
+                                        , storeLookup
                                         , storeMigrations
                                         )
-
 import Moo.Core
 
 
-------------------------------------------------------------------------------
 apply :: (IConnection b, Backend b IO)
          => Migration -> StoreData -> b -> Bool -> IO [Migration]
 apply m storeData backend complain = do
@@ -69,7 +58,6 @@ apply m storeData backend complain = do
         putStrLn "done."
 
 
-------------------------------------------------------------------------------
 revert :: (IConnection b, Backend b IO)
           => Migration -> StoreData -> b -> IO [Migration]
 revert m storeData backend = do
@@ -93,7 +81,6 @@ revert m storeData backend = do
         putStrLn "done."
 
 
-------------------------------------------------------------------------------
 lookupMigration :: StoreData -> String -> IO Migration
 lookupMigration storeData name = do
   let theMigration = storeLookup storeData name
@@ -104,7 +91,6 @@ lookupMigration storeData name = do
     Just m' -> return m'
 
 
-------------------------------------------------------------------------------
 -- Given a database type string and a database connection string,
 -- return a database connection or raise an error if the database
 -- connection cannot be established, or if the database type is not
@@ -118,7 +104,6 @@ makeConnection dbType (DbConnDescriptor connStr) =
       Just mkConnection -> mkConnection connStr
 
 
-------------------------------------------------------------------------------
 -- Given an action that needs a database connection, connect to the
 -- database using the application configuration and invoke the action
 -- with the connection.  Return its result.
@@ -137,7 +122,6 @@ withConnection act = do
              (\(AnyIConnection conn) -> disconnect conn) act
 
 
---------------------------------------------------------------------------------
 -- Given a migration name and selected dependencies, get the user's
 -- confirmation that a migration should be created.
 confirmCreation :: String -> [String] -> IO Bool
@@ -151,7 +135,7 @@ confirmCreation migrationId deps = do
                          , ('n', (False, Nothing))
                          ]
 
-------------------------------------------------------------------------------
+
 -- Prompt the user for a choice, given a prompt and a list of possible
 -- choices.  Let the user get help for the available choices, and loop
 -- until the user makes a valid choice.
@@ -174,7 +158,6 @@ prompt message choiceMap = do
       choiceMapWithHelp = choiceMap ++ [('h', (undefined, Just "this help"))]
 
 
-------------------------------------------------------------------------------
 -- Given a PromptChoices, build a multi-line help string for those
 -- choices using the description information in the choice list.
 mkPromptHelp :: PromptChoices a -> String
@@ -182,20 +165,18 @@ mkPromptHelp choices =
     intercalate "" [ [c] ++ ": " ++ fromJust msg ++ "\n" |
                      (c, (_, msg)) <- choices, isJust msg ]
 
-------------------------------------------------------------------------------
+
 -- Does the specified prompt choice list have any help messages in it?
 hasHelp :: PromptChoices a -> Bool
 hasHelp = (> 0) . length . filter hasMsg
     where hasMsg (_, (_, m)) = isJust m
 
 
-------------------------------------------------------------------------------
 -- A general type for a set of choices that the user can make at a
 -- prompt.
 type PromptChoices a = [(Char, (a, Maybe String))]
 
 
-------------------------------------------------------------------------------
 -- Get an input character in non-buffered mode, then restore the
 -- original buffering setting.
 unbufferedGetChar :: IO Char
@@ -207,14 +188,12 @@ unbufferedGetChar = do
   return c
 
 
-------------------------------------------------------------------------------
 -- The types for choices the user can make when being prompted for
 -- dependencies.
 data AskDepsChoice = Yes | No | View | Done | Quit
                      deriving (Eq)
 
 
-------------------------------------------------------------------------------
 -- Interactively ask the user about which dependencies should be used
 -- when creating a new migration.
 interactiveAskDeps :: StoreData -> IO [String]
@@ -227,7 +206,6 @@ interactiveAskDeps storeData = do
         compareTimestamps m1 m2 = compare (mTimestamp m2) (mTimestamp m1)
 
 
-------------------------------------------------------------------------------
 -- Recursive function to prompt the user for dependencies and let the
 -- user view information about potential dependencies.  Returns a list
 -- of migration names which were selected.
@@ -260,7 +238,6 @@ interactiveAskDeps' storeData (name:rest) = do
           Done -> return []
 
 
-------------------------------------------------------------------------------
 -- The choices the user can make when being prompted for dependencies.
 askDepsChoices :: PromptChoices AskDepsChoice
 askDepsChoices = [ ('y', (Yes, Just "yes, depend on this migration"))
@@ -269,5 +246,3 @@ askDepsChoices = [ ('y', (Yes, Just "yes, depend on this migration"))
                  , ('d', (Done, Just "done, do not ask me about more dependencies"))
                  , ('q', (Quit, Just "cancel this operation and quit"))
                  ]
-
-

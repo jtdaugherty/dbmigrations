@@ -2,7 +2,6 @@ module Main
     ( main )
 where
 
-------------------------------------------------------------------------------
 import Control.Monad.Reader (forM_, runReaderT, when)
 import Control.Applicative ((<$>))
 import Data.List (intercalate)
@@ -11,20 +10,18 @@ import System.Exit (ExitCode (ExitFailure), exitWith)
 import System.Environment (getArgs, getEnvironment, getProgName)
 import Database.HDBC (SqlError, catchSql, seErrorMsg)
 
-------------------------------------------------------------------------------
 import Database.Schema.Migrations.Filesystem ( FilesystemStore (..) )
 import Database.Schema.Migrations.Store
 import Moo.CommandInterface
 import Moo.Core
 
-------------------------------------------------------------------------------
+
 reportSqlError :: SqlError -> IO a
 reportSqlError e = do
   putStrLn $ "\n" ++ "A database error occurred: " ++ seErrorMsg e
   exitWith (ExitFailure 1)
 
 
-------------------------------------------------------------------------------
 usage :: IO a
 usage = do
   progName <- getProgName
@@ -45,14 +42,12 @@ usage = do
   exitWith (ExitFailure 1)
 
 
-------------------------------------------------------------------------------
 usageSpecific :: Command -> IO a
 usageSpecific command = do
   putStrLn $ "Usage: initstore-fs " ++ usageString command
   exitWith (ExitFailure 1)
 
 
-------------------------------------------------------------------------------
 main :: IO ()
 main = do
   allArgs <- getArgs

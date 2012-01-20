@@ -12,17 +12,18 @@ import Control.Monad.Reader ( asks )
 import System.Exit ( exitWith, ExitCode(..), exitSuccess )
 import Control.Monad.Trans ( liftIO )
 import Database.HDBC ( IConnection(commit, rollback))
+
 import Database.Schema.Migrations.Store hiding (getMigrations)
 import Database.Schema.Migrations
-import Database.Schema.Migrations.Backend 
+import Database.Schema.Migrations.Backend
 
-------------------------------------------------------------------------------
+
 newCommand :: CommandHandler
 newCommand storeData = do
   required <- asks _appRequiredArgs
-  store <- asks _appStore
-  let [migrationId] = required  -- assumes migrationId is the only required arg
-  noAsk <-  fmap _noAsk $ asks _appOptions
+  store    <- asks _appStore
+  let [migrationId] = required
+  noAsk <- fmap _noAsk $ asks _appOptions
 
   liftIO $ do
     fullPath <- fullMigrationName store migrationId
@@ -53,7 +54,6 @@ newCommand storeData = do
                putStrLn "Migration creation cancelled."
 
 
-------------------------------------------------------------------------------
 upgradeCommand :: CommandHandler
 upgradeCommand storeData = do
   isTesting <-  fmap _test $ asks _appOptions
@@ -75,7 +75,6 @@ upgradeCommand storeData = do
                  putStrLn "Database successfully upgraded."
 
 
-------------------------------------------------------------------------------
 upgradeListCommand :: CommandHandler
 upgradeListCommand storeData = do
   withConnection $ \(AnyIConnection conn) -> do
@@ -88,7 +87,6 @@ upgradeListCommand storeData = do
         forM_ migrationNames (putStrLn . ("  " ++))
 
 
-------------------------------------------------------------------------------
 reinstallCommand :: CommandHandler
 reinstallCommand storeData = do
   isTesting <-  fmap _test $ asks _appOptions
@@ -111,7 +109,6 @@ reinstallCommand storeData = do
           putStrLn "Reinstall test successful."
 
 
-------------------------------------------------------------------------------
 listCommand :: CommandHandler
 listCommand _ = do
   withConnection $ \(AnyIConnection conn) -> do
@@ -121,11 +118,10 @@ listCommand _ = do
           when (not $ m == rootMigrationName) $ putStrLn m
 
 
-------------------------------------------------------------------------------
 applyCommand :: CommandHandler
 applyCommand storeData = do
   isTesting <-  fmap _test $ asks _appOptions
-  required <- asks _appRequiredArgs
+  required  <- asks _appRequiredArgs
   let [migrationId] = required
 
   withConnection $ \(AnyIConnection conn) -> do
@@ -141,7 +137,6 @@ applyCommand storeData = do
             putStrLn "Migration installation test successful."
 
 
-------------------------------------------------------------------------------
 revertCommand :: CommandHandler
 revertCommand storeData = do
   isTesting <-  fmap _test $ asks _appOptions
@@ -162,7 +157,6 @@ revertCommand storeData = do
           putStrLn "Migration uninstallation test successful."
 
 
-------------------------------------------------------------------------------
 testCommand :: CommandHandler
 testCommand storeData = do
   required <- asks _appRequiredArgs
@@ -182,7 +176,3 @@ testCommand storeData = do
                              revert migration storeData conn
         rollback conn
         putStrLn "Successfully tested migrations."
-
-
-
-
