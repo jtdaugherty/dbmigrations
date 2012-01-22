@@ -16,28 +16,30 @@ import Moo.CommandHandlers
 
 -- |The available commands; used to dispatch from the command line and
 -- used to generate usage output.
+-- |The available commands; used to dispatch from the command line and
+-- used to generate usage output.
 commands :: [Command]
-commands = [ Command "new" ["migration_name"]
+commands = [ Command "new" [migrationName]
                            []
                            ["no-ask"]
                            "Create a new empty migration"
                            newCommand
 
-           , Command "apply" ["migration_name"]
+           , Command "apply" [migrationName]
                              []
-                             ["no-ask"]
+                             [testOption]
                              "Apply the specified migration and its \
                              \dependencies"
                              applyCommand
 
-           , Command "revert" ["migration_name"]
+           , Command "revert" [migrationName]
                               []
-                              ["no-ask"]
+                              [testOption]
                               "Revert the specified migration and those \
                               \that depend on it"
                               revertCommand
 
-           , Command "test" ["migration_name"]
+           , Command "test" [migrationName]
                             []
                             []
                             "Test the specified migration by applying \
@@ -47,7 +49,7 @@ commands = [ Command "new" ["migration_name"]
 
            , Command "upgrade" []
                                []
-                               []
+                               [testOption]
                                "Install all migrations that have not yet \
                                \been installed"
 
@@ -60,9 +62,9 @@ commands = [ Command "new" ["migration_name"]
                                     \installed"
                                     upgradeListCommand
 
-           , Command "reinstall" ["migration_name"]
+           , Command "reinstall" [migrationName]
                                  []
-                                 ["no-ask"]
+                                 [testOption]
                                  "Reinstall a migration by reverting, then \
                                  \reapplying it"
                                  reinstallCommand
@@ -73,6 +75,8 @@ commands = [ Command "new" ["migration_name"]
                             "List migrations already installed in the backend"
                             listCommand
            ]
+    where migrationName = "migrationName"
+          testOption    = "test"
 
 
 findCommand :: String -> Maybe Command
