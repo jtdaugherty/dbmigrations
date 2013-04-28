@@ -19,8 +19,8 @@ Description:         A library and program for the creation,
                      'moo' command.
 
 Category:            Database
-Author:              Jonathan Daugherty <drcygnus@gmail.com>
-Maintainer:          Jonathan Daugherty <drcygnus@gmail.com>
+Author:              Jonathan Daugherty <cygnus@foobox.com>
+Maintainer:          Jonathan Daugherty <cygnus@foobox.com>
 Build-Type:          Simple
 License:             BSD3
 License-File:        LICENSE
