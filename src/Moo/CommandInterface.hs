@@ -8,10 +8,10 @@ module Moo.CommandInterface
     , usageString
     ) where
 
-import Moo.Core
-import System.Console.GetOpt
-import Data.Maybe
-import Moo.CommandHandlers
+import           Data.Maybe
+import           Moo.CommandHandlers
+import           Moo.Core
+import           System.Console.GetOpt
 
 
 -- |The available commands; used to dispatch from the command line and
@@ -21,27 +21,27 @@ import Moo.CommandHandlers
 commands :: [Command]
 commands = [ Command "new" [migrationName]
                            []
-                           ["no-ask"]
+                           ["no-ask", configFile]
                            "Create a new empty migration"
                            newCommand
 
            , Command "apply" [migrationName]
                              []
-                             [testOption]
+                             [testOption, configFile]
                              "Apply the specified migration and its \
                              \dependencies"
                              applyCommand
 
            , Command "revert" [migrationName]
                               []
-                              [testOption]
+                              [testOption, configFile]
                               "Revert the specified migration and those \
                               \that depend on it"
                               revertCommand
 
            , Command "test" [migrationName]
                             []
-                            []
+                            [configFile]
                             "Test the specified migration by applying \
                             \and reverting it in a transaction, then \
                             \roll back"
@@ -49,7 +49,7 @@ commands = [ Command "new" [migrationName]
 
            , Command "upgrade" []
                                []
-                               [testOption]
+                               [testOption, configFile]
                                "Install all migrations that have not yet \
                                \been installed"
 
@@ -64,19 +64,20 @@ commands = [ Command "new" [migrationName]
 
            , Command "reinstall" [migrationName]
                                  []
-                                 [testOption]
+                                 [testOption, configFile]
                                  "Reinstall a migration by reverting, then \
                                  \reapplying it"
                                  reinstallCommand
 
            , Command "list" []
                             []
-                            []
+                            [configFile]
                             "List migrations already installed in the backend"
                             listCommand
            ]
     where migrationName = "migrationName"
           testOption    = "test"
+          configFile    = "config-file"
 
 
 findCommand :: String -> Maybe Command
@@ -84,9 +85,17 @@ findCommand name = listToMaybe [ c | c <- commands, _cName c == name ]
 
 
 commandOptions :: [ OptDescr (CommandOptions -> IO CommandOptions) ]
-commandOptions =  [ optionTest
+commandOptions =  [ optionConfigFile
+                  , optionTest
                   , optionNoAsk
                   ]
+
+
+optionConfigFile :: OptDescr (CommandOptions -> IO CommandOptions)
+optionConfigFile = Option "c" ["config-file"]
+                   (ReqArg (\arg opt ->
+                             return opt { _configFilePath = Just arg }) "FILE")
+                   "Specify location of configuration file"
 
 
 optionTest :: OptDescr (CommandOptions -> IO CommandOptions)
@@ -109,7 +118,7 @@ getCommandArgs args = do
 
 
 defaultOptions :: IO CommandOptions
-defaultOptions = return $ CommandOptions False False
+defaultOptions = return $ CommandOptions Nothing False False
 
 
 commandOptionUsage :: String

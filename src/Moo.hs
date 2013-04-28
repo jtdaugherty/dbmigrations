@@ -2,19 +2,24 @@ module Main
     ( main )
 where
 
-import Control.Monad.Reader (forM_, runReaderT, when)
-import Control.Applicative ((<$>))
-import Data.List (intercalate)
-import Data.Maybe (fromMaybe)
-import System.Exit (ExitCode (ExitFailure), exitWith)
-import System.Environment (getArgs, getEnvironment, getProgName)
-import Database.HDBC (SqlError, catchSql, seErrorMsg)
+import           Control.Applicative                   ((<$>))
+import           Control.Monad.Reader                  (forM_, runReaderT, when)
+import           Data.Configurator
+import           Data.List                             (intercalate)
+import           Data.Maybe                            (fromMaybe)
+import           Database.HDBC                         (SqlError, catchSql,
+                                                        seErrorMsg)
+import           Prelude                               hiding (lookup)
+import           System.Environment                    (getArgs, getEnvironment,
+                                                        getProgName)
+import           System.Exit                           (ExitCode (ExitFailure),
+                                                        exitWith)
 
-import Database.Schema.Migrations.Filesystem ( FilesystemStore (..) )
-import Database.Schema.Migrations.Store
-import Moo.CommandInterface
-import Moo.Core
-
+import           Data.Maybe
+import           Database.Schema.Migrations.Filesystem (FilesystemStore (..))
+import           Database.Schema.Migrations.Store
+import           Moo.CommandInterface
+import           Moo.Core
 
 reportSqlError :: SqlError -> IO a
 reportSqlError e = do
@@ -48,6 +53,10 @@ usageSpecific command = do
   exitWith (ExitFailure 1)
 
 
+loadConfiguration :: Maybe FilePath -> IO ConfigBackend
+loadConfiguration Nothing     = ConfigBackend <$> getEnvironment
+loadConfiguration (Just path) = ConfigBackend <$> (load [Required path])
+
 main :: IO ()
 main = do
   allArgs <- getArgs
@@ -60,18 +69,16 @@ main = do
 
   (opts, required) <- getCommandArgs unprocessedArgs
 
-  -- Read store path and database connection string from environment
-  -- or config file (for now, we just look at the environment).  Also,
-  -- require them both to be set for every operation, even though some
-  -- operations only require the store path.
-  env <- getEnvironment
-  let mDbConnStr = lookup envDatabaseName env
-      mDbType    = lookup envDatabaseType env
-      storePathStr = fromMaybe
-                       (error $ 
-                          "Error: missing required environment \
-                           \variable " ++ envStoreName)
-                       (lookup envStoreName env)
+  let optionalConfigPath = _configFilePath opts
+
+  env        <- loadConfiguration optionalConfigPath
+  mDbConnStr <- getConnectionStr env
+  mDbType    <- getDatabaseType env
+  mStoreName <- getMigrationStorePath env
+
+  let  storePathStr =
+         fromMaybe (error $ "Error: missing required environment variable " ++ envStoreName)
+                   mStoreName
 
   let  store = FSStore { storePath = storePathStr }
 
