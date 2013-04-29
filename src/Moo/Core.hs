@@ -1,9 +1,8 @@
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE FlexibleInstances         #-}
-{-# LANGUAGE TypeSynonymInstances      #-}
 
 module Moo.Core where
 
+import           Control.Applicative                     ((<$>), (<*>))
 import           Control.Monad.Reader                    (ReaderT)
 import qualified Data.Configurator                       as C
 import           Data.Configurator.Types                 (Config)
@@ -25,7 +24,6 @@ type AppT a = ReaderT AppState IO a
 -- |The type of actions that are invoked to handle specific commands
 type CommandHandler = StoreData -> AppT ()
 
-type ShellEnvironment = [(String, String)]
 
 -- |Application state which can be accessed by any command handler.
 data AppState = AppState { _appOptions         :: CommandOptions
@@ -38,29 +36,31 @@ data AppState = AppState { _appOptions         :: CommandOptions
                          , _appStoreData       :: StoreData
                          }
 
+type ShellEnvironment = [(String, String)]
 
-data ConfigBackend = forall a. ConfigBackend_ a => ConfigBackend a
+data Configuration = Configuration
+    { _connectionString   :: Maybe String
+    , _databaseType       :: Maybe String
+    , _migrationStorePath :: Maybe FilePath
+    }
 
--- | Interface for configuration back-ends
-class ConfigBackend_ a where
-      getConnectionStr      :: a -> IO (Maybe String)
-      getDatabaseType       :: a -> IO (Maybe String)
-      getMigrationStorePath :: a -> IO (Maybe FilePath)
+fromShellEnvironment :: ShellEnvironment -> Configuration
+fromShellEnvironment env = Configuration connectionString
+                                                databaseType
+                                                migrationStorePath
+    where
+      connectionString   = lookup envDatabaseName env
+      databaseType       = lookup envDatabaseType env
+      migrationStorePath = lookup envStoreName env
 
-instance ConfigBackend_ Config where
-         getConnectionStr config = C.lookup config $ T.pack envDatabaseName
-         getDatabaseType config = C.lookup config $ T.pack envDatabaseType
-         getMigrationStorePath config = C.lookup config $ T.pack envStoreName
-
-instance ConfigBackend_ ShellEnvironment where
-         getConnectionStr config = return $ lookup envDatabaseName config
-         getDatabaseType config =  return $ lookup envDatabaseType config
-         getMigrationStorePath config = return $ lookup envStoreName config
-
-instance ConfigBackend_ ConfigBackend where
-         getConnectionStr (ConfigBackend config) = getConnectionStr config
-         getDatabaseType  (ConfigBackend config) = getDatabaseType config
-         getMigrationStorePath (ConfigBackend config) = getMigrationStorePath config
+fromConfigurator :: Config -> IO Configuration
+fromConfigurator conf = Configuration <$> connectionString
+                                      <*> databaseType
+                                      <*> migrationStorePath
+    where
+      connectionString   = C.lookup conf $ T.pack envDatabaseName
+      databaseType       = C.lookup conf $ T.pack envDatabaseType
+      migrationStorePath = C.lookup conf $ T.pack envStoreName
 
 
 -- |Type wrapper for IConnection instances so the makeConnection

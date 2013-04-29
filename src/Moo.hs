@@ -2,7 +2,7 @@ module Main
     ( main )
 where
 
-import           Control.Applicative                   ((<$>))
+import           Control.Applicative                   ((<$>), (<*>))
 import           Control.Monad.Reader                  (forM_, runReaderT, when)
 import           Data.Configurator
 import           Data.List                             (intercalate)
@@ -52,10 +52,9 @@ usageSpecific command = do
   putStrLn $ "Usage: initstore-fs " ++ usageString command
   exitWith (ExitFailure 1)
 
-
-loadConfiguration :: Maybe FilePath -> IO ConfigBackend
-loadConfiguration Nothing     = ConfigBackend <$> getEnvironment
-loadConfiguration (Just path) = ConfigBackend <$> (load [Required path])
+loadConfiguration :: Maybe FilePath -> IO Configuration
+loadConfiguration Nothing     = fromShellEnvironment <$> getEnvironment
+loadConfiguration (Just path) = fromConfigurator =<< load [Required path]
 
 main :: IO ()
 main = do
@@ -71,10 +70,10 @@ main = do
 
   let optionalConfigPath = _configFilePath opts
 
-  env        <- loadConfiguration optionalConfigPath
-  mDbConnStr <- getConnectionStr env
-  mDbType    <- getDatabaseType env
-  mStoreName <- getMigrationStorePath env
+  conf <- loadConfiguration optionalConfigPath
+  let mDbConnStr = _connectionString conf
+  let mDbType    =_databaseType conf
+  let mStoreName = _migrationStorePath conf
 
   let  storePathStr =
          fromMaybe (error $ "Error: missing required environment variable " ++ envStoreName)
@@ -95,8 +94,7 @@ main = do
                               , _appCommand         = command
                               , _appRequiredArgs    = required
                               , _appOptionalArgs    = ["" :: String]
-                              , _appDatabaseConnStr = DbConnDescriptor <$>
-                                                      mDbConnStr
+                              , _appDatabaseConnStr = DbConnDescriptor <$> mDbConnStr
                               , _appDatabaseType    = mDbType
                               , _appStore           = FSStore storePathStr
                               , _appStoreData       = storeData
