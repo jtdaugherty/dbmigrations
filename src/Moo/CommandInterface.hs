@@ -8,10 +8,10 @@ module Moo.CommandInterface
     , usageString
     ) where
 
-import           Data.Maybe
-import           Moo.CommandHandlers
-import           Moo.Core
-import           System.Console.GetOpt
+import Data.Maybe
+import Moo.CommandHandlers
+import Moo.Core
+import System.Console.GetOpt
 
 
 -- |The available commands; used to dispatch from the command line and
