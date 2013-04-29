@@ -2,19 +2,19 @@
 
 module Moo.Core where
 
-import           Control.Applicative                     ((<$>), (<*>))
-import           Control.Monad.Reader                    (ReaderT)
-import qualified Data.Configurator                       as C
-import           Data.Configurator.Types                 (Config)
-import qualified Data.Text                               as T
-import           Database.HDBC                           (IConnection)
-import           Database.HDBC.PostgreSQL                (connectPostgreSQL)
-import           Database.HDBC.Sqlite3                   (connectSqlite3)
+import Control.Applicative ((<$>), (<*>))
+import Control.Monad.Reader (ReaderT)
+import qualified Data.Configurator as C
+import Data.Configurator.Types (Config)
+import qualified Data.Text as T
+import Database.HDBC (IConnection)
+import Database.HDBC.PostgreSQL (connectPostgreSQL)
+import Database.HDBC.Sqlite3 (connectSqlite3)
 
-import           Database.Schema.Migrations              ()
-import           Database.Schema.Migrations.Backend.HDBC ()
-import           Database.Schema.Migrations.Filesystem   (FilesystemStore)
-import           Database.Schema.Migrations.Store        (StoreData)
+import Database.Schema.Migrations ()
+import Database.Schema.Migrations.Backend.HDBC ()
+import Database.Schema.Migrations.Filesystem (FilesystemStore)
+import Database.Schema.Migrations.Store (StoreData)
 
 
 -- |The monad in which the application runs.
@@ -46,22 +46,23 @@ data Configuration = Configuration
 
 fromShellEnvironment :: ShellEnvironment -> Configuration
 fromShellEnvironment env = Configuration connectionString
-                                                databaseType
-                                                migrationStorePath
+                                         databaseType
+                                         migrationStorePath
     where
-      connectionString   = lookup envDatabaseName env
-      databaseType       = lookup envDatabaseType env
-      migrationStorePath = lookup envStoreName env
+      connectionString = envLookup envDatabaseName
+      databaseType = envLookup envDatabaseType
+      migrationStorePath = envLookup envStoreName
+      envLookup = (\evar -> lookup evar env)
 
 fromConfigurator :: Config -> IO Configuration
 fromConfigurator conf = Configuration <$> connectionString
                                       <*> databaseType
                                       <*> migrationStorePath
     where
-      connectionString   = C.lookup conf $ T.pack envDatabaseName
-      databaseType       = C.lookup conf $ T.pack envDatabaseType
-      migrationStorePath = C.lookup conf $ T.pack envStoreName
-
+      connectionString = configLookup envDatabaseName
+      databaseType = configLookup envDatabaseType
+      migrationStorePath = configLookup envStoreName
+      configLookup = C.lookup conf . T.pack
 
 -- |Type wrapper for IConnection instances so the makeConnection
 -- function can return any type of connection.

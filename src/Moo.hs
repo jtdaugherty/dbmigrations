@@ -2,30 +2,25 @@ module Main
     ( main )
 where
 
-import           Control.Monad                         (liftM)
-import           Control.Monad.Reader                  (forM_, runReaderT, when)
-import           Data.Configurator
-import           Data.List                             (intercalate)
-import           Data.Maybe                            (fromMaybe)
-import           Database.HDBC                         (SqlError, catchSql,
-                                                        seErrorMsg)
-import           Prelude                               hiding (lookup)
-import           System.Environment                    (getArgs, getEnvironment,
-                                                        getProgName)
-import           System.Exit                           (ExitCode (ExitFailure),
-                                                        exitWith)
-
-import           Data.Maybe
-import           Database.Schema.Migrations.Filesystem (FilesystemStore (..))
-import           Database.Schema.Migrations.Store
-import           Moo.CommandInterface
-import           Moo.Core
+import  Control.Monad (liftM)
+import  Control.Monad.Reader (forM_, runReaderT, when)
+import  Data.Configurator
+import  Data.List (intercalate)
+import  Data.Maybe (fromMaybe)
+import  Database.HDBC (SqlError, catchSql, seErrorMsg)
+import  Prelude  hiding (lookup)
+import  System.Environment (getArgs, getEnvironment, getProgName)
+import  System.Exit (ExitCode (ExitFailure), exitWith)
+                                               
+import  Database.Schema.Migrations.Filesystem (FilesystemStore (..))
+import  Database.Schema.Migrations.Store
+import  Moo.CommandInterface
+import  Moo.Core
 
 reportSqlError :: SqlError -> IO a
 reportSqlError e = do
   putStrLn $ "\n" ++ "A database error occurred: " ++ seErrorMsg e
   exitWith (ExitFailure 1)
-
 
 usage :: IO a
 usage = do
@@ -46,14 +41,13 @@ usage = do
   putStrLn commandOptionUsage
   exitWith (ExitFailure 1)
 
-
 usageSpecific :: Command -> IO a
 usageSpecific command = do
   putStrLn $ "Usage: initstore-fs " ++ usageString command
   exitWith (ExitFailure 1)
 
 loadConfiguration :: Maybe FilePath -> IO Configuration
-loadConfiguration Nothing     = liftM fromShellEnvironment getEnvironment
+loadConfiguration Nothing = liftM fromShellEnvironment getEnvironment
 loadConfiguration (Just path) = fromConfigurator =<< load [Required path]
 
 main :: IO ()
@@ -64,7 +58,7 @@ main = do
 
   command <- case findCommand commandName of
                Nothing -> usage
-               Just c  -> return c
+               Just c -> return c
 
   (opts, required) <- getCommandArgs unprocessedArgs
 
@@ -72,9 +66,8 @@ main = do
 
   conf <- loadConfiguration optionalConfigPath
   let mDbConnStr = _connectionString conf
-  let mDbType    =_databaseType conf
+  let mDbType = _databaseType conf
   let mStoreName = _migrationStorePath conf
-
   let  storePathStr =
          fromMaybe (error $ "Error: missing required environment variable " ++ envStoreName)
                    mStoreName
@@ -90,13 +83,13 @@ main = do
             putStrLn "There were errors in the migration store:"
             forM_ es $ \err -> putStrLn $ "  " ++ show err
           Right storeData -> do
-            let st = AppState { _appOptions         = opts
-                              , _appCommand         = command
-                              , _appRequiredArgs    = required
-                              , _appOptionalArgs    = ["" :: String]
+            let st = AppState { _appOptions = opts
+                              , _appCommand = command
+                              , _appRequiredArgs = required
+                              , _appOptionalArgs = ["" :: String]
                               , _appDatabaseConnStr = liftM DbConnDescriptor mDbConnStr
-                              , _appDatabaseType    = mDbType
-                              , _appStore           = FSStore storePathStr
-                              , _appStoreData       = storeData
+                              , _appDatabaseType = mDbType
+                              , _appStore = FSStore storePathStr
+                              , _appStoreData = storeData
                               }
             runReaderT (_cHandler command storeData) st `catchSql` reportSqlError
