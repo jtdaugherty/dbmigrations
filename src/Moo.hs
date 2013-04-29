@@ -2,7 +2,7 @@ module Main
     ( main )
 where
 
-import           Control.Applicative                   ((<$>), (<*>))
+import           Control.Monad                         (liftM)
 import           Control.Monad.Reader                  (forM_, runReaderT, when)
 import           Data.Configurator
 import           Data.List                             (intercalate)
@@ -53,7 +53,7 @@ usageSpecific command = do
   exitWith (ExitFailure 1)
 
 loadConfiguration :: Maybe FilePath -> IO Configuration
-loadConfiguration Nothing     = fromShellEnvironment <$> getEnvironment
+loadConfiguration Nothing     = liftM fromShellEnvironment getEnvironment
 loadConfiguration (Just path) = fromConfigurator =<< load [Required path]
 
 main :: IO ()
@@ -94,7 +94,7 @@ main = do
                               , _appCommand         = command
                               , _appRequiredArgs    = required
                               , _appOptionalArgs    = ["" :: String]
-                              , _appDatabaseConnStr = DbConnDescriptor <$> mDbConnStr
+                              , _appDatabaseConnStr = liftM DbConnDescriptor mDbConnStr
                               , _appDatabaseType    = mDbType
                               , _appStore           = FSStore storePathStr
                               , _appStoreData       = storeData
