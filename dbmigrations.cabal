@@ -55,8 +55,8 @@ Library
     template-haskell,
     yaml-light >= 0.1 && < 0.2,
     bytestring >= 0.9 && < 1.0,
-    text,
-    configurator
+    text == 0.11.*,
+    configurator == 0.2.*
 
   Hs-Source-Dirs:    src
   Exposed-Modules:
