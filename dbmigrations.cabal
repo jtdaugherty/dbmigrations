@@ -71,6 +71,10 @@ Library
   Other-Modules:
           Database.Schema.Migrations.CycleDetection
           Database.Schema.Migrations.Filesystem.Serialize
+          Moo.CommandHandlers
+          Moo.CommandInterface
+          Moo.CommandUtils
+          Moo.Core
 
 Executable dbmigrations-tests
   Build-Depends:
