@@ -91,7 +91,7 @@ Executable dbmigrations-tests
 
   if !flag(testing)
     Buildable:     False
-  end
+
   Hs-Source-Dirs:  src,test
   Main-is:         TestDriver.hs
 
