@@ -24,18 +24,15 @@ Maintainer:          Jonathan Daugherty <cygnus@foobox.com>
 Build-Type:          Simple
 License:             BSD3
 License-File:        LICENSE
-Cabal-Version:       >= 1.6
+Cabal-Version:       >= 1.10
 Data-Files:          README MOO.TXT
 
 Source-Repository head
   type:     git
   location: git://github.com/jtdaugherty/dbmigrations.git
 
-Flag testing
-    Description:     Build for testing
-    Default:         False
-
 Library
+  default-language: Haskell2010
   if impl(ghc >= 6.12.0)
     ghc-options: -Wall -fwarn-tabs -funbox-strict-fields
                  -fno-warn-unused-do-bind
@@ -56,7 +53,9 @@ Library
     yaml-light >= 0.1 && < 0.2,
     bytestring >= 0.9 && < 1.0,
     text >= 0.11 && < 1.3,
-    configurator >= 0.2 && < 0.4
+    configurator >= 0.2 && < 0.4,
+    HDBC-postgresql,
+    HDBC-sqlite3
 
   Hs-Source-Dirs:    src
   Exposed-Modules:
@@ -76,15 +75,25 @@ Library
           Moo.CommandUtils
           Moo.Core
 
-Executable dbmigrations-tests
-  if flag(testing)
-    Build-Depends:
-      HDBC-postgresql,
-      HDBC-sqlite3,
-      HUnit >= 1.2 && < 1.3,
-      process >= 1.1
-  else
-    Buildable:     False
+test-suite dbmigrations-tests
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  Build-Depends:
+    base >= 4 && < 5,
+    time >= 1.4 && < 1.6,
+    containers >= 0.2 && < 0.6,
+    mtl >= 2.1 && < 3,
+    filepath >= 1.1 && < 1.4,
+    directory >= 1.0 && < 1.3,
+    fgl >= 5.4 && < 5.6,
+    template-haskell,
+    yaml-light >= 0.1 && < 0.2,
+    bytestring >= 0.9 && < 1.0,
+    HDBC >= 2.2.1,
+    HDBC-postgresql,
+    HDBC-sqlite3,
+    HUnit >= 1.2 && < 1.3,
+    process >= 1.1
 
   if impl(ghc >= 6.12.0)
     ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields
@@ -92,12 +101,26 @@ Executable dbmigrations-tests
   else
     ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields
 
-
   Hs-Source-Dirs:  src,test
   Main-is:         TestDriver.hs
 
 Executable moo
+  default-language: Haskell2010
   Build-Depends:
+    base >= 4 && < 5,
+    HDBC >= 2.2.1,
+    time >= 1.4 && < 1.6,
+    random >= 1.0 && < 1.2,
+    containers >= 0.2 && < 0.6,
+    mtl >= 2.1 && < 3,
+    filepath >= 1.1 && < 1.4,
+    directory >= 1.0 && < 1.3,
+    fgl >= 5.4 && < 5.6,
+    template-haskell,
+    yaml-light >= 0.1 && < 0.2,
+    bytestring >= 0.9 && < 1.0,
+    text >= 0.11 && < 1.3,
+    configurator >= 0.2 && < 0.4,
     HDBC-postgresql,
     HDBC-sqlite3
 
