@@ -45,8 +45,8 @@ Library
   Build-Depends:
     base >= 4 && < 5,
     HDBC >= 2.2.1,
-    time == 1.4.*,
-    random >= 1.0 && < 1.1,
+    time >= 1.4 && < 1.6,
+    random >= 1.0 && < 1.2,
     containers >= 0.2 && < 0.6,
     mtl >= 2.1 && < 3,
     filepath >= 1.1 && < 1.4,
@@ -55,8 +55,8 @@ Library
     template-haskell,
     yaml-light >= 0.1 && < 0.2,
     bytestring >= 0.9 && < 1.0,
-    text >= 0.11 && < 1.2,
-    configurator == 0.2.*
+    text >= 0.11 && < 1.3,
+    configurator >= 0.2 && < 0.4
 
   Hs-Source-Dirs:    src
   Exposed-Modules:
