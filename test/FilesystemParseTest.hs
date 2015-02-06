@@ -37,6 +37,26 @@ valid_full = Migration {
              , mRevert = Just "DROP TABLE test;"
              }
 
+valid_full_comments :: Migration
+valid_full_comments = Migration {
+                        mTimestamp = ts
+                      , mId = "valid_full"
+                      , mDesc = Just "A valid full migration."
+                      , mDeps = ["another_migration"]
+                      , mApply = "\n-- Comment on a line\nCREATE TABLE test (\n  a int -- comment inline\n);\n"
+                      , mRevert = Just "DROP TABLE test;"
+                      }
+
+valid_full_colon :: Migration
+valid_full_colon = Migration {
+                        mTimestamp = ts
+                      , mId = "valid_full"
+                      , mDesc = Just "A valid full migration."
+                      , mDeps = ["another_migration"]
+                      , mApply = "\n-- Comment on a line with a colon:\nCREATE TABLE test (\n  a int\n);\n"
+                      , mRevert = Just "DROP TABLE test;"
+                      }
+
 testStorePath :: FilePath
 testStorePath = testFile $ "migration_parsing"
 
@@ -47,6 +67,10 @@ migrationParsingTestCases :: [MigrationParsingTestCase]
 migrationParsingTestCases = [ ("valid_full", Right valid_full)
                             , ("valid_with_comments"
                               , Right (valid_full { mId = "valid_with_comments" }))
+                            , ("valid_with_comments2"
+                              , Right (valid_full_comments { mId = "valid_with_comments2" }))
+                            , ("valid_with_colon"
+                              , Right (valid_full_colon { mId = "valid_with_colon" }))
                             , ("valid_with_multiline_deps"
                               , Right (valid_full { mId = "valid_with_multiline_deps"
                                                   , mDeps = ["one", "two", "three"] } ))

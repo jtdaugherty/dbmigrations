@@ -25,6 +25,8 @@ getMigrationsTest = do
                               , "valid_no_desc"
                               , "valid_no_revert"
                               , "valid_with_comments"
+                              , "valid_with_comments2"
+                              , "valid_with_colon"
                               , "valid_with_multiline_deps"
                               ]
   migrations <- getMigrations store

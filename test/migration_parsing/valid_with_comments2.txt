@@ -1,0 +1,11 @@
+Description: A valid full migration.
+Created: 2009-04-15 10:02:06 UTC
+Depends: another_migration
+Apply: |
+
+  -- Comment on a line
+  CREATE TABLE test (
+    a int -- comment inline
+  );
+
+Revert: DROP TABLE test;
