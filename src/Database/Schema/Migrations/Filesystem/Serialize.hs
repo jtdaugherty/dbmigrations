@@ -37,11 +37,11 @@ serializeRevert :: FieldSerializer
 serializeRevert m =
     case mRevert m of
       Nothing -> Nothing
-      Just revert -> Just $ "Revert:\n" ++
+      Just revert -> Just $ "Revert: |\n" ++
                      (serializeMultiline revert)
 
 serializeApply :: FieldSerializer
-serializeApply m = Just $ "Apply:\n" ++ (serializeMultiline $ mApply m)
+serializeApply m = Just $ "Apply: |\n" ++ (serializeMultiline $ mApply m)
 
 commonPrefix :: String -> String -> String
 commonPrefix a b = map fst $ takeWhile (uncurry (==)) (zip a b)

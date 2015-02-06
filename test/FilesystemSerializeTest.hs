@@ -35,36 +35,36 @@ serializationTestCases :: [(Migration, String)]
 serializationTestCases = [ (valid_full, "Description: A valid full migration.\n\
                                         \Created: " ++ tsStr ++ "\n\
                                         \Depends: another_migration\n\
-                                        \Apply:\n\
+                                        \Apply: |\n\
                                         \  CREATE TABLE test (\n\
                                         \    a int\n\
                                         \  );\n\n\
-                                        \Revert:\n\
+                                        \Revert: |\n\
                                         \  DROP TABLE test;\n")
                          , (valid_full { mDesc = Nothing }
                            , "Created: " ++ tsStr ++ "\n\
                              \Depends: another_migration\n\
-                             \Apply:\n\
+                             \Apply: |\n\
                              \  CREATE TABLE test (\n\
                              \    a int\n\
                              \  );\n\n\
-                             \Revert:\n\
+                             \Revert: |\n\
                              \  DROP TABLE test;\n")
                          , (valid_full { mDeps = ["one", "two"] }
                            , "Description: A valid full migration.\n\
                              \Created: " ++ tsStr ++ "\n\
                              \Depends: one two\n\
-                             \Apply:\n\
+                             \Apply: |\n\
                              \  CREATE TABLE test (\n\
                              \    a int\n\
                              \  );\n\n\
-                             \Revert:\n\
+                             \Revert: |\n\
                              \  DROP TABLE test;\n")
                          , (valid_full { mRevert = Nothing }
                            , "Description: A valid full migration.\n\
                              \Created: " ++ tsStr ++ "\n\
                              \Depends: another_migration\n\
-                             \Apply:\n\
+                             \Apply: |\n\
                              \  CREATE TABLE test (\n\
                              \    a int\n\
                              \  );\n")
