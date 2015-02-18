@@ -14,7 +14,7 @@ Description:         A library and program for the creation,
                      HDBC-supported database, although at present only
                      PostgreSQL is fully supported.
 
-                     To get started, see the included 'README' and
+                     To get started, see the included 'README.md' and
                      'MOO.TXT' files and the usage output for the
                      'moo' command.
 
@@ -25,7 +25,7 @@ Build-Type:          Simple
 License:             BSD3
 License-File:        LICENSE
 Cabal-Version:       >= 1.10
-Data-Files:          README MOO.TXT
+Data-Files:          README.md MOO.TXT
 
 Source-Repository head
   type:     git
