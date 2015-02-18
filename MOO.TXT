@@ -114,6 +114,19 @@ Getting started
     Migrations to install:
       hello-world
 
+Configuration file format
+-------------------------
+
+All moo commands accept a --config-file option which you can use to
+specify the path to a configuration file containing your settings. This
+approach is an alternative to setting environment variables. The
+configuration file format uses the same environment variable names for
+its fields. An example configuration is as follows:
+
+  DBM_DATABASE_TYPE = "sqlite3"
+  DBM_DATABASE = "/path/to/database.db"
+  DBM_MIGRATION_STORE = "/path/to/migration/store"
+
 Migration file format
 ---------------------
 
