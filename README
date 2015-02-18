@@ -21,56 +21,6 @@ This package operates on two logical entities:
    permit easy implementation of other storage backends for
    migrations.
 
-Migration file format
----------------------
-
-While the "moo" management tool included in this package will create
-new migration files for you, a description of the file format follows.
-
-A migration used by this package is a structured document in YAML
-format containing these fields:
-
-   Description: (optional) a textual description of the migration
-
-  Dependencies: (required, but may be empty) a whitespace-separated
-                list of migration names on which the migration
-                depends; these names are the migration filenames
-                without the filename extension
-
-       Created: The UTC date and time at which this migration was
-                created
-
-         Apply: The SQL necessary to apply this migration to the
-                database
-
-        Revert: (optional) The SQL necessary to revert this migration
-                from the database
-
-The format of this file is somewhat flexible; please see the YAML 1.2
-format specification for a full description of syntax features.  I
-recommend appending "|" to the Apply and Revert fields if they contain
-multi-line SQL that you want to keep that way, e.g.,
-
-  Apply: |
-    CREATE OR REPLACE FUNCTION ...
-    ...
-    ...
-
-  Revert: |
-    DROP TABLE foo;
-    DROP TABLE bar;
-
-Note that this is only *necessary* when concatenating the lines would
-have a different meaning, e.g.,
-
-  Apply:
-    -- Comment here
-    CREATE TABLE;
-
-Without "|" on the "Apply:" line, the above text would be collapsed to
-"-- Comment here CREATE TABLE;" which is probably not what you want.
-For a full treatment of this behavior, see the YAML spec.
-
 moo: the management tool
 ------------------------
 
@@ -81,32 +31,17 @@ Installation
 ------------
 
 If you've obtained this package in source form and would like to
-install it, you'll need the "cabal" program.  To install this package,
-run:
+install it, you'll need the "cabal" program. To install this package
+from the source directory, run:
 
   cabal install
-
-Getting the source
-------------------
-
-If you've obtained this package by some other means and would like to
-get a copy of the source code, you can do so with darcs:
-
-  darcs get http://repos.codevine.org/dbmigrations
-
-For more information about the "darcs" revision control system, please
-see:
-
-  http://darcs.net/
 
 Submitting patches
 ------------------
 
 I'll gladly consider accepting patches to this package; please do not
-hesitate to send them to me with "darcs send", or mail them to me
-manually (see below).  If you'd like to send me a patch, I'll be more
-likely to accept it if you can follow these guidelines where
-appropriate:
+hesitate to submit GitHub pull requests. I'll be more likely to accept
+a patch if you can follow these guidelines where appropriate:
 
   - Keep patches small; a single patch should make a single logical
     change with minimal scope.
@@ -114,14 +49,3 @@ appropriate:
   - If possible, include tests with your patch.
 
   - If possible, include haddock with your patch.
-
-Submitting bug reports and feedback
------------------------------------
-
-If you've found a bug or would like to provide any feedback on the
-design, implementation, or behavior of this library or its programs,
-please do not hesitate to contact me directly at
-
-  drcygnus AT gmail DOT com
-
-Enjoy!

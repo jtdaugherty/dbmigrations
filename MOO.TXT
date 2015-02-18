@@ -2,7 +2,169 @@
 moo: the dbmigrations management tool
 -------------------------------------
 
-Before using moo, you must set two environment variables:
+The dbmigrations package exposes a library and a tool. The tool, called
+"moo", is responsible for creating, installing, and reverting migrations
+in your database backend.
+
+At present, PostgreSQL and Sqlite3 are the only supported database backends.
+
+The moo tool works by creating migration files in a specific location,
+called a migration store, on your filesystem. This directory is where
+all possible migrations for your project will be kept. Moo allows you to
+create migrations that depend on each other. When you use moo to upgrade
+your database schema, it determines which migrations are missing, what
+their dependencies are, and installs the required migrations in the
+correct order (based on dependencies).
+
+Moo works by prompting you for new migration information. It then
+creates a migration YAML file (whose format is described below), which
+you then edit by hand.
+
+When migrations are installed into your database, the set of installed
+migrations is tracked by way of a migration table that is installed into
+your database.
+
+Getting started
+---------------
+
+ 1. Create a directory in which to store migration files.
+
+ 2. Set an environment variable DBM_MIGRATION_STORE to the path to the
+    directory you created in step 1.
+
+ 3. Set an environment variable DBM_DATABASE_TYPE to a supported
+    backend. Valid values are "postgresql" and "sqlite3".
+
+ 4. Set an environment variable DBM_DATABASE to a database connection
+    string that is appropriate for the value of DBM_DATABASE_TYPE you
+    chose.
+
+ 5. Run "moo upgrade". This command will not actually install any
+    migrations, since you have not created any, but it will attempt to
+    connect to your database and install a migration-tracking table.
+
+    If this step succeeds, you should see this output:
+
+    Database is up to date.
+
+ 6. Create a migration with "moo new".  Here is an example output:
+
+    $ moo new hello-world
+    Selecting dependencies for new migration: hello-world
+    
+    Confirm: create migration 'hello-world'
+      (No dependencies)
+    Are you sure? (yn): y
+    Migration created successfully: ".../hello-world.txt"
+
+ 7. Edit the migration you created. In this case, moo created a file
+    $DBM_MIGRATION_STORE/hello_world.txt that looks like this:
+
+      Description: (Description here.)
+      Created: 2015-02-18 00:50:12.041176 UTC
+      Depends:
+      Apply: |
+        (Apply SQL here.)
+      
+      Revert: |
+        (Revert SQL here.)
+
+    This migration has no valid apply or revert SQL yet; that's for you
+    to provide.  You might edit the apply and revert fields as follows:
+
+      Apply: |
+        CREATE TABLE foo (a int);
+      
+      Revert: |
+        DROP TABLE foo;
+
+ 8. Test the new migration with "moo test". This will install the
+    migration in a transaction and roll it back. Here is example output:
+
+    $ moo test hello-world
+    Applying: hello-world... done.
+    Reverting: hello-world... done.
+    Successfully tested migrations.
+
+ 9. Install the migration. This can be done in one of two ways: with
+    "moo upgrade" or with "moo apply".  Here are examples:
+
+    $ moo apply hello-world
+    Applying: hello-world... done.
+    Successfully applied migrations.
+
+    $ moo upgrade
+    Applying: hello-world... done.
+    Database successfully upgraded.
+
+ 10. List installed migrations with "moo list".
+
+    $ moo list
+    hello-world
+
+ 10. Revert the migration.
+
+    $ moo revert hello-world
+    Reverting: hello-world... done.
+    Successfully reverted migrations.
+
+ 11. List migrations that have not been installed.
+
+    $ moo upgrade-list
+    Migrations to install:
+      hello-world
+
+Migration file format
+---------------------
+
+A migration used by this package is a structured document in YAML
+format containing these fields:
+
+   Description: (optional) a textual description of the migration
+
+  Dependencies: (required, but may be empty) a whitespace-separated
+                list of migration names on which the migration
+                depends; these names are the migration filenames
+                without the filename extension
+
+       Created: The UTC date and time at which this migration was
+                created
+
+         Apply: The SQL necessary to apply this migration to the
+                database
+
+        Revert: (optional) The SQL necessary to revert this migration
+                from the database
+
+The format of this file is somewhat flexible; please see the YAML 1.2
+format specification for a full description of syntax features.  I
+recommend appending "|" to the Apply and Revert fields if they contain
+multi-line SQL that you want to keep that way, e.g.,
+
+  Apply: |
+    CREATE OR REPLACE FUNCTION ...
+    ...
+    ...
+
+  Revert: |
+    DROP TABLE foo;
+    DROP TABLE bar;
+
+Note that this is only *necessary* when concatenating the lines would
+have a different meaning, e.g.,
+
+  Apply:
+    -- Comment here
+    CREATE TABLE;
+
+Without "|" on the "Apply:" line, the above text would be collapsed to
+"-- Comment here CREATE TABLE;" which is probably not what you want.
+For a full treatment of this behavior, see the YAML spec.
+
+Environment
+-----------
+
+Moo depends on these environment variables:
 
   DBM_DATABASE_TYPE
 
