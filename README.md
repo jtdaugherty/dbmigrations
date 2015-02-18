@@ -21,11 +21,11 @@ This package operates on two logical entities:
    permit easy implementation of other storage backends for
    migrations.
 
-moo: the management tool
-------------------------
+Getting started with dbmigrations
+---------------------------------
 
-This package includes one program, "moo".  For information about moo's
-usage and features, please see the file MOO.TXT.
+This package includes one program, "moo". See MOO.TXT for details on how
+to use this tool to manage your database migrations.
 
 Installation
 ------------
