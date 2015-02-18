@@ -32,9 +32,7 @@ Installation
 
 If you've obtained this package in source form and would like to
 install it, you'll need the "cabal" program. To install this package
-from the source directory, run:
-
-  cabal install
+from the source directory, run `cabal install`.
 
 Submitting patches
 ------------------
