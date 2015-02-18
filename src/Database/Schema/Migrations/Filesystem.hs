@@ -53,11 +53,7 @@ instance (MonadIO m) => MigrationStore FilesystemStore m where
     fullMigrationName s name =
         return $ storePath s </> name ++ filenameExtension
 
-    loadMigration s theId = do
-      result <- liftIO $ migrationFromFile s theId
-      return $ case result of
-                 Left _ -> Nothing
-                 Right m -> Just m
+    loadMigration s theId = liftIO $ migrationFromFile s theId
 
     getMigrations s = do
       contents <- liftIO $ getDirectoryContents $ storePath s
@@ -86,7 +82,7 @@ migrationFromFile store name =
 migrationFromPath :: FilePath -> IO (Either String Migration)
 migrationFromPath path = do
   let name = takeBaseName $ takeFileName path
-  (Right <$> process name) `catch` (\(FilesystemStoreError s) -> return $ Left s)
+  (Right <$> process name) `catch` (\(FilesystemStoreError s) -> return $ Left $ "Could not parse migration " ++ path ++ ":" ++ s)
 
   where
     process name = do

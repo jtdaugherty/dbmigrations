@@ -22,7 +22,7 @@ module Database.Schema.Migrations.Store
     )
 where
 
-import Data.Maybe ( catMaybes, isJust )
+import Data.Maybe ( isJust )
 import Control.Monad ( mzero )
 import Control.Applicative ( (<$>) )
 import qualified Data.Map as Map
@@ -51,7 +51,7 @@ data StoreData = StoreData { storeDataMapping :: MigrationMap
 -- which existing migrations can be loaded.
 class (Monad m) => MigrationStore s m where
     -- |Load a migration from the store.
-    loadMigration :: s -> String -> m (Maybe Migration)
+    loadMigration :: s -> String -> m (Either String Migration)
 
     -- |Save a migration to the store.
     saveMigration :: s -> Migration -> m ()
@@ -73,6 +73,8 @@ data MapValidationError = DependencyReferenceError String String
                           -- ^ An error was encountered when
                           -- constructing the dependency graph for
                           -- this store.
+                        | InvalidMigration String
+                          -- ^ The specified migration is invalid.
                           deriving (Eq)
 
 instance Show MapValidationError where
@@ -80,6 +82,8 @@ instance Show MapValidationError where
         "Migration " ++ (show from) ++ " references nonexistent dependency " ++ show to
     show (DependencyGraphError msg) =
         "There was an error constructing the dependency graph: " ++ msg
+    show (InvalidMigration msg) =
+        "There was an error loading a migration: " ++ msg
 
 -- |A convenience function for extracting the list of 'Migration's
 -- extant in the specified 'StoreData'.
@@ -100,12 +104,19 @@ storeLookup storeData migrationName =
 loadMigrations :: (MigrationStore s m) => s -> m (Either [MapValidationError] StoreData)
 loadMigrations store = do
   migrations <- getMigrations store
-  loaded <- mapM (\name -> loadMigration store name) migrations
-  let mMap = Map.fromList $ [ (mId e, e) | e <- catMaybes $ loaded ]
-      validationErrors = validateMigrationMap mMap
+  loadedWithErrors <- mapM (\name -> loadMigration store name) migrations
 
-  case null validationErrors of
-    False -> return $ Left validationErrors
+  let mMap = Map.fromList $ [ (mId e, e) | e <- loaded ]
+      validationErrors = validateMigrationMap mMap
+      (loaded, loadErrors) = sortResults loadedWithErrors ([], [])
+      allErrors = validationErrors ++ (InvalidMigration <$> loadErrors)
+
+      sortResults [] v = v
+      sortResults (Left e:rest) (ms, es) = sortResults rest (ms, e:es)
+      sortResults (Right m:rest) (ms, es) = sortResults rest (m:ms, es)
+
+  case null allErrors of
+    False -> return $ Left allErrors
     True -> do
       -- Construct a dependency graph and, if that succeeds, return
       -- StoreData.

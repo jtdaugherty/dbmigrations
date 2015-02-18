@@ -81,19 +81,27 @@ migrationParsingTestCases = [ ("valid_full", Right valid_full)
                             , ("valid_no_revert"
                               , Right (valid_full { mId = "valid_no_revert", mRevert = Nothing }))
                             , ("invalid_missing_required_fields"
-                              , Left $ "Error in " ++
+                              , Left $ "Could not parse migration " ++
+                                         (fp "invalid_missing_required_fields.txt") ++
+                                         ":Error in " ++
                                          (show $ fp "invalid_missing_required_fields.txt") ++
                                          ": missing required field(s): " ++
                                          "[\"Created\",\"Depends\"]")
                             , ("invalid_field_name"
-                              , Left $ "Error in " ++
+                              , Left $ "Could not parse migration " ++
+                                         (fp "invalid_field_name.txt") ++
+                                         ":Error in " ++
                                          (show $ fp "invalid_field_name.txt") ++
                                          ": unrecognized field found")
                             , ("invalid_syntax"
-                              , Left $ "user error (syntax error: line 7, " ++
+                              , Left $ "Could not parse migration " ++
+                                         (fp "invalid_syntax.txt") ++
+                                         ":user error (syntax error: line 7, " ++
                                          "column 0)")
                             , ("invalid_timestamp"
-                              , Left $ "Error in " ++
+                              , Left $ "Could not parse migration " ++
+                                         (fp "invalid_timestamp.txt") ++
+                                         ":Error in " ++
                                          (show $ fp "invalid_timestamp.txt") ++
                                          ": unrecognized field found")
                             ]
