@@ -11,7 +11,7 @@ import  Database.HDBC (SqlError, catchSql, seErrorMsg)
 import  Prelude  hiding (lookup)
 import  System.Environment (getArgs, getEnvironment, getProgName)
 import  System.Exit (ExitCode (ExitFailure), exitWith)
-                                               
+
 import  Database.Schema.Migrations.Filesystem (FilesystemStore (..))
 import  Database.Schema.Migrations.Store
 import  Moo.CommandInterface
