@@ -66,6 +66,7 @@ Library
           Database.Schema.Migrations.Backend
           Database.Schema.Migrations.Backend.HDBC
           Database.Schema.Migrations.Store
+          Moo.Main
 
   Other-Modules:
           Database.Schema.Migrations.CycleDetection
