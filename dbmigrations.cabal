@@ -25,7 +25,25 @@ Build-Type:          Simple
 License:             BSD3
 License-File:        LICENSE
 Cabal-Version:       >= 1.10
-Data-Files:          README.md MOO.TXT
+
+Data-Files:
+  README.md
+  MOO.TXT
+  test/example_store/root
+  test/example_store/update1
+  test/example_store/update2
+  test/migration_parsing/invalid_field_name.txt
+  test/migration_parsing/invalid_missing_required_fields.txt
+  test/migration_parsing/invalid_syntax.txt
+  test/migration_parsing/invalid_timestamp.txt
+  test/migration_parsing/valid_full.txt
+  test/migration_parsing/valid_no_depends.txt
+  test/migration_parsing/valid_no_desc.txt
+  test/migration_parsing/valid_no_revert.txt
+  test/migration_parsing/valid_with_colon.txt
+  test/migration_parsing/valid_with_comments.txt
+  test/migration_parsing/valid_with_comments2.txt
+  test/migration_parsing/valid_with_multiline_deps.txt
 
 Source-Repository head
   type:     git
@@ -95,6 +113,19 @@ test-suite dbmigrations-tests
     HDBC-sqlite3,
     HUnit >= 1.2,
     process >= 1.1
+
+  other-modules:
+    BackendTest
+    Common
+    CommonTH
+    CycleDetectionTest
+    DependencyTest
+    FilesystemParseTest
+    FilesystemSerializeTest
+    FilesystemTest
+    MigrationsTest
+    StoreTest
+    TestDriver
 
   if impl(ghc >= 6.12.0)
     ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields
