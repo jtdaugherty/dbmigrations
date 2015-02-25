@@ -45,7 +45,8 @@ usage = do
 
 usageSpecific :: Command -> IO a
 usageSpecific command = do
-  putStrLn $ "Usage: initstore-fs " ++ usageString command
+  pn <- getProgName
+  putStrLn $ "Usage: " ++ pn ++ " " ++ usageString command
   exitWith (ExitFailure 1)
 
 procArgs :: Args -> IO (Command, CommandOptions, [String])
