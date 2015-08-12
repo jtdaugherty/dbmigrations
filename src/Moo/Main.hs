@@ -17,7 +17,7 @@ import  Prelude  hiding (lookup)
 import  System.Environment (getProgName)
 import  System.Exit (ExitCode (ExitFailure), exitWith)
 
-import  Database.Schema.Migrations.Filesystem (FilesystemStore (..))
+import  Database.Schema.Migrations.Filesystem (filesystemStore, FilesystemStoreSettings(..))
 import  Database.Schema.Migrations.Store
 import  Moo.CommandInterface
 import  Moo.Core
@@ -72,7 +72,7 @@ mainWithConf args conf = do
          fromMaybe (error $ "Error: missing required environment variable " ++ envStoreName)
                    mStoreName
 
-  let  store = FSStore { storePath = storePathStr }
+  let store = filesystemStore $ FSStore { storePath = storePathStr }
 
   if length required < length ( _cRequired command) then
       usageSpecific command else
@@ -89,7 +89,7 @@ mainWithConf args conf = do
                               , _appOptionalArgs = ["" :: String]
                               , _appDatabaseConnStr = liftM DbConnDescriptor mDbConnStr
                               , _appDatabaseType = mDbType
-                              , _appStore = FSStore storePathStr
+                              , _appStore = store
                               , _appStoreData = storeData
                               }
             runReaderT (_cHandler command storeData) st `catchSql` reportSqlError

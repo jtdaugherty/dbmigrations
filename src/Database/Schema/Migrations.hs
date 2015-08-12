@@ -37,8 +37,7 @@ missingMigrations backend storeData = do
 
 -- |Create a new migration and store it in the 'S.MigrationStore',
 -- with some of its fields initially set to defaults.
-createNewMigration :: (S.MigrationStore s)
-                   => s -- ^ The 'S.MigrationStore' in which to create a new migration
+createNewMigration :: S.MigrationStore -- ^ The 'S.MigrationStore' in which to create a new migration
                    -> String -- ^ The name of the new migration to create
                    -> [String] -- ^ The list of migration names on which the new migration should depend
                    -> IO (Either String Migration)

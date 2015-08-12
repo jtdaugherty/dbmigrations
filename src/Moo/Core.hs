@@ -10,8 +10,7 @@ import Database.HDBC.PostgreSQL (connectPostgreSQL)
 import Database.HDBC.Sqlite3 (connectSqlite3)
 
 import Database.Schema.Migrations ()
-import Database.Schema.Migrations.Filesystem (FilesystemStore)
-import Database.Schema.Migrations.Store (StoreData)
+import Database.Schema.Migrations.Store (MigrationStore, StoreData)
 import Database.Schema.Migrations.Backend
 import Database.Schema.Migrations.Backend.HDBC
 
@@ -26,7 +25,7 @@ data AppState = AppState { _appOptions         :: CommandOptions
                          , _appCommand         :: Command
                          , _appRequiredArgs    :: [String]
                          , _appOptionalArgs    :: [String]
-                         , _appStore           :: FilesystemStore
+                         , _appStore           :: MigrationStore
                          , _appDatabaseConnStr :: Maybe DbConnDescriptor
                          , _appDatabaseType    :: Maybe String
                          , _appStoreData       :: StoreData

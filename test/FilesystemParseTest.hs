@@ -11,7 +11,7 @@ import Common
 
 import Database.Schema.Migrations.Migration
 import Database.Schema.Migrations.Filesystem
-    ( FilesystemStore(..)
+    ( FilesystemStoreSettings(..)
     , migrationFromFile
     )
 

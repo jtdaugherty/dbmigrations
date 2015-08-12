@@ -49,21 +49,23 @@ data StoreData = StoreData { storeDataMapping :: MigrationMap
 -- monad context in which to operate on the store).  A MigrationStore
 -- is a facility in which new migrations can be created, and from
 -- which existing migrations can be loaded.
-class MigrationStore s where
-    -- |Load a migration from the store.
-    loadMigration :: s -> String -> IO (Either String Migration)
+data MigrationStore =
+    MigrationStore { loadMigration :: String -> IO (Either String Migration)
+                   -- ^ Load a migration from the store.
 
-    -- |Save a migration to the store.
-    saveMigration :: s -> Migration -> IO ()
+                   , saveMigration :: Migration -> IO ()
+                   -- |Save a migration to the store.
 
-    -- |Return a list of all available migrations' names.
-    getMigrations :: s -> IO [String]
+                   , getMigrations :: IO [String]
+                   -- ^ Return a list of all available migrations'
+                   -- names.
 
-    -- |Return the full representation of a given migration name;
-    -- mostly for filesystem stores, where the full representation
-    -- includes the store path.
-    fullMigrationName :: s -> String -> IO String
-    fullMigrationName _ name = return name
+                   , fullMigrationName :: String -> IO String
+                   -- ^ Return the full representation of a given
+                   -- migration name; mostly for filesystem stores,
+                   -- where the full representation includes the store
+                   -- path.
+                   }
 
 -- |A type for types of validation errors for migration maps.
 data MapValidationError = DependencyReferenceError String String
@@ -101,7 +103,7 @@ storeLookup storeData migrationName =
 -- loaded migrations, and return errors or a 'MigrationMap' on
 -- success.  Generally speaking, this will be the first thing you
 -- should call once you have constructed a 'MigrationStore'.
-loadMigrations :: (MigrationStore s) => s -> IO (Either [MapValidationError] StoreData)
+loadMigrations :: MigrationStore -> IO (Either [MapValidationError] StoreData)
 loadMigrations store = do
   migrations <- getMigrations store
   loadedWithErrors <- mapM (\name -> loadMigration store name) migrations

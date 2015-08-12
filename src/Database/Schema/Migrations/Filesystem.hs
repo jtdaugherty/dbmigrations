@@ -1,10 +1,11 @@
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, DeriveDataTypeable, ScopedTypeVariables #-}
+{-# LANGUAGE DeriveDataTypeable, ScopedTypeVariables #-}
 -- |This module provides a type for interacting with a
 -- filesystem-backed 'MigrationStore'.
 module Database.Schema.Migrations.Filesystem
-    ( FilesystemStore(..)
+    ( FilesystemStoreSettings(..)
     , migrationFromFile
     , migrationFromPath
+    , filesystemStore
     )
 where
 
@@ -35,7 +36,7 @@ import Database.Schema.Migrations.Store
 
 type FieldProcessor = String -> Migration -> Maybe Migration
 
-data FilesystemStore = FSStore { storePath :: FilePath }
+data FilesystemStoreSettings = FSStore { storePath :: FilePath }
 
 data FilesystemStoreError = FilesystemStoreError String
                             deriving (Show, Typeable)
@@ -48,22 +49,26 @@ throwFS = throw . FilesystemStoreError
 filenameExtension :: String
 filenameExtension = ".txt"
 
-instance MigrationStore FilesystemStore where
-    fullMigrationName s name =
-        return $ storePath s </> name ++ filenameExtension
+filesystemStore :: FilesystemStoreSettings -> MigrationStore
+filesystemStore s =
+    MigrationStore { fullMigrationName = fsFullMigrationName s
 
-    loadMigration s theId = migrationFromFile s theId
+                   , loadMigration = \theId -> migrationFromFile s theId
 
-    getMigrations s = do
-      contents <- getDirectoryContents $ storePath s
-      let migrationFilenames = [ f | f <- contents, isMigrationFilename f ]
-          fullPaths = [ (f, storePath s </> f) | f <- migrationFilenames ]
-      existing <- filterM (\(_, full) -> doesFileExist full) fullPaths
-      return [ dropExtension short | (short, _) <- existing ]
+                   , getMigrations = do
+                       contents <- getDirectoryContents $ storePath s
+                       let migrationFilenames = [ f | f <- contents, isMigrationFilename f ]
+                           fullPaths = [ (f, storePath s </> f) | f <- migrationFilenames ]
+                       existing <- filterM (\(_, full) -> doesFileExist full) fullPaths
+                       return [ dropExtension short | (short, _) <- existing ]
 
-    saveMigration s m = do
-      filename <- fullMigrationName s $ mId m
-      writeFile filename $ serializeMigration m
+                   , saveMigration = \m -> do
+                       filename <- fsFullMigrationName s $ mId m
+                       writeFile filename $ serializeMigration m
+                   }
+
+fsFullMigrationName :: FilesystemStoreSettings -> FilePath -> IO FilePath
+fsFullMigrationName s name = return $ storePath s </> name ++ filenameExtension
 
 isMigrationFilename :: FilePath -> Bool
 isMigrationFilename path = takeExtension path == filenameExtension
@@ -71,9 +76,9 @@ isMigrationFilename path = takeExtension path == filenameExtension
 -- |Given a store and migration name, read and parse the associated
 -- migration and return the migration if successful.  Otherwise return
 -- a parsing error message.
-migrationFromFile :: FilesystemStore -> String -> IO (Either String Migration)
+migrationFromFile :: FilesystemStoreSettings -> String -> IO (Either String Migration)
 migrationFromFile store name =
-    fullMigrationName store name >>= migrationFromPath
+    fsFullMigrationName store name >>= migrationFromPath
 
 -- |Given a filesystem path, read and parse the file as a migration
 -- return the 'Migration' if successful.  Otherwise return a parsing
