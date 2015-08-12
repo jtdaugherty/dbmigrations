@@ -4,6 +4,7 @@
 
 module Moo.CommandHandlers where
 
+import Control.Applicative ((<$>))
 import Moo.Core
 import Moo.CommandUtils
 import Control.Monad ( when, forM_ )
@@ -23,7 +24,7 @@ newCommand storeData = do
   required <- asks _appRequiredArgs
   store    <- asks _appStore
   let [migrationId] = required
-  noAsk <- fmap _noAsk $ asks _appOptions
+  noAsk <- _noAsk <$> asks _appOptions
 
   liftIO $ do
     fullPath <- fullMigrationName store migrationId
@@ -56,7 +57,7 @@ newCommand storeData = do
 
 upgradeCommand :: CommandHandler
 upgradeCommand storeData = do
-  isTesting <-  fmap _test $ asks _appOptions
+  isTesting <-  _test <$> asks _appOptions
   withConnection $ \(AnyIConnection conn) -> do
         ensureBootstrappedBackend conn >> commit conn
         migrationNames <- missingMigrations conn storeData
@@ -89,7 +90,7 @@ upgradeListCommand storeData = do
 
 reinstallCommand :: CommandHandler
 reinstallCommand storeData = do
-  isTesting <-  fmap _test $ asks _appOptions
+  isTesting <-  _test <$> asks _appOptions
   required <- asks _appRequiredArgs
   let [migrationId] = required
 
@@ -120,7 +121,7 @@ listCommand _ = do
 
 applyCommand :: CommandHandler
 applyCommand storeData = do
-  isTesting <-  fmap _test $ asks _appOptions
+  isTesting <-  _test <$> asks _appOptions
   required  <- asks _appRequiredArgs
   let [migrationId] = required
 
@@ -139,7 +140,7 @@ applyCommand storeData = do
 
 revertCommand :: CommandHandler
 revertCommand storeData = do
-  isTesting <-  fmap _test $ asks _appOptions
+  isTesting <-  _test <$> asks _appOptions
   required <- asks _appRequiredArgs
   let [migrationId] = required
 
