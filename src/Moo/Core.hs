@@ -8,6 +8,7 @@ import Data.Configurator.Types (Config)
 import qualified Data.Text as T
 import Database.HDBC.PostgreSQL (connectPostgreSQL)
 import Database.HDBC.Sqlite3 (connectSqlite3)
+import System.Environment (getEnvironment)
 
 import Database.Schema.Migrations ()
 import Database.Schema.Migrations.Store (MigrationStore, StoreData)
@@ -38,6 +39,19 @@ data Configuration = Configuration
     , _databaseType       :: String
     , _migrationStorePath :: FilePath
     }
+
+loadConfiguration :: Maybe FilePath -> IO (Either String Configuration)
+loadConfiguration pth = do
+    mCfg <- case pth of
+        Nothing -> fromShellEnvironment <$> getEnvironment
+        Just path -> fromConfigurator =<< C.load [C.Required path]
+
+    case mCfg of
+        Nothing -> do
+            case pth of
+                Nothing -> return $ Left "Missing required environment variables"
+                Just path -> return $ Left $ "Could not load configuration from " ++ path
+        Just cfg -> return $ Right cfg
 
 fromShellEnvironment :: ShellEnvironment -> Maybe Configuration
 fromShellEnvironment env = Configuration <$> connectionString
