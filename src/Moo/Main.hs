@@ -8,10 +8,8 @@ module Moo.Main
     )
 where
 
-import  Control.Monad (liftM)
 import  Control.Monad.Reader (forM_, runReaderT, when)
 import  Data.List (intercalate)
-import  Data.Maybe (fromMaybe)
 import  Database.HDBC (SqlError, catchSql, seErrorMsg)
 import  Prelude  hiding (lookup)
 import  System.Environment (getProgName)
@@ -65,14 +63,10 @@ mainWithConf :: Args -> Configuration -> IO ()
 mainWithConf args conf = do
   (command, opts, required) <- procArgs args
 
-  let mDbConnStr = _connectionString conf
-  let mDbType = _databaseType conf
-  let mStoreName = _migrationStorePath conf
-  let  storePathStr =
-         fromMaybe (error $ "Error: missing required environment variable " ++ envStoreName)
-                   mStoreName
-
-  let store = filesystemStore $ FSStore { storePath = storePathStr }
+  let dbConnStr = _connectionString conf
+      dbType = _databaseType conf
+      storePathStr = _migrationStorePath conf
+      store = filesystemStore $ FSStore { storePath = storePathStr }
 
   if length required < length ( _cRequired command) then
       usageSpecific command else
@@ -87,8 +81,8 @@ mainWithConf args conf = do
                               , _appCommand = command
                               , _appRequiredArgs = required
                               , _appOptionalArgs = ["" :: String]
-                              , _appDatabaseConnStr = liftM DbConnDescriptor mDbConnStr
-                              , _appDatabaseType = mDbType
+                              , _appDatabaseConnStr = DbConnDescriptor dbConnStr
+                              , _appDatabaseType = dbType
                               , _appStore = store
                               , _appStoreData = storeData
                               }

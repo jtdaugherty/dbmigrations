@@ -13,7 +13,7 @@ import Control.Monad ( when, forM_, unless )
 import Control.Monad.Reader ( asks )
 import Control.Monad.Trans ( liftIO )
 import Data.List ( intercalate, sortBy )
-import Data.Maybe ( fromJust, isNothing, isJust )
+import Data.Maybe ( fromJust, isJust )
 import System.Exit ( exitWith, ExitCode(..) )
 import System.IO ( stdout, hFlush, hGetBuffering
                  , hSetBuffering, stdin, BufferMode(..) )
@@ -97,17 +97,9 @@ makeBackend dbType (DbConnDescriptor connStr) =
 -- with the connection.  Return its result.
 withBackend :: (Backend -> IO a) -> AppT a
 withBackend act = do
-  mDbPath <- asks _appDatabaseConnStr
-  when (isNothing mDbPath) $ error $ "Error: Database connection string not \
-                                     \specified, please set " ++ envDatabaseName
-  mDbType <- asks _appDatabaseType
-  when (isNothing mDbType) $
-       error $ "Error: Database type not specified, " ++
-                 "please set " ++ envDatabaseType ++
-                 " (supported types: " ++
-                 intercalate "," (map fst databaseTypes) ++ ")"
-  liftIO $ bracket (makeBackend (fromJust mDbType) (fromJust mDbPath))
-             disconnectBackend act
+  dbPath <- asks _appDatabaseConnStr
+  dbType <- asks _appDatabaseType
+  liftIO $ bracket (makeBackend dbType dbPath) disconnectBackend act
 
 -- Given a migration name and selected dependencies, get the user's
 -- confirmation that a migration should be created.

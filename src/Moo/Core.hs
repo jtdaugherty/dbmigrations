@@ -26,38 +26,39 @@ data AppState = AppState { _appOptions         :: CommandOptions
                          , _appRequiredArgs    :: [String]
                          , _appOptionalArgs    :: [String]
                          , _appStore           :: MigrationStore
-                         , _appDatabaseConnStr :: Maybe DbConnDescriptor
-                         , _appDatabaseType    :: Maybe String
+                         , _appDatabaseConnStr :: DbConnDescriptor
+                         , _appDatabaseType    :: String
                          , _appStoreData       :: StoreData
                          }
 
 type ShellEnvironment = [(String, String)]
 
 data Configuration = Configuration
-    { _connectionString   :: Maybe String
-    , _databaseType       :: Maybe String
-    , _migrationStorePath :: Maybe FilePath
+    { _connectionString   :: String
+    , _databaseType       :: String
+    , _migrationStorePath :: FilePath
     }
 
-fromShellEnvironment :: ShellEnvironment -> Configuration
-fromShellEnvironment env = Configuration connectionString
-                                         databaseType
-                                         migrationStorePath
+fromShellEnvironment :: ShellEnvironment -> Maybe Configuration
+fromShellEnvironment env = Configuration <$> connectionString
+                                         <*> databaseType
+                                         <*> migrationStorePath
     where
       connectionString = envLookup envDatabaseName
       databaseType = envLookup envDatabaseType
       migrationStorePath = envLookup envStoreName
       envLookup = (\evar -> lookup evar env)
 
-fromConfigurator :: Config -> IO Configuration
-fromConfigurator conf = Configuration <$> connectionString
-                                      <*> databaseType
-                                      <*> migrationStorePath
-    where
-      connectionString = configLookup envDatabaseName
-      databaseType = configLookup envDatabaseType
-      migrationStorePath = configLookup envStoreName
-      configLookup = C.lookup conf . T.pack
+fromConfigurator :: Config -> IO (Maybe Configuration)
+fromConfigurator conf = do
+    let configLookup = C.lookup conf . T.pack
+    connectionString <- configLookup envDatabaseName
+    databaseType <- configLookup envDatabaseType
+    migrationStorePath <- configLookup envStoreName
+
+    return $ Configuration <$> connectionString
+                           <*> databaseType
+                           <*> migrationStorePath
 
 -- |CommandOptions are those options that can be specified at the command
 -- prompt to modify the behavior of a command.
