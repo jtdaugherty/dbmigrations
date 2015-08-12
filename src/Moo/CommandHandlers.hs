@@ -1,7 +1,6 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
-
 module Moo.CommandHandlers where
 
 import Control.Applicative ((<$>))
@@ -17,7 +16,6 @@ import Database.HDBC ( IConnection(commit, rollback))
 import Database.Schema.Migrations.Store hiding (getMigrations)
 import Database.Schema.Migrations
 import Database.Schema.Migrations.Backend
-
 
 newCommand :: CommandHandler
 newCommand storeData = do
@@ -54,7 +52,6 @@ newCommand storeData = do
       False -> do
                putStrLn "Migration creation cancelled."
 
-
 upgradeCommand :: CommandHandler
 upgradeCommand storeData = do
   isTesting <-  _test <$> asks _appOptions
@@ -75,7 +72,6 @@ upgradeCommand storeData = do
                  commit conn
                  putStrLn "Database successfully upgraded."
 
-
 upgradeListCommand :: CommandHandler
 upgradeListCommand storeData = do
   withConnection $ \(AnyIConnection conn) -> do
@@ -86,7 +82,6 @@ upgradeListCommand storeData = do
                                exitSuccess
         putStrLn "Migrations to install:"
         forM_ migrationNames (putStrLn . ("  " ++))
-
 
 reinstallCommand :: CommandHandler
 reinstallCommand storeData = do
@@ -109,7 +104,6 @@ reinstallCommand storeData = do
           rollback conn
           putStrLn "Reinstall test successful."
 
-
 listCommand :: CommandHandler
 listCommand _ = do
   withConnection $ \(AnyIConnection conn) -> do
@@ -117,7 +111,6 @@ listCommand _ = do
       ms <- getMigrations conn
       forM_ ms $ \m ->
           when (not $ m == rootMigrationName) $ putStrLn m
-
 
 applyCommand :: CommandHandler
 applyCommand storeData = do
@@ -137,7 +130,6 @@ applyCommand storeData = do
             rollback conn
             putStrLn "Migration installation test successful."
 
-
 revertCommand :: CommandHandler
 revertCommand storeData = do
   isTesting <-  _test <$> asks _appOptions
@@ -156,7 +148,6 @@ revertCommand storeData = do
         True -> do
           rollback conn
           putStrLn "Migration uninstallation test successful."
-
 
 testCommand :: CommandHandler
 testCommand storeData = do

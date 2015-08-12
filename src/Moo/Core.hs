@@ -1,5 +1,4 @@
 {-# LANGUAGE ExistentialQuantification #-}
-
 module Moo.Core where
 
 import Control.Applicative ((<$>), (<*>))
@@ -16,14 +15,11 @@ import Database.Schema.Migrations.Backend.HDBC ()
 import Database.Schema.Migrations.Filesystem (FilesystemStore)
 import Database.Schema.Migrations.Store (StoreData)
 
-
 -- |The monad in which the application runs.
 type AppT a = ReaderT AppState IO a
 
-
 -- |The type of actions that are invoked to handle specific commands
 type CommandHandler = StoreData -> AppT ()
-
 
 -- |Application state which can be accessed by any command handler.
 data AppState = AppState { _appOptions         :: CommandOptions
@@ -68,14 +64,12 @@ fromConfigurator conf = Configuration <$> connectionString
 -- function can return any type of connection.
 data AnyIConnection = forall c. (IConnection c) => AnyIConnection c
 
-
 -- |CommandOptions are those options that can be specified at the command
 -- prompt to modify the behavior of a command.
 data CommandOptions = CommandOptions { _configFilePath :: Maybe String
                                      , _test           :: Bool
                                      , _noAsk          :: Bool
                                      }
-
 
 -- |A command has a name, a number of required arguments' labels, a
 -- number of optional arguments' labels, and an action to invoke.
@@ -87,16 +81,13 @@ data Command = Command { _cName           :: String
                        , _cHandler        :: CommandHandler
                        }
 
-
 -- |ConfigOptions are those options read from configuration file
 data ConfigData = ConfigData { _dbTypeStr     :: String
                              , _dbConnStr     :: String
                              , _fileStorePath :: String
                              }
 
-
 newtype DbConnDescriptor = DbConnDescriptor String
-
 
 -- |The values of DBM_DATABASE_TYPE and their corresponding connection
 -- factory functions.

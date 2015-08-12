@@ -13,7 +13,6 @@ import Moo.CommandHandlers
 import Moo.Core
 import System.Console.GetOpt
 
-
 -- |The available commands; used to dispatch from the command line and
 -- used to generate usage output.
 -- |The available commands; used to dispatch from the command line and
@@ -83,13 +82,11 @@ commands = [ Command "new" [migrationName]
 findCommand :: String -> Maybe Command
 findCommand name = listToMaybe [ c | c <- commands, _cName c == name ]
 
-
 commandOptions :: [ OptDescr (CommandOptions -> IO CommandOptions) ]
 commandOptions =  [ optionConfigFile
                   , optionTest
                   , optionNoAsk
                   ]
-
 
 optionConfigFile :: OptDescr (CommandOptions -> IO CommandOptions)
 optionConfigFile = Option "c" ["config-file"]
@@ -97,18 +94,15 @@ optionConfigFile = Option "c" ["config-file"]
                              return opt { _configFilePath = Just arg }) "FILE")
                    "Specify location of configuration file"
 
-
 optionTest :: OptDescr (CommandOptions -> IO CommandOptions)
 optionTest = Option "t" ["test"]
              (NoArg (\opt -> return opt { _test = True }))
              "Perform the action then rollback when finished"
 
-
 optionNoAsk :: OptDescr (CommandOptions -> IO CommandOptions)
 optionNoAsk = Option "n" ["no-ask"]
               (NoArg (\opt -> return opt { _noAsk = True }))
               "Do not interactively ask any questions, just do it"
-
 
 getCommandArgs :: [String] -> IO ( CommandOptions, [String] )
 getCommandArgs args = do
@@ -116,14 +110,11 @@ getCommandArgs args = do
   opts <- foldl (>>=) defaultOptions actions
   return ( opts, required )
 
-
 defaultOptions :: IO CommandOptions
 defaultOptions = return $ CommandOptions Nothing False False
 
-
 commandOptionUsage :: String
 commandOptionUsage = usageInfo "Options:" commandOptions
-
 
 usageString :: Command -> String
 usageString command =

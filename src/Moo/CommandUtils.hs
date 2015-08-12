@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleContexts #-}
-
 module Moo.CommandUtils
        ( apply
        , confirmCreation
@@ -20,7 +19,6 @@ import System.IO ( stdout, hFlush, hGetBuffering
                  , hSetBuffering, stdin, BufferMode(..) )
 import Database.HDBC ( IConnection, disconnect )
 
-
 import Database.Schema.Migrations ( migrationsToApply, migrationsToRevert )
 import Database.Schema.Migrations.Backend ( Backend
                                           , applyMigration
@@ -32,7 +30,6 @@ import Database.Schema.Migrations.Store ( StoreData
                                         , storeMigrations
                                         )
 import Moo.Core
-
 
 apply :: (IConnection b, Backend b IO)
          => Migration -> StoreData -> b -> Bool -> IO [Migration]
@@ -56,7 +53,6 @@ apply m storeData backend complain = do
         putStr $ "Applying: " ++ mId it ++ "... "
         applyMigration conn it
         putStrLn "done."
-
 
 revert :: (IConnection b, Backend b IO)
           => Migration -> StoreData -> b -> IO [Migration]
@@ -90,7 +86,6 @@ lookupMigration storeData name = do
       exitWith (ExitFailure 1)
     Just m' -> return m'
 
-
 -- Given a database type string and a database connection string,
 -- return a database connection or raise an error if the database
 -- connection cannot be established, or if the database type is not
@@ -102,7 +97,6 @@ makeConnection dbType (DbConnDescriptor connStr) =
                  " (supported types: " ++
                  intercalate "," (map fst databaseTypes) ++ ")"
       Just mkConnection -> mkConnection connStr
-
 
 -- Given an action that needs a database connection, connect to the
 -- database using the application configuration and invoke the action
@@ -121,7 +115,6 @@ withConnection act = do
   liftIO $ bracket (makeConnection (fromJust mDbType) (fromJust mDbPath))
              (\(AnyIConnection conn) -> disconnect conn) act
 
-
 -- Given a migration name and selected dependencies, get the user's
 -- confirmation that a migration should be created.
 confirmCreation :: String -> [String] -> IO Bool
@@ -134,7 +127,6 @@ confirmCreation migrationId deps = do
   prompt "Are you sure?" [ ('y', (True, Nothing))
                          , ('n', (False, Nothing))
                          ]
-
 
 -- Prompt the user for a choice, given a prompt and a list of possible
 -- choices.  Let the user get help for the available choices, and loop
@@ -157,7 +149,6 @@ prompt message choiceMap = do
       helpChar = if hasHelp choiceMap then "h" else ""
       choiceMapWithHelp = choiceMap ++ [('h', (undefined, Just "this help"))]
 
-
 -- Given a PromptChoices, build a multi-line help string for those
 -- choices using the description information in the choice list.
 mkPromptHelp :: PromptChoices a -> String
@@ -165,17 +156,14 @@ mkPromptHelp choices =
     intercalate "" [ [c] ++ ": " ++ fromJust msg ++ "\n" |
                      (c, (_, msg)) <- choices, isJust msg ]
 
-
 -- Does the specified prompt choice list have any help messages in it?
 hasHelp :: PromptChoices a -> Bool
 hasHelp = (> 0) . length . filter hasMsg
     where hasMsg (_, (_, m)) = isJust m
 
-
 -- A general type for a set of choices that the user can make at a
 -- prompt.
 type PromptChoices a = [(Char, (a, Maybe String))]
-
 
 -- Get an input character in non-buffered mode, then restore the
 -- original buffering setting.
@@ -187,12 +175,10 @@ unbufferedGetChar = do
   hSetBuffering stdin bufferingMode
   return c
 
-
 -- The types for choices the user can make when being prompted for
 -- dependencies.
 data AskDepsChoice = Yes | No | View | Done | Quit
                      deriving (Eq)
-
 
 -- Interactively ask the user about which dependencies should be used
 -- when creating a new migration.
@@ -204,7 +190,6 @@ interactiveAskDeps storeData = do
   interactiveAskDeps' storeData (map mId sorted)
       where
         compareTimestamps m1 m2 = compare (mTimestamp m2) (mTimestamp m1)
-
 
 -- Recursive function to prompt the user for dependencies and let the
 -- user view information about potential dependencies.  Returns a list
@@ -236,7 +221,6 @@ interactiveAskDeps' storeData (name:rest) = do
             putStrLn "cancelled."
             exitWith (ExitFailure 1)
           Done -> return []
-
 
 -- The choices the user can make when being prompted for dependencies.
 askDepsChoices :: PromptChoices AskDepsChoice
