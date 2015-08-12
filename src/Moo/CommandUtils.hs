@@ -6,6 +6,7 @@ module Moo.CommandUtils
        , lookupMigration
        , revert
        , withBackend
+       , makeBackend
        ) where
 
 import Control.Exception ( bracket )
