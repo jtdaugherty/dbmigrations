@@ -11,7 +11,6 @@ import Data.Maybe ( isJust )
 import Control.Monad.Reader ( asks )
 import System.Exit ( exitWith, ExitCode(..), exitSuccess )
 import Control.Monad.Trans ( liftIO )
-import Database.HDBC ( IConnection(commit, rollback))
 
 import Database.Schema.Migrations.Store hiding (getMigrations)
 import Database.Schema.Migrations
@@ -55,28 +54,28 @@ newCommand storeData = do
 upgradeCommand :: CommandHandler
 upgradeCommand storeData = do
   isTesting <-  _test <$> asks _appOptions
-  withConnection $ \(AnyIConnection conn) -> do
-        ensureBootstrappedBackend conn >> commit conn
-        migrationNames <- missingMigrations conn storeData
+  withBackend $ \backend -> do
+        ensureBootstrappedBackend backend >> commitBackend backend
+        migrationNames <- missingMigrations backend storeData
         when (null migrationNames) $ do
                            putStrLn "Database is up to date."
                            exitSuccess
         forM_ migrationNames $ \migrationName -> do
             m <- lookupMigration storeData migrationName
-            apply m storeData conn False
+            apply m storeData backend False
         case isTesting of
           True -> do
-                 rollback conn
+                 rollbackBackend backend
                  putStrLn "Upgrade test successful."
           False -> do
-                 commit conn
+                 commitBackend backend
                  putStrLn "Database successfully upgraded."
 
 upgradeListCommand :: CommandHandler
 upgradeListCommand storeData = do
-  withConnection $ \(AnyIConnection conn) -> do
-        ensureBootstrappedBackend conn >> commit conn
-        migrationNames <- missingMigrations conn storeData
+  withBackend $ \backend -> do
+        ensureBootstrappedBackend backend >> commitBackend backend
+        migrationNames <- missingMigrations backend storeData
         when (null migrationNames) $ do
                                putStrLn "Database is up to date."
                                exitSuccess
@@ -89,26 +88,26 @@ reinstallCommand storeData = do
   required <- asks _appRequiredArgs
   let [migrationId] = required
 
-  withConnection $ \(AnyIConnection conn) -> do
-      ensureBootstrappedBackend conn >> commit conn
+  withBackend $ \backend -> do
+      ensureBootstrappedBackend backend >> commitBackend backend
       m <- lookupMigration storeData migrationId
 
-      revert m storeData conn
-      apply m storeData conn True
+      revert m storeData backend
+      apply m storeData backend True
 
       case isTesting of
         False -> do
-          commit conn
+          commitBackend backend
           putStrLn "Migration successfully reinstalled."
         True -> do
-          rollback conn
+          rollbackBackend backend
           putStrLn "Reinstall test successful."
 
 listCommand :: CommandHandler
 listCommand _ = do
-  withConnection $ \(AnyIConnection conn) -> do
-      ensureBootstrappedBackend conn >> commit conn
-      ms <- getMigrations conn
+  withBackend $ \backend -> do
+      ensureBootstrappedBackend backend >> commitBackend backend
+      ms <- getMigrations backend
       forM_ ms $ \m ->
           when (not $ m == rootMigrationName) $ putStrLn m
 
@@ -118,16 +117,16 @@ applyCommand storeData = do
   required  <- asks _appRequiredArgs
   let [migrationId] = required
 
-  withConnection $ \(AnyIConnection conn) -> do
-        ensureBootstrappedBackend conn >> commit conn
+  withBackend $ \backend -> do
+        ensureBootstrappedBackend backend >> commitBackend backend
         m <- lookupMigration storeData migrationId
-        apply m storeData conn True
+        apply m storeData backend True
         case isTesting of
           False -> do
-            commit conn
+            commitBackend backend
             putStrLn "Successfully applied migrations."
           True -> do
-            rollback conn
+            rollbackBackend backend
             putStrLn "Migration installation test successful."
 
 revertCommand :: CommandHandler
@@ -136,17 +135,17 @@ revertCommand storeData = do
   required <- asks _appRequiredArgs
   let [migrationId] = required
 
-  withConnection $ \(AnyIConnection conn) -> do
-      ensureBootstrappedBackend conn >> commit conn
+  withBackend $ \backend -> do
+      ensureBootstrappedBackend backend >> commitBackend backend
       m <- lookupMigration storeData migrationId
-      revert m storeData conn
+      revert m storeData backend
 
       case isTesting of
         False -> do
-          commit conn
+          commitBackend backend
           putStrLn "Successfully reverted migrations."
         True -> do
-          rollback conn
+          rollbackBackend backend
           putStrLn "Migration uninstallation test successful."
 
 testCommand :: CommandHandler
@@ -154,17 +153,17 @@ testCommand storeData = do
   required <- asks _appRequiredArgs
   let [migrationId] = required
 
-  withConnection $ \(AnyIConnection conn) -> do
-        ensureBootstrappedBackend conn >> commit conn
+  withBackend $ \backend -> do
+        ensureBootstrappedBackend backend >> commitBackend backend
         m <- lookupMigration storeData migrationId
-        migrationNames <- missingMigrations conn storeData
+        migrationNames <- missingMigrations backend storeData
         -- If the migration is already installed, remove it as part of
         -- the test
         when (not $ migrationId `elem` migrationNames) $
-             do revert m storeData conn
+             do revert m storeData backend
                 return ()
-        applied <- apply m storeData conn True
+        applied <- apply m storeData backend True
         forM_ (reverse applied) $ \migration -> do
-                             revert migration storeData conn
-        rollback conn
+                             revert migration storeData backend
+        rollbackBackend backend
         putStrLn "Successfully tested migrations."

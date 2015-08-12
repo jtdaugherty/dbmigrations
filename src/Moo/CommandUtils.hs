@@ -5,7 +5,7 @@ module Moo.CommandUtils
        , interactiveAskDeps
        , lookupMigration
        , revert
-       , withConnection
+       , withBackend
        ) where
 
 import Control.Exception ( bracket )
@@ -17,13 +17,9 @@ import Data.Maybe ( fromJust, isNothing, isJust )
 import System.Exit ( exitWith, ExitCode(..) )
 import System.IO ( stdout, hFlush, hGetBuffering
                  , hSetBuffering, stdin, BufferMode(..) )
-import Database.HDBC ( IConnection, disconnect )
 
 import Database.Schema.Migrations ( migrationsToApply, migrationsToRevert )
-import Database.Schema.Migrations.Backend ( Backend
-                                          , applyMigration
-                                          , revertMigration
-                                          )
+import Database.Schema.Migrations.Backend (Backend(..))
 import Database.Schema.Migrations.Migration ( Migration(..) )
 import Database.Schema.Migrations.Store ( StoreData
                                         , storeLookup
@@ -31,8 +27,7 @@ import Database.Schema.Migrations.Store ( StoreData
                                         )
 import Moo.Core
 
-apply :: (IConnection b, Backend b IO)
-         => Migration -> StoreData -> b -> Bool -> IO [Migration]
+apply :: Migration -> StoreData -> Backend -> Bool -> IO [Migration]
 apply m storeData backend complain = do
   -- Get the list of migrations to apply
   toApply <- migrationsToApply storeData backend m
@@ -54,8 +49,7 @@ apply m storeData backend complain = do
         applyMigration conn it
         putStrLn "done."
 
-revert :: (IConnection b, Backend b IO)
-          => Migration -> StoreData -> b -> IO [Migration]
+revert :: Migration -> StoreData -> Backend -> IO [Migration]
 revert m storeData backend = do
   -- Get the list of migrations to revert
   toRevert <- liftIO $ migrationsToRevert storeData backend m
@@ -90,19 +84,19 @@ lookupMigration storeData name = do
 -- return a database connection or raise an error if the database
 -- connection cannot be established, or if the database type is not
 -- supported.
-makeConnection :: String -> DbConnDescriptor -> IO AnyIConnection
-makeConnection dbType (DbConnDescriptor connStr) =
+makeBackend :: String -> DbConnDescriptor -> IO Backend
+makeBackend dbType (DbConnDescriptor connStr) =
     case lookup dbType databaseTypes of
       Nothing -> error $ "Unsupported database type " ++ show dbType ++
                  " (supported types: " ++
                  intercalate "," (map fst databaseTypes) ++ ")"
-      Just mkConnection -> mkConnection connStr
+      Just mkBackend -> mkBackend connStr
 
 -- Given an action that needs a database connection, connect to the
 -- database using the application configuration and invoke the action
 -- with the connection.  Return its result.
-withConnection :: (AnyIConnection -> IO a) -> AppT a
-withConnection act = do
+withBackend :: (Backend -> IO a) -> AppT a
+withBackend act = do
   mDbPath <- asks _appDatabaseConnStr
   when (isNothing mDbPath) $ error $ "Error: Database connection string not \
                                      \specified, please set " ++ envDatabaseName
@@ -112,8 +106,8 @@ withConnection act = do
                  "please set " ++ envDatabaseType ++
                  " (supported types: " ++
                  intercalate "," (map fst databaseTypes) ++ ")"
-  liftIO $ bracket (makeConnection (fromJust mDbType) (fromJust mDbPath))
-             (\(AnyIConnection conn) -> disconnect conn) act
+  liftIO $ bracket (makeBackend (fromJust mDbType) (fromJust mDbPath))
+             disconnectBackend act
 
 -- Given a migration name and selected dependencies, get the user's
 -- confirmation that a migration should be created.

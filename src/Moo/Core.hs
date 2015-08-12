@@ -6,14 +6,14 @@ import Control.Monad.Reader (ReaderT)
 import qualified Data.Configurator as C
 import Data.Configurator.Types (Config)
 import qualified Data.Text as T
-import Database.HDBC (IConnection)
 import Database.HDBC.PostgreSQL (connectPostgreSQL)
 import Database.HDBC.Sqlite3 (connectSqlite3)
 
 import Database.Schema.Migrations ()
-import Database.Schema.Migrations.Backend.HDBC ()
 import Database.Schema.Migrations.Filesystem (FilesystemStore)
 import Database.Schema.Migrations.Store (StoreData)
+import Database.Schema.Migrations.Backend
+import Database.Schema.Migrations.Backend.HDBC
 
 -- |The monad in which the application runs.
 type AppT a = ReaderT AppState IO a
@@ -60,10 +60,6 @@ fromConfigurator conf = Configuration <$> connectionString
       migrationStorePath = configLookup envStoreName
       configLookup = C.lookup conf . T.pack
 
--- |Type wrapper for IConnection instances so the makeConnection
--- function can return any type of connection.
-data AnyIConnection = forall c. (IConnection c) => AnyIConnection c
-
 -- |CommandOptions are those options that can be specified at the command
 -- prompt to modify the behavior of a command.
 data CommandOptions = CommandOptions { _configFilePath :: Maybe String
@@ -91,9 +87,9 @@ newtype DbConnDescriptor = DbConnDescriptor String
 
 -- |The values of DBM_DATABASE_TYPE and their corresponding connection
 -- factory functions.
-databaseTypes :: [(String, String -> IO AnyIConnection)]
-databaseTypes = [ ("postgresql", fmap AnyIConnection . connectPostgreSQL)
-                , ("sqlite3", fmap AnyIConnection . connectSqlite3)
+databaseTypes :: [(String, String -> IO Backend)]
+databaseTypes = [ ("postgresql", fmap hdbcBackend . connectPostgreSQL)
+                , ("sqlite3", fmap hdbcBackend . connectSqlite3)
                 ]
 
 envDatabaseType :: String

@@ -49,20 +49,20 @@ data StoreData = StoreData { storeDataMapping :: MigrationMap
 -- monad context in which to operate on the store).  A MigrationStore
 -- is a facility in which new migrations can be created, and from
 -- which existing migrations can be loaded.
-class (Monad m) => MigrationStore s m where
+class MigrationStore s where
     -- |Load a migration from the store.
-    loadMigration :: s -> String -> m (Either String Migration)
+    loadMigration :: s -> String -> IO (Either String Migration)
 
     -- |Save a migration to the store.
-    saveMigration :: s -> Migration -> m ()
+    saveMigration :: s -> Migration -> IO ()
 
     -- |Return a list of all available migrations' names.
-    getMigrations :: s -> m [String]
+    getMigrations :: s -> IO [String]
 
     -- |Return the full representation of a given migration name;
     -- mostly for filesystem stores, where the full representation
     -- includes the store path.
-    fullMigrationName :: s -> String -> m String
+    fullMigrationName :: s -> String -> IO String
     fullMigrationName _ name = return name
 
 -- |A type for types of validation errors for migration maps.
@@ -101,7 +101,7 @@ storeLookup storeData migrationName =
 -- loaded migrations, and return errors or a 'MigrationMap' on
 -- success.  Generally speaking, this will be the first thing you
 -- should call once you have constructed a 'MigrationStore'.
-loadMigrations :: (MigrationStore s m) => s -> m (Either [MapValidationError] StoreData)
+loadMigrations :: (MigrationStore s) => s -> IO (Either [MapValidationError] StoreData)
 loadMigrations store = do
   migrations <- getMigrations store
   loadedWithErrors <- mapM (\name -> loadMigration store name) migrations

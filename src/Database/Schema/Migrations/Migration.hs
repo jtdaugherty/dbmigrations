@@ -1,6 +1,5 @@
 module Database.Schema.Migrations.Migration
     ( Migration(..)
-    , MonadMigration(..)
     , newMigration
     )
 where
@@ -23,15 +22,9 @@ instance Dependable Migration where
     depsOf = mDeps
     depId = mId
 
-class (Monad m) => MonadMigration m where
-    getCurrentTime :: m Clock.UTCTime
-
-instance MonadMigration IO where
-    getCurrentTime = Clock.getCurrentTime
-
-newMigration :: (MonadMigration m) => String -> m Migration
+newMigration :: String -> IO Migration
 newMigration theId = do
-  curTime <- getCurrentTime
+  curTime <- Clock.getCurrentTime
   return $ Migration { mTimestamp = curTime
                      , mId = theId
                      , mDesc = Nothing

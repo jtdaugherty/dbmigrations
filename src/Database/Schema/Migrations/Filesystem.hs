@@ -13,7 +13,6 @@ import Prelude hiding ( catch )
 import System.Directory ( getDirectoryContents, doesFileExist )
 import System.FilePath ( (</>), takeExtension, dropExtension
                        , takeFileName, takeBaseName )
-import Control.Monad.Trans ( MonadIO, liftIO )
 import Data.ByteString.Char8 ( unpack )
 
 import Data.Typeable ( Typeable )
@@ -49,22 +48,22 @@ throwFS = throw . FilesystemStoreError
 filenameExtension :: String
 filenameExtension = ".txt"
 
-instance (MonadIO m) => MigrationStore FilesystemStore m where
+instance MigrationStore FilesystemStore where
     fullMigrationName s name =
         return $ storePath s </> name ++ filenameExtension
 
-    loadMigration s theId = liftIO $ migrationFromFile s theId
+    loadMigration s theId = migrationFromFile s theId
 
     getMigrations s = do
-      contents <- liftIO $ getDirectoryContents $ storePath s
+      contents <- getDirectoryContents $ storePath s
       let migrationFilenames = [ f | f <- contents, isMigrationFilename f ]
           fullPaths = [ (f, storePath s </> f) | f <- migrationFilenames ]
-      existing <- liftIO $ filterM (\(_, full) -> doesFileExist full) fullPaths
+      existing <- filterM (\(_, full) -> doesFileExist full) fullPaths
       return [ dropExtension short | (short, _) <- existing ]
 
     saveMigration s m = do
       filename <- fullMigrationName s $ mId m
-      liftIO $ writeFile filename $ serializeMigration m
+      writeFile filename $ serializeMigration m
 
 isMigrationFilename :: FilePath -> Bool
 isMigrationFilename path = takeExtension path == filenameExtension

@@ -21,13 +21,12 @@ import qualified Database.Schema.Migrations.Store as S
 import Database.Schema.Migrations.Migration
     ( Migration(..)
     , newMigration
-    , MonadMigration
     )
 
 -- |Given a 'B.Backend' and a 'S.MigrationMap', query the backend and
 -- return a list of migration names which are available in the
 -- 'S.MigrationMap' but which are not installed in the 'B.Backend'.
-missingMigrations :: (B.Backend b m) => b -> S.StoreData -> m [String]
+missingMigrations :: B.Backend -> S.StoreData -> IO [String]
 missingMigrations backend storeData = do
   let storeMigrationNames = map mId $ S.storeMigrations storeData
   backendMigrations <- B.getMigrations backend
@@ -38,11 +37,11 @@ missingMigrations backend storeData = do
 
 -- |Create a new migration and store it in the 'S.MigrationStore',
 -- with some of its fields initially set to defaults.
-createNewMigration :: (MonadMigration m, S.MigrationStore s m)
+createNewMigration :: (S.MigrationStore s)
                    => s -- ^ The 'S.MigrationStore' in which to create a new migration
                    -> String -- ^ The name of the new migration to create
                    -> [String] -- ^ The list of migration names on which the new migration should depend
-                   -> m (Either String Migration)
+                   -> IO (Either String Migration)
 createNewMigration store name deps = do
   available <- S.getMigrations store
   case name `elem` available of
@@ -63,7 +62,7 @@ createNewMigration store name deps = do
 -- bootstrapping it.  This entails installing the appropriate database
 -- elements to track installed migrations.  If the backend is already
 -- bootstrapped, this has no effect.
-ensureBootstrappedBackend :: (B.Backend b m) => b -> m ()
+ensureBootstrappedBackend :: B.Backend -> IO ()
 ensureBootstrappedBackend backend = do
   bsStatus <- B.isBootstrapped backend
   case bsStatus of
@@ -73,8 +72,8 @@ ensureBootstrappedBackend backend = do
 -- |Given a migration mapping computed from a MigrationStore, a
 -- backend, and a migration to apply, return a list of migrations to
 -- apply, in order.
-migrationsToApply :: (B.Backend b m) => S.StoreData -> b
-                  -> Migration -> m [Migration]
+migrationsToApply :: S.StoreData -> B.Backend
+                  -> Migration -> IO [Migration]
 migrationsToApply storeData backend migration = do
   let graph = S.storeDataGraph storeData
 
@@ -89,8 +88,8 @@ migrationsToApply storeData backend migration = do
 -- |Given a migration mapping computed from a MigrationStore, a
 -- backend, and a migration to revert, return a list of migrations to
 -- revert, in order.
-migrationsToRevert :: (B.Backend b m) => S.StoreData -> b
-                   -> Migration -> m [Migration]
+migrationsToRevert :: S.StoreData -> B.Backend
+                   -> Migration -> IO [Migration]
 migrationsToRevert storeData backend migration = do
   let graph = S.storeDataGraph storeData
 

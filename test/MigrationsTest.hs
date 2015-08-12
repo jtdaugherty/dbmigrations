@@ -5,35 +5,33 @@ module MigrationsTest
 where
 
 import Test.HUnit
-import Control.Monad.Identity ( runIdentity, Identity )
+import Control.Applicative ((<$>))
 import qualified Data.Map as Map
 import Data.Time.Clock ( UTCTime )
 
 import Database.Schema.Migrations
-import Database.Schema.Migrations.Store
+import Database.Schema.Migrations.Store hiding (getMigrations)
 import Database.Schema.Migrations.Migration
 import Database.Schema.Migrations.Backend
 
 tests :: [Test]
 tests = migrationsToApplyTests
 
-type TestBackend = [Migration]
-
-newtype TestM a = TestM (Identity a) deriving (Monad)
-
-instance MonadMigration TestM where
-    getCurrentTime = undefined
-
-instance Backend TestBackend TestM where
-    getBootstrapMigration _ = undefined
-    isBootstrapped _ = return True
-    applyMigration _ _ = undefined
-    revertMigration _ _ = undefined
-    getMigrations b = return $ map mId b
+testBackend :: [Migration] -> Backend
+testBackend testMs =
+    Backend { getBootstrapMigration = undefined
+            , isBootstrapped = return True
+            , applyMigration = const undefined
+            , revertMigration = const undefined
+            , getMigrations = return $ mId <$> testMs
+            , commitBackend = return ()
+            , rollbackBackend = return ()
+            , disconnectBackend = return ()
+            }
 
 -- |Given a backend and a store, what are the list of migrations
 -- missing in the backend that are available in the store?
-type MissingMigrationTestCase = (MigrationMap, TestBackend, Migration,
+type MissingMigrationTestCase = (MigrationMap, Backend, Migration,
                                  [Migration])
 
 ts :: UTCTime
@@ -49,11 +47,11 @@ blankMigration = Migration { mTimestamp = ts
                            }
 
 missingMigrationsTestcases :: [MissingMigrationTestCase]
-missingMigrationsTestcases =  [ (m, [], one, [one])
-                              , (m, [one], one, [])
-                              , (m, [one], two, [two])
-                              , (m, [one, two], one, [])
-                              , (m, [one, two], two, [])
+missingMigrationsTestcases =  [ (m, testBackend [], one, [one])
+                              , (m, testBackend [one], one, [])
+                              , (m, testBackend [one], two, [two])
+                              , (m, testBackend [one, two], one, [])
+                              , (m, testBackend [one, two], two, [])
                               ]
     where
       one = blankMigration { mId = "one" }
@@ -64,9 +62,10 @@ mkTest :: MissingMigrationTestCase -> Test
 mkTest (mapping, backend, theMigration, expected) =
   let Right graph = depGraphFromMapping mapping
       storeData = StoreData mapping graph
-      TestM act = migrationsToApply storeData backend theMigration
-      result = runIdentity act
-  in expected ~=? result
+      result = migrationsToApply storeData backend theMigration
+  in "a test" ~: do
+      actual <- result
+      return $ expected == actual
 
 migrationsToApplyTests :: [Test]
 migrationsToApplyTests = map mkTest missingMigrationsTestcases
