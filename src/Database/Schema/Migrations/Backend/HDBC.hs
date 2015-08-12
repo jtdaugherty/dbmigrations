@@ -33,10 +33,7 @@ createSql = "CREATE TABLE " ++ migrationTableName ++ " (migration_id TEXT)"
 revertSql :: String
 revertSql = "DROP TABLE " ++ migrationTableName
 
--- |General Backend instance for all IO-driven HDBC connection
--- implementations.  You can provide a connection-specific instance if
--- need be; this implementation is provided with the hope that you
--- won't /have/ to do that.
+-- |General Backend constructor for all HDBC connection implementations.
 hdbcBackend :: (IConnection conn) => conn -> Backend
 hdbcBackend conn =
     Backend { isBootstrapped = elem migrationTableName <$> getTables conn
