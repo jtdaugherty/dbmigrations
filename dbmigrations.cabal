@@ -85,14 +85,14 @@ Library
           Database.Schema.Migrations.Backend.HDBC
           Database.Schema.Migrations.Store
           Moo.Main
-
-  Other-Modules:
-          Database.Schema.Migrations.CycleDetection
-          Database.Schema.Migrations.Filesystem.Serialize
           Moo.CommandHandlers
           Moo.CommandInterface
           Moo.CommandUtils
           Moo.Core
+
+  Other-Modules:
+          Database.Schema.Migrations.CycleDetection
+          Database.Schema.Migrations.Filesystem.Serialize
 
 test-suite dbmigrations-tests
   default-language: Haskell2010
@@ -140,21 +140,8 @@ Executable moo
   default-language: Haskell2010
   Build-Depends:
     base >= 4 && < 5,
-    HDBC >= 2.2.1,
-    time >= 1.4,
-    random >= 1.0,
-    containers >= 0.2,
-    mtl >= 2.1,
-    filepath >= 1.1,
-    directory >= 1.0,
-    fgl >= 5.4,
-    template-haskell,
-    yaml-light >= 0.1,
-    bytestring >= 0.9,
-    text >= 0.11,
     configurator >= 0.2,
-    HDBC-postgresql,
-    HDBC-sqlite3
+    dbmigrations
 
   if impl(ghc >= 6.12.0)
     ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields
@@ -162,5 +149,5 @@ Executable moo
   else
     ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields
 
-  Hs-Source-Dirs:  src
+  Hs-Source-Dirs:  programs
   Main-is:         Moo.hs
