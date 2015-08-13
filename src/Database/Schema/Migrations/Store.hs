@@ -53,7 +53,7 @@ data MigrationStore =
                    -- ^ Load a migration from the store.
 
                    , saveMigration :: Migration -> IO ()
-                   -- |Save a migration to the store.
+                   -- ^ Save a migration to the store.
 
                    , getMigrations :: IO [String]
                    -- ^ Return a list of all available migrations'
