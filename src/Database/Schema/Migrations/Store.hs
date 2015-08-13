@@ -45,10 +45,9 @@ data StoreData = StoreData { storeDataMapping :: MigrationMap
                            , storeDataGraph :: DependencyGraph Migration
                            }
 
--- |A type class for types which represent a storage facility (and a
--- monad context in which to operate on the store).  A MigrationStore
--- is a facility in which new migrations can be created, and from
--- which existing migrations can be loaded.
+-- |The type of migration storage facilities. A MigrationStore is a
+-- facility in which new migrations can be created, and from which
+-- existing migrations can be loaded.
 data MigrationStore =
     MigrationStore { loadMigration :: String -> IO (Either String Migration)
                    -- ^ Load a migration from the store.
