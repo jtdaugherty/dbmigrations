@@ -14,6 +14,7 @@ import Control.Monad.Trans ( liftIO )
 
 import Database.Schema.Migrations.Store hiding (getMigrations)
 import Database.Schema.Migrations
+import Database.Schema.Migrations.Migration
 import Database.Schema.Migrations.Backend
 
 newCommand :: CommandHandler
@@ -43,7 +44,7 @@ newCommand storeData = do
 
     case result of
       True -> do
-               status <- createNewMigration store migrationId deps
+               status <- createNewMigration store $ (newMigration migrationId) { mDeps = deps }
                case status of
                  Left e -> putStrLn e >> (exitWith (ExitFailure 1))
                  Right _ -> putStrLn $ "Migration created successfully: " ++

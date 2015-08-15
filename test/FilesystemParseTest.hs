@@ -29,7 +29,7 @@ ts = read tsStr
 
 valid_full :: Migration
 valid_full = Migration {
-               mTimestamp = ts
+               mTimestamp = Just ts
              , mId = "valid_full"
              , mDesc = Just "A valid full migration."
              , mDeps = ["another_migration"]
@@ -39,7 +39,7 @@ valid_full = Migration {
 
 valid_full_comments :: Migration
 valid_full_comments = Migration {
-                        mTimestamp = ts
+                        mTimestamp = Just ts
                       , mId = "valid_full"
                       , mDesc = Just "A valid full migration."
                       , mDeps = ["another_migration"]
@@ -49,7 +49,7 @@ valid_full_comments = Migration {
 
 valid_full_colon :: Migration
 valid_full_colon = Migration {
-                        mTimestamp = ts
+                        mTimestamp = Just ts
                       , mId = "valid_full"
                       , mDesc = Just "A valid full migration."
                       , mDeps = ["another_migration"]
@@ -80,13 +80,15 @@ migrationParsingTestCases = [ ("valid_full", Right valid_full)
                               , Right (valid_full { mId = "valid_no_desc", mDesc = Nothing }))
                             , ("valid_no_revert"
                               , Right (valid_full { mId = "valid_no_revert", mRevert = Nothing }))
+                            , ("valid_no_timestamp"
+                              , Right (valid_full { mId = "valid_no_timestamp", mTimestamp = Nothing }))
                             , ("invalid_missing_required_fields"
                               , Left $ "Could not parse migration " ++
                                          (fp "invalid_missing_required_fields.txt") ++
                                          ":Error in " ++
                                          (show $ fp "invalid_missing_required_fields.txt") ++
                                          ": missing required field(s): " ++
-                                         "[\"Created\",\"Depends\"]")
+                                         "[\"Depends\"]")
                             , ("invalid_field_name"
                               , Left $ "Could not parse migration " ++
                                          (fp "invalid_field_name.txt") ++

@@ -50,12 +50,10 @@ applyMigrationSuccess :: (IConnection a) => a -> IO ()
 applyMigrationSuccess conn = do
     let backend = hdbcBackend conn
 
-    m1 <- newMigration "validMigration"
-
-    let m1' = m1 { mApply = "CREATE TABLE valid1 (a int); CREATE TABLE valid2 (a int);" }
+    let m1 = (newMigration "validMigration") { mApply = "CREATE TABLE valid1 (a int); CREATE TABLE valid2 (a int);" }
 
     -- Apply the migrations, ignore exceptions
-    withTransaction conn $ \conn' -> applyMigration (hdbcBackend conn') m1'
+    withTransaction conn $ \conn' -> applyMigration (hdbcBackend conn') m1
 
     -- Check that none of the migrations were installed
     assertEqual "Installed migrations" ["root", "validMigration"] =<< getMigrations backend
@@ -66,17 +64,14 @@ applyMigrationFailure :: (IConnection a) => a -> IO ()
 applyMigrationFailure conn = do
     let backend = hdbcBackend conn
 
-    m1 <- newMigration "second"
-    m2 <- newMigration "third"
-
-    let m1' = m1 { mApply = "CREATE TABLE validButTemporary (a int)" }
-    let m2' = m2 { mApply = "INVALID SQL" }
+    let m1 = (newMigration "second") { mApply = "CREATE TABLE validButTemporary (a int)" }
+        m2 = (newMigration "third") { mApply = "INVALID SQL" }
 
     -- Apply the migrations, ignore exceptions
     ignoreSqlExceptions $ withTransaction conn $ \conn' -> do
         let backend' = hdbcBackend conn'
-        applyMigration backend' m1'
-        applyMigration backend' m2'
+        applyMigration backend' m1
+        applyMigration backend' m2
 
     -- Check that none of the migrations were installed
     assertEqual "Installed migrations" ["root"] =<< getMigrations backend
@@ -85,16 +80,14 @@ applyMigrationFailure conn = do
 revertMigrationFailure :: (IConnection a) => a -> IO ()
 revertMigrationFailure conn = do
     let backend = hdbcBackend conn
-    m1 <- newMigration "second"
-    m2 <- newMigration "third"
 
-    let m1' = m1 { mApply = "CREATE TABLE validRMF (a int)"
-                 , mRevert = Just "DROP TABLE validRMF"}
-    let m2' = m2 { mApply = "SELECT * FROM validRMF"
-                 , mRevert = Just "INVALID REVERT SQL"}
+    let m1 = (newMigration "second") { mApply = "CREATE TABLE validRMF (a int)"
+                                     , mRevert = Just "DROP TABLE validRMF"}
+        m2 = (newMigration "third") { mApply = "SELECT * FROM validRMF"
+                                    , mRevert = Just "INVALID REVERT SQL"}
 
-    applyMigration backend m1'
-    applyMigration backend m2'
+    applyMigration backend m1
+    applyMigration backend m2
 
     installedBeforeRevert <- getMigrations backend
 
@@ -104,8 +97,8 @@ revertMigrationFailure conn = do
     -- but withTransaction will roll back.
     ignoreSqlExceptions $ withTransaction conn $ \conn' -> do
         let backend' = hdbcBackend conn'
-        revertMigration backend' m2'
-        revertMigration backend' m1'
+        revertMigration backend' m2
+        revertMigration backend' m1
 
     -- Check that none of the migrations were reverted
     assertEqual "successfully roll back failed revert" installedBeforeRevert
@@ -114,19 +107,18 @@ revertMigrationFailure conn = do
 revertMigrationNothing :: (IConnection a) => a -> IO ()
 revertMigrationNothing conn = do
     let backend = hdbcBackend conn
-    m1 <- newMigration "second"
 
-    let m1' = m1 { mApply = "SELECT 1"
-                 , mRevert = Nothing }
+    let m1 = (newMigration "second") { mApply = "SELECT 1"
+                                     , mRevert = Nothing }
 
-    applyMigration backend m1'
+    applyMigration backend m1
 
     installedAfterApply <- getMigrations backend
     assertBool "Check that the migration was applied" $ "second" `elem` installedAfterApply
 
     -- Revert the migration, which should do nothing EXCEPT remove it
     -- from the installed list
-    revertMigration backend m1'
+    revertMigration backend m1
 
     installed <- getMigrations backend
     assertBool "Check that the migration was reverted" $ not $ "second" `elem` installed
@@ -136,19 +128,17 @@ revertMigrationJust conn = do
     let name = "revertable"
         backend = hdbcBackend conn
 
-    m1 <- newMigration name
+    let m1 = (newMigration name) { mApply = "CREATE TABLE the_test_table (a int)"
+                                 , mRevert = Just "DROP TABLE the_test_table" }
 
-    let m1' = m1 { mApply = "CREATE TABLE the_test_table (a int)"
-                 , mRevert = Just "DROP TABLE the_test_table" }
-
-    applyMigration backend m1'
+    applyMigration backend m1
 
     installedAfterApply <- getMigrations backend
     assertBool "Check that the migration was applied" $ name `elem` installedAfterApply
 
     -- Revert the migration, which should do nothing EXCEPT remove it
     -- from the installed list
-    revertMigration backend m1'
+    revertMigration backend m1
 
     installed <- getMigrations backend
     assertBool "Check that the migration was reverted" $ not $ name `elem` installed

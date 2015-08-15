@@ -28,7 +28,10 @@ serializeDesc m =
       Just desc -> Just $ "Description: " ++ desc
 
 serializeTimestamp :: FieldSerializer
-serializeTimestamp m = Just $ "Created: " ++ (show $ mTimestamp m)
+serializeTimestamp m =
+    case mTimestamp m of
+        Nothing -> Nothing
+        Just ts -> Just $ "Created: " ++ (show ts)
 
 serializeDepends :: FieldSerializer
 serializeDepends m = Just $ "Depends: " ++ (intercalate " " $ mDeps m)

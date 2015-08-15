@@ -1,0 +1,9 @@
+Description: A valid full migration.
+Depends: another_migration
+Apply:
+
+  CREATE TABLE test (
+    a int
+  );
+
+Revert: DROP TABLE test;

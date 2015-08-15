@@ -98,10 +98,10 @@ migrationFromPath path = do
 
       case length missing of
         0 -> do
-          newM <- newMigration ""
+          let newM = newMigration name
           case migrationFromFields newM fields of
             Nothing -> throwFS $ "Error in " ++ (show path) ++ ": unrecognized field found"
-            Just m -> return $ m { mId = name }
+            Just m -> return m
         _ -> throwFS $ "Error in " ++ (show path) ++ ": missing required field(s): " ++ (show missing)
 
 getFields :: YamlLight -> [(String, String)]
@@ -127,8 +127,7 @@ migrationFromFields m ((name, value):rest) = do
   migrationFromFields newM rest
 
 requiredFields :: [String]
-requiredFields = [ "Created"
-                 , "Apply"
+requiredFields = [ "Apply"
                  , "Depends"
                  ]
 
@@ -145,7 +144,7 @@ setTimestamp value m = do
   ts <- case readTimestamp value of
           [(t, _)] -> return t
           _ -> fail "expected one valid parse"
-  return $ m { mTimestamp = ts }
+  return $ m { mTimestamp = Just ts }
 
 readTimestamp :: String -> [(UTCTime, String)]
 readTimestamp = reads

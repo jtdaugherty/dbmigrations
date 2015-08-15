@@ -35,27 +35,19 @@ missingMigrations backend storeData = do
          (Set.fromList storeMigrationNames)
          (Set.fromList backendMigrations)
 
--- |Create a new migration and store it in the 'S.MigrationStore',
--- with some of its fields initially set to defaults.
+-- |Create a new migration and store it in the 'S.MigrationStore'.
 createNewMigration :: S.MigrationStore -- ^ The 'S.MigrationStore' in which to create a new migration
-                   -> String -- ^ The name of the new migration to create
-                   -> [String] -- ^ The list of migration names on which the new migration should depend
+                   -> Migration -- ^ The new migration
                    -> IO (Either String Migration)
-createNewMigration store name deps = do
+createNewMigration store newM = do
   available <- S.getMigrations store
-  case name `elem` available of
+  case mId newM `elem` available of
     True -> do
-      fullPath <- S.fullMigrationName store name
+      fullPath <- S.fullMigrationName store (mId newM)
       return $ Left $ "Migration " ++ (show fullPath) ++ " already exists"
     False -> do
-      new <- newMigration name
-      let newWithDefaults = new { mDesc = Just "(Description here.)"
-                                , mApply = "(Apply SQL here.)"
-                                , mRevert = Just "(Revert SQL here.)"
-                                , mDeps = deps
-                                }
-      S.saveMigration store newWithDefaults
-      return $ Right newWithDefaults
+      S.saveMigration store newM
+      return $ Right newM
 
 -- |Given a 'B.Backend', ensure that the backend is ready for use by
 -- bootstrapping it.  This entails installing the appropriate database

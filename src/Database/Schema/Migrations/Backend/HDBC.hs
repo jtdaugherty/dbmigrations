@@ -23,6 +23,7 @@ import Database.Schema.Migrations.Migration
     )
 
 import Control.Applicative ( (<$>) )
+import Data.Time.Clock (getCurrentTime)
 
 migrationTableName :: String
 migrationTableName = "installed_migrations"
@@ -39,11 +40,13 @@ hdbcBackend conn =
     Backend { isBootstrapped = elem migrationTableName <$> getTables conn
             , getBootstrapMigration =
                   do
-                    m <- newMigration rootMigrationName
-                    return $ m { mApply = createSql
-                               , mRevert = Just revertSql
-                               , mDesc = Just "Migration table installation"
-                               }
+                    ts <- getCurrentTime
+                    return $ (newMigration rootMigrationName)
+                        { mApply = createSql
+                        , mRevert = Just revertSql
+                        , mDesc = Just "Migration table installation"
+                        , mTimestamp = Just ts
+                        }
 
             , applyMigration = \m -> do
                 runRaw conn (mApply m)

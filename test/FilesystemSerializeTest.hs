@@ -23,7 +23,7 @@ ts = read tsStr
 
 valid_full :: Migration
 valid_full = Migration {
-               mTimestamp = ts
+               mTimestamp = Just ts
              , mId = "valid_full"
              , mDesc = Just "A valid full migration."
              , mDeps = ["another_migration"]

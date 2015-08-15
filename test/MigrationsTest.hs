@@ -38,7 +38,7 @@ ts :: UTCTime
 ts = read "2009-04-15 10:02:06 UTC"
 
 blankMigration :: Migration
-blankMigration = Migration { mTimestamp = ts
+blankMigration = Migration { mTimestamp = Just ts
                            , mId = undefined
                            , mDesc = Nothing
                            , mApply = ""
