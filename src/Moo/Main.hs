@@ -32,6 +32,7 @@ usage = do
   putStrLn $ "  " ++ envDatabaseType ++ ": database type, one of " ++
            intercalate "," (map fst databaseTypes)
   putStrLn $ "  " ++ envStoreName ++ ": path to migration store"
+  putStrLn $ "  " ++ envLinearMigrations ++ ": whether to use linear migrations (defaults to False)"
   putStrLn "Commands:"
   forM_ commands $ \command -> do
           putStrLn $ "  " ++ usageString command
