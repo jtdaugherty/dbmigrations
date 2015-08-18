@@ -22,14 +22,15 @@ type AppT a = ReaderT AppState IO a
 type CommandHandler = StoreData -> AppT ()
 
 -- |Application state which can be accessed by any command handler.
-data AppState = AppState { _appOptions         :: CommandOptions
-                         , _appCommand         :: Command
-                         , _appRequiredArgs    :: [String]
-                         , _appOptionalArgs    :: [String]
-                         , _appStore           :: MigrationStore
-                         , _appDatabaseConnStr :: DbConnDescriptor
-                         , _appDatabaseType    :: String
-                         , _appStoreData       :: StoreData
+data AppState = AppState { _appOptions          :: CommandOptions
+                         , _appCommand          :: Command
+                         , _appRequiredArgs     :: [String]
+                         , _appOptionalArgs     :: [String]
+                         , _appStore            :: MigrationStore
+                         , _appDatabaseConnStr  :: DbConnDescriptor
+                         , _appDatabaseType     :: String
+                         , _appStoreData        :: StoreData
+                         , _appLinearMigrations :: Bool
                          }
 
 type ShellEnvironment = [(String, String)]
@@ -38,6 +39,7 @@ data Configuration = Configuration
     { _connectionString   :: String
     , _databaseType       :: String
     , _migrationStorePath :: FilePath
+    , _linearMigrations   :: Bool
     }
 
 loadConfiguration :: Maybe FilePath -> IO (Either String Configuration)
@@ -57,22 +59,31 @@ fromShellEnvironment :: ShellEnvironment -> Maybe Configuration
 fromShellEnvironment env = Configuration <$> connectionString
                                          <*> databaseType
                                          <*> migrationStorePath
+                                         <*> linearMigrations
     where
       connectionString = envLookup envDatabaseName
       databaseType = envLookup envDatabaseType
       migrationStorePath = envLookup envStoreName
+      linearMigrations = defEnvLookup False envLinearMigrations
       envLookup = (\evar -> lookup evar env)
+      defEnvLookup d e =
+        case reads <$> envLookup e of
+            Just ((v, _):_) -> Just v
+            _               -> Just d
 
 fromConfigurator :: Config -> IO (Maybe Configuration)
 fromConfigurator conf = do
     let configLookup = C.lookup conf . T.pack
+    let defConfigLookup d = C.lookupDefault d conf . T.pack
     connectionString <- configLookup envDatabaseName
     databaseType <- configLookup envDatabaseType
     migrationStorePath <- configLookup envStoreName
+    linearMigrations <- defConfigLookup False envLinearMigrations
 
     return $ Configuration <$> connectionString
                            <*> databaseType
                            <*> migrationStorePath
+                           <*> Just linearMigrations
 
 -- |CommandOptions are those options that can be specified at the command
 -- prompt to modify the behavior of a command.
@@ -114,3 +125,6 @@ envDatabaseName = "DBM_DATABASE"
 
 envStoreName :: String
 envStoreName = "DBM_MIGRATION_STORE"
+
+envLinearMigrations :: String
+envLinearMigrations = "DBM_LINEAR_MIGRATIONS"

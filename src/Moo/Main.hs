@@ -67,6 +67,7 @@ mainWithConf args conf = do
       dbType = _databaseType conf
       storePathStr = _migrationStorePath conf
       store = filesystemStore $ FSStore { storePath = storePathStr }
+      linear = _linearMigrations conf
 
   if length required < length ( _cRequired command) then
       usageSpecific command else
@@ -85,6 +86,7 @@ mainWithConf args conf = do
                               , _appDatabaseType = dbType
                               , _appStore = store
                               , _appStoreData = storeData
+                              , _appLinearMigrations = linear
                               }
             runReaderT (_cHandler command storeData) st `catchSql` reportSqlError
 
