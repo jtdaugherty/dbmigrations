@@ -126,6 +126,7 @@ its fields. An example configuration is as follows:
   DBM_DATABASE_TYPE = "sqlite3"
   DBM_DATABASE = "/path/to/database.db"
   DBM_MIGRATION_STORE = "/path/to/migration/store"
+  DBM_LINEAR_MIGRATIONS = on/off (defaults to off)
 
 Migration file format
 ---------------------
@@ -211,15 +212,21 @@ Moo depends on these environment variables:
     schema.  Initially, you'll probably set this to an extant (but
     empty) directory.  moo will not create it for you.
 
+  DBM_LINEAR_MIGRATIONS
+
+    If set to true/on, the linear migrations feature will be enabled.
+    Defaults to false/off. See 'Linear migrations' section for more
+    defails.
+
 Commands
 --------
 
   new <migration name>: create a new migration with the given name and
     save it in the migration store.  This command will prompt you for
-    dependencies on other migrations and ask for confirmation before
-    creating the migration in the store.  If you use the --no-ask
-    flag, the migration will be created immediately with no
-    dependencies.
+    dependencies on other migrations (when the 'linear migrations'
+    feature is disabled and ask for confirmation before creating the
+    migration in the store.  If you use the --no-ask flag, the migration
+    will be created immediately with no dependencies.
 
   apply <migration name>: apply the specified migration (and its
     dependencies) to the database.  This operation will be performed
@@ -257,3 +264,21 @@ Commands
     rolled back; otherwise it will be committed.  This is mostly
     useful in development when a migration applies but is incorrect
     and needs to be tweaked and reapplied.
+
+Linear migrations
+-----------------
+
+If you don't need tree-like structure of migrations, consider enabling
+this feature (DBM_LINEAR_MIGRATIONS configuration option). It automatically
+selects newest migration as a sole dependency. This in turn allows only
+linear structure of migrations that must be executed in the same order as
+were created. It helps to see how the schema changed in time and simplifies
+the process of creating new migrations (you don't have to choose
+dependencies).
+
+WARNING! Only enable this feature on new stores or stores that you know are
+already linear (or at least stores where last migration depends on
+everything else) and each migration is correctly timestamped.
+Disabling this feature on existing stores is safe.
+Do not edit 'Created' field in the migration file as this may result in
+invalid dependency selection.
