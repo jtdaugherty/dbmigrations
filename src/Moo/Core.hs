@@ -6,6 +6,7 @@ import Control.Monad.Reader (ReaderT)
 import qualified Data.Configurator as C
 import Data.Configurator.Types (Config)
 import qualified Data.Text as T
+import Data.Char (toLower)
 import Database.HDBC.PostgreSQL (connectPostgreSQL)
 import Database.HDBC.Sqlite3 (connectSqlite3)
 import System.Environment (getEnvironment)
@@ -59,17 +60,23 @@ fromShellEnvironment :: ShellEnvironment -> Maybe Configuration
 fromShellEnvironment env = Configuration <$> connectionString
                                          <*> databaseType
                                          <*> migrationStorePath
-                                         <*> linearMigrations
+                                         <*> Just $ linearMigrations
     where
       connectionString = envLookup envDatabaseName
       databaseType = envLookup envDatabaseType
       migrationStorePath = envLookup envStoreName
-      linearMigrations = defEnvLookup False envLinearMigrations
+      linearMigrations = readFlagDef $ envLookup envLinearMigrations
       envLookup = (\evar -> lookup evar env)
-      defEnvLookup d e =
-        case reads <$> envLookup e of
-            Just ((v, _):_) -> Just v
-            _               -> Just d
+
+-- |Converts @Just "on"@ and @Just "true"@ (case insensitive) to @True@,
+-- anything else to @False@.
+readFlagDef :: Maybe String -> Bool
+readFlagDef Nothing  = False
+readFlagDef (Just v) = go $ map toLower v
+    where
+        go "on"   = True
+        go "true" = True
+        go _      = False
 
 fromConfigurator :: Config -> IO (Maybe Configuration)
 fromConfigurator conf = do

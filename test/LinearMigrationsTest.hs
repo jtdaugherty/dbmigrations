@@ -5,18 +5,19 @@ import           Test.HUnit
 
 import           Control.Monad.Reader                 (runReaderT)
 import           Data.Either                          (isRight)
-import           Data.Maybe                           (isJust)
+import           Data.Maybe                           (isJust, isNothing)
 import           Database.Schema.Migrations.Migration
 import           Database.Schema.Migrations.Store
 import           Moo.CommandHandlers
 import           Moo.Core
 
 tests :: IO [Test]
-tests = sequence [
-                   addsMigration
+tests = sequence [ addsMigration
                  , setsTimestamp
                  , selectsLatestMigrationAsDep
                  , selectsOnlyOneMigrationAsDep
+                 , doesNotAddTimestampWhenLinearMigrationsAreDisabled
+                 , doesNotAddDependencyWhenLinearMigrationsAreDisabled
                  ]
 
 satisfies :: String -> a -> (a -> Bool) -> IO Test
@@ -51,6 +52,22 @@ selectsOnlyOneMigrationAsDep = do
     state3 <- prepareStateWith state2 "third"
     Right mig <- addTestMigration state3
     return $ ["second"] ~=? mDeps mig
+
+doesNotAddTimestampWhenLinearMigrationsAreDisabled :: IO Test
+doesNotAddTimestampWhenLinearMigrationsAreDisabled = do
+    state' <- prepareState "first"
+    let state = state' { _appLinearMigrations = False }
+    Right mig <- addTestMigration state
+    satisfies "Timestamp should be Nothing" (mTimestamp mig) isNothing
+
+doesNotAddDependencyWhenLinearMigrationsAreDisabled :: IO Test
+doesNotAddDependencyWhenLinearMigrationsAreDisabled = do
+    state1' <- prepareState "first"
+    let state1 = state1' { _appLinearMigrations = False }
+    _ <- addTestMigration state1
+    state2 <- prepareStateWith state1 "second"
+    Right mig <- addTestMigration state2
+    satisfies "Dependencies should be empty" (mDeps mig) null
 
 addTestMigration :: AppState -> IO (Either String Migration)
 addTestMigration state = do

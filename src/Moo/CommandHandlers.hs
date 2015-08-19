@@ -43,10 +43,8 @@ newCommand storeData = do
               interactiveAskDeps storeData
 
     -- If we use linear migrations, timestamp is required (sorting)
-    timestamp <-
-        if linear
-        then Just <$> Clock.getCurrentTime
-        else return Nothing
+    timestamp <- if linear then Just <$> Clock.getCurrentTime
+                 else return Nothing
 
     result <- if noAsk then (return True) else
               (confirmCreation migrationId deps)
@@ -54,8 +52,7 @@ newCommand storeData = do
     case result of
       True -> do
                status <- createNewMigration store $ (newMigration migrationId)
-                 {
-                   mDeps = deps
+                 { mDeps = deps
                  , mTimestamp = timestamp
                  }
                case status of

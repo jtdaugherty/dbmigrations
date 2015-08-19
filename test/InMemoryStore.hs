@@ -6,6 +6,8 @@ import           Database.Schema.Migrations.Store
 
 type InMemoryData = [(String, Migration)]
 
+-- |Builds simple in-memory store that uses 'MVar' to preserve a list of
+-- migrations.
 inMemoryStore :: IO MigrationStore
 inMemoryStore = do
     store <- newMVar []
