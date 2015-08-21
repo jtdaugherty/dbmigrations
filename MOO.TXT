@@ -126,7 +126,7 @@ its fields. An example configuration is as follows:
   DBM_DATABASE_TYPE = "sqlite3"
   DBM_DATABASE = "/path/to/database.db"
   DBM_MIGRATION_STORE = "/path/to/migration/store"
-  DBM_LINEAR_MIGRATIONS = on/off (defaults to off)
+  DBM_LINEAR_MIGRATIONS = on/off (or true/false; defaults to off)
 
 Migration file format
 ---------------------
@@ -215,16 +215,15 @@ Moo depends on these environment variables:
   DBM_LINEAR_MIGRATIONS
 
     If set to true/on, the linear migrations feature will be enabled.
-    Defaults to false/off. See 'Linear migrations' section for more
-    defails.
+    Defaults to off. See 'Linear migrations' section for more details.
 
 Commands
 --------
 
   new <migration name>: create a new migration with the given name and
     save it in the migration store.  This command will prompt you for
-    dependencies on other migrations (when the 'linear migrations'
-    feature is disabled and ask for confirmation before creating the
+    dependencies on other migrations (if the 'linear migrations'
+    feature is disabled) and ask for confirmation before creating the
     migration in the store.  If you use the --no-ask flag, the migration
     will be created immediately with no dependencies.
 
@@ -277,8 +276,8 @@ the process of creating new migrations (you don't have to choose
 dependencies).
 
 WARNING! Only enable this feature on new stores or stores that you know are
-already linear (or at least stores where last migration depends on
-everything else) and each migration is correctly timestamped.
+already linear (or at least last migration depends, directly or indirectly,
+on everything else) and each migration is correctly timestamped.
 Disabling this feature on existing stores is safe.
 Do not edit 'Created' field in the migration file as this may result in
 invalid dependency selection.
