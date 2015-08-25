@@ -3,7 +3,6 @@ module Moo.CommandUtils
        ( apply
        , confirmCreation
        , interactiveAskDeps
-       , latestMigration
        , lookupMigration
        , revert
        , withBackend
@@ -219,11 +218,3 @@ askDepsChoices = [ ('y', (Yes, Just "yes, depend on this migration"))
                  , ('q', (Quit, Just "cancel this operation and quit"))
                  ]
 
--- |Finds latest migration in the store.
---
--- This functions sorts migrations by timestamps so every migration must have
--- one, otherwise it will not work correctly.
-latestMigration :: StoreData -> [String]
-latestMigration = fmap mId . take 1 . sortBy compareTimestamps . storeMigrations
-    where
-      compareTimestamps m1 m2 = compare (mTimestamp m2) (mTimestamp m1)

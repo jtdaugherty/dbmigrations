@@ -5,7 +5,7 @@ import           Test.HUnit
 
 import           Control.Monad.Reader                 (runReaderT)
 import           Data.Either                          (isRight)
-import           Data.Maybe                           (isJust, isNothing)
+import           Data.Maybe                           (isNothing)
 import           Database.Schema.Migrations.Migration
 import           Database.Schema.Migrations.Store
 import           Moo.CommandHandlers
@@ -13,10 +13,9 @@ import           Moo.Core
 
 tests :: IO [Test]
 tests = sequence [ addsMigration
-                 , setsTimestamp
+                 , doesNotSetTimestamp
                  , selectsLatestMigrationAsDep
-                 , selectsOnlyOneMigrationAsDep
-                 , doesNotAddTimestampWhenLinearMigrationsAreDisabled
+                 , selectsOnlyLeavesAsDeps
                  , doesNotAddDependencyWhenLinearMigrationsAreDisabled
                  ]
 
@@ -29,11 +28,11 @@ addsMigration = do
     mig <- addTestMigration state
     satisfies "Migration not added" mig isRight
 
-setsTimestamp :: IO Test
-setsTimestamp = do
+doesNotSetTimestamp :: IO Test
+doesNotSetTimestamp = do
     state <- prepareState "first"
     Right mig <- addTestMigration state
-    satisfies "Timestamp not set" (mTimestamp mig) isJust
+    satisfies "Timestamp is set" (mTimestamp mig) isNothing
 
 selectsLatestMigrationAsDep :: IO Test
 selectsLatestMigrationAsDep = do
@@ -43,27 +42,22 @@ selectsLatestMigrationAsDep = do
     Right mig <- addTestMigration state2
     return $ ["first"] ~=? mDeps mig
 
-selectsOnlyOneMigrationAsDep :: IO Test
-selectsOnlyOneMigrationAsDep = do
-    state1 <- prepareState "first"
-    _ <- addTestMigration state1
+selectsOnlyLeavesAsDeps :: IO Test
+selectsOnlyLeavesAsDeps = do
+    state1 <- prepareNormalState "first"
+    addTestMigrationWithDeps state1 []
     state2 <- prepareStateWith state1 "second"
-    _ <- addTestMigration state2
+    addTestMigrationWithDeps state2 ["first"]
     state3 <- prepareStateWith state2 "third"
-    Right mig <- addTestMigration state3
-    return $ ["second"] ~=? mDeps mig
-
-doesNotAddTimestampWhenLinearMigrationsAreDisabled :: IO Test
-doesNotAddTimestampWhenLinearMigrationsAreDisabled = do
-    state' <- prepareState "first"
-    let state = state' { _appLinearMigrations = False }
-    Right mig <- addTestMigration state
-    satisfies "Timestamp should be Nothing" (mTimestamp mig) isNothing
+    addTestMigrationWithDeps state3 ["first"]
+    state4' <- prepareStateWith state3 "fourth"
+    let state4 = state4' { _appLinearMigrations = True }
+    Right mig <- addTestMigration state4
+    return $ ["second", "third"] ~=? mDeps mig
 
 doesNotAddDependencyWhenLinearMigrationsAreDisabled :: IO Test
 doesNotAddDependencyWhenLinearMigrationsAreDisabled = do
-    state1' <- prepareState "first"
-    let state1 = state1' { _appLinearMigrations = False }
+    state1 <- prepareNormalState "first"
     _ <- addTestMigration state1
     state2 <- prepareStateWith state1 "second"
     Right mig <- addTestMigration state2
@@ -75,6 +69,12 @@ addTestMigration state = do
     let [migrationId] = _appRequiredArgs state
     runReaderT (newCommand $ _appStoreData state) state
     loadMigration store migrationId
+
+addTestMigrationWithDeps :: AppState -> [String] -> IO ()
+addTestMigrationWithDeps state deps = do
+    let store = _appStore state
+    let [migrationId] = _appRequiredArgs state
+    saveMigration store (newMigration migrationId) { mDeps = deps }
 
 prepareState :: String -> IO AppState
 prepareState m = do
@@ -96,3 +96,8 @@ prepareStateWith :: AppState -> String -> IO AppState
 prepareStateWith state m = do
     Right storeData <- loadMigrations $ _appStore state
     return state { _appRequiredArgs = [m], _appStoreData = storeData }
+
+prepareNormalState :: String -> IO AppState
+prepareNormalState m = do
+    state <- prepareState m
+    return $ state { _appLinearMigrations = False }

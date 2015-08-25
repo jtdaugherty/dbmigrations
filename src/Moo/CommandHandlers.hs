@@ -11,7 +11,6 @@ import Data.Maybe ( isJust )
 import Control.Monad.Reader ( asks )
 import System.Exit ( exitWith, ExitCode(..), exitSuccess )
 import Control.Monad.Trans ( liftIO )
-import qualified Data.Time.Clock as Clock
 
 import Database.Schema.Migrations.Store hiding (getMigrations)
 import Database.Schema.Migrations
@@ -35,16 +34,12 @@ newCommand storeData = do
            exitWith (ExitFailure 1)
 
     -- Default behavior: ask for dependencies if linear mode is disabled
-    deps <- if linear then (return $ latestMigration storeData) else
+    deps <- if linear then (return $ leafMigrations storeData) else
             if noAsk then (return []) else
             do
               putStrLn $ "Selecting dependencies for new \
                          \migration: " ++ migrationId
               interactiveAskDeps storeData
-
-    -- If we use linear migrations, timestamp is required (sorting)
-    timestamp <- if linear then Just <$> Clock.getCurrentTime
-                 else return Nothing
 
     result <- if noAsk then (return True) else
               (confirmCreation migrationId deps)
@@ -53,7 +48,6 @@ newCommand storeData = do
       True -> do
                status <- createNewMigration store $ (newMigration migrationId)
                  { mDeps = deps
-                 , mTimestamp = timestamp
                  }
                case status of
                  Left e -> putStrLn e >> (exitWith (ExitFailure 1))

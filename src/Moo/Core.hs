@@ -60,7 +60,7 @@ fromShellEnvironment :: ShellEnvironment -> Maybe Configuration
 fromShellEnvironment env = Configuration <$> connectionString
                                          <*> databaseType
                                          <*> migrationStorePath
-                                         <*> Just $ linearMigrations
+                                         <*> (Just $ linearMigrations)
     where
       connectionString = envLookup envDatabaseName
       databaseType = envLookup envDatabaseType
