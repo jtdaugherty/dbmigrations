@@ -3,6 +3,7 @@ module LinearMigrationsTest (tests) where
 import           InMemoryStore
 import           Test.HUnit
 
+import           Common
 import           Control.Monad.Reader                 (runReaderT)
 import           Data.Either                          (isRight)
 import           Data.Maybe                           (isNothing)
@@ -18,9 +19,6 @@ tests = sequence [ addsMigration
                  , selectsOnlyLeavesAsDeps
                  , doesNotAddDependencyWhenLinearMigrationsAreDisabled
                  ]
-
-satisfies :: String -> a -> (a -> Bool) -> IO Test
-satisfies m v f = return $ TestCase $ assertBool m (f v)
 
 addsMigration :: IO Test
 addsMigration = do

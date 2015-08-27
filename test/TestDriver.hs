@@ -14,6 +14,7 @@ import qualified FilesystemTest
 import qualified CycleDetectionTest
 import qualified StoreTest
 import qualified LinearMigrationsTest
+import qualified ConfigurationTest
 
 import Control.Monad ( forM )
 import Control.Exception ( finally, catch, SomeException )
@@ -43,6 +44,8 @@ loadTests = do
                            return $ "Filesystem general" ~: test fsTests
                       , do linTests <- LinearMigrationsTest.tests
                            return $ "Linear migrations" ~: test linTests
+                      , do cfgTests <- ConfigurationTest.tests
+                           return $ "Configuration tests" ~: test cfgTests
                       ]
   return $ concat [ backendTests
                   , ioTests
