@@ -128,6 +128,16 @@ its fields. An example configuration is as follows:
   DBM_MIGRATION_STORE = "/path/to/migration/store"
   DBM_LINEAR_MIGRATIONS = on/off (or true/false; defaults to off)
 
+Alternatively, you may save your settings to "moo.cfg" file in the current
+directory (probably a project root) and moo will load it automatically, if
+present. Specifying --config-file disables this behavior.
+
+If you use a config file (either the default one or the one specified with
+--config-file option) but the environment variables are set, they will
+override settings from the file. You may use this to have project settings
+specified in a file and use environment to specify user-local configuration
+options.
+
 Migration file format
 ---------------------
 
