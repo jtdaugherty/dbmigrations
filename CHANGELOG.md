@@ -1,6 +1,12 @@
 dbmigrations changelog
 ----------------------
 
+0.9.1
+-----
+
+- Restored default timestamp and description values in migrations
+created by new migration command
+
 0.9
 ---
 
