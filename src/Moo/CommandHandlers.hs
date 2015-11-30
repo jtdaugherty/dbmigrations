@@ -10,6 +10,7 @@ import Control.Monad ( when, forM_ )
 import Data.Maybe ( isJust )
 import Control.Monad.Reader ( asks )
 import System.Exit ( exitWith, ExitCode(..), exitSuccess )
+import qualified Data.Time.Clock as Clock
 import Control.Monad.Trans ( liftIO )
 
 import Database.Schema.Migrations.Store hiding (getMigrations)
@@ -46,9 +47,10 @@ newCommand storeData = do
 
     case result of
       True -> do
-               status <- createNewMigration store $ (newMigration migrationId)
-                 { mDeps = deps
-                 }
+               now <- Clock.getCurrentTime
+               status <- createNewMigration store $ (newMigration migrationId) { mDeps = deps
+                                                                               , mTimestamp = Just now
+                                                                               }
                case status of
                  Left e -> putStrLn e >> (exitWith (ExitFailure 1))
                  Right _ -> putStrLn $ "Migration created successfully: " ++

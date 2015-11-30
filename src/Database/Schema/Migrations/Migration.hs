@@ -28,6 +28,6 @@ newMigration theId =
             , mId = theId
             , mApply = "(Apply SQL here.)"
             , mRevert = Nothing
-            , mDesc = Nothing
+            , mDesc = Just "(Describe migration here.)"
             , mDeps = []
             }
