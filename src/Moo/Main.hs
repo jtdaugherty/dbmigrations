@@ -32,6 +32,7 @@ usage = do
   putStrLn $ "  " ++ envDatabaseType ++ ": database type, one of " ++
            intercalate "," (map fst databaseTypes)
   putStrLn $ "  " ++ envStoreName ++ ": path to migration store"
+  putStrLn $ "  " ++ envLinearMigrations ++ ": whether to use linear migrations (defaults to False)"
   putStrLn "Commands:"
   forM_ commands $ \command -> do
           putStrLn $ "  " ++ usageString command
@@ -67,6 +68,7 @@ mainWithConf args conf = do
       dbType = _databaseType conf
       storePathStr = _migrationStorePath conf
       store = filesystemStore $ FSStore { storePath = storePathStr }
+      linear = _linearMigrations conf
 
   if length required < length ( _cRequired command) then
       usageSpecific command else
@@ -85,6 +87,7 @@ mainWithConf args conf = do
                               , _appDatabaseType = dbType
                               , _appStore = store
                               , _appStoreData = storeData
+                              , _appLinearMigrations = linear
                               }
             runReaderT (_cHandler command storeData) st `catchSql` reportSqlError
 

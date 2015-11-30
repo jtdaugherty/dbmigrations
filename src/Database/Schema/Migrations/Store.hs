@@ -19,6 +19,7 @@ module Database.Schema.Migrations.Store
     , depGraphFromMapping
     , validateMigrationMap
     , validateSingleMigration
+    , leafMigrations
     )
 where
 
@@ -26,6 +27,7 @@ import Data.Maybe ( isJust )
 import Control.Monad ( mzero )
 import Control.Applicative ( (<$>) )
 import qualified Data.Map as Map
+import Data.Graph.Inductive.Graph ( labNodes, indeg )
 
 import Database.Schema.Migrations.Migration
     ( Migration(..)
@@ -148,3 +150,9 @@ validateSingleMigration mMap m = do
 -- won't want to use this directly; use 'loadMigrations' instead.
 depGraphFromMapping :: MigrationMap -> Either String (DependencyGraph Migration)
 depGraphFromMapping mapping = mkDepGraph $ Map.elems mapping
+
+-- |Finds migrations that no other migration depends on (effectively finds all
+-- vertices with in-degree equal to zero).
+leafMigrations :: StoreData -> [String]
+leafMigrations s = [l | (n, l) <- labNodes g, indeg g n == 0]
+    where g = depGraph $ storeDataGraph s

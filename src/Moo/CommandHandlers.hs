@@ -22,6 +22,7 @@ newCommand :: CommandHandler
 newCommand storeData = do
   required <- asks _appRequiredArgs
   store    <- asks _appStore
+  linear   <- asks _appLinearMigrations
   let [migrationId] = required
   noAsk <- _noAsk <$> asks _appOptions
 
@@ -33,8 +34,9 @@ newCommand storeData = do
            putStrLn $ "Migration " ++ (show fullPath) ++ " already exists"
            exitWith (ExitFailure 1)
 
-    -- Default behavior: ask for dependencies
-    deps <- if noAsk then (return []) else
+    -- Default behavior: ask for dependencies if linear mode is disabled
+    deps <- if linear then (return $ leafMigrations storeData) else
+            if noAsk then (return []) else
             do
               putStrLn $ "Selecting dependencies for new \
                          \migration: " ++ migrationId

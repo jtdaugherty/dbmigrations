@@ -126,6 +126,17 @@ its fields. An example configuration is as follows:
   DBM_DATABASE_TYPE = "sqlite3"
   DBM_DATABASE = "/path/to/database.db"
   DBM_MIGRATION_STORE = "/path/to/migration/store"
+  DBM_LINEAR_MIGRATIONS = on/off (or true/false; defaults to off)
+
+Alternatively, you may save your settings to "moo.cfg" file in the current
+directory (probably a project root) and moo will load it automatically, if
+present. Specifying --config-file disables this behavior.
+
+If you use a config file (either the default one or the one specified with
+--config-file option) but the environment variables are set, they will
+override settings from the file. You may use this to have project settings
+specified in a file and use environment to specify user-local configuration
+options.
 
 Migration file format
 ---------------------
@@ -211,15 +222,20 @@ Moo depends on these environment variables:
     schema.  Initially, you'll probably set this to an extant (but
     empty) directory.  moo will not create it for you.
 
+  DBM_LINEAR_MIGRATIONS
+
+    If set to true/on, the linear migrations feature will be enabled.
+    Defaults to off. See 'Linear migrations' section for more details.
+
 Commands
 --------
 
   new <migration name>: create a new migration with the given name and
     save it in the migration store.  This command will prompt you for
-    dependencies on other migrations and ask for confirmation before
-    creating the migration in the store.  If you use the --no-ask
-    flag, the migration will be created immediately with no
-    dependencies.
+    dependencies on other migrations (if the 'linear migrations'
+    feature is disabled) and ask for confirmation before creating the
+    migration in the store.  If you use the --no-ask flag, the migration
+    will be created immediately with no dependencies.
 
   apply <migration name>: apply the specified migration (and its
     dependencies) to the database.  This operation will be performed
@@ -257,3 +273,14 @@ Commands
     rolled back; otherwise it will be committed.  This is mostly
     useful in development when a migration applies but is incorrect
     and needs to be tweaked and reapplied.
+
+Linear migrations
+-----------------
+
+If you know that every migration needs to depend on all previous ones,
+consider enabling this feature. When enabled, 'moo new' will automatically
+select smallest subset of existing migrations that will make the new one
+indirectly depend on every other already in the store. This in turn makes
+the store linear-ish (in terms of order of execution) and helps managing the
+migrations by always depending on previous work. Also, this may easily be used
+to see how the database changed in time.
