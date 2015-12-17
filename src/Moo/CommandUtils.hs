@@ -33,7 +33,7 @@ import Moo.Core
 
 getCurrentTimestamp :: IO String
 getCurrentTimestamp =
-  replace ":" "-" . replace " " "-" . take 19 . show <$> getCurrentTime
+  replace ":" "-" . replace " " "_" . take 19 . show <$> getCurrentTime
 
 
 apply :: Migration -> StoreData -> Backend -> Bool -> IO [Migration]
