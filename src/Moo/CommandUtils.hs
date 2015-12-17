@@ -7,6 +7,7 @@ module Moo.CommandUtils
        , revert
        , withBackend
        , makeBackend
+       , getCurrentTimestamp
        ) where
 
 import Control.Exception ( bracket )
@@ -14,6 +15,8 @@ import Control.Monad ( when, forM_, unless )
 import Control.Monad.Reader ( asks )
 import Control.Monad.Trans ( liftIO )
 import Data.List ( intercalate, sortBy )
+import Data.List.Utils (replace)
+import Data.Time.Clock (getCurrentTime)
 import Data.Maybe ( fromJust, isJust )
 import System.Exit ( exitWith, ExitCode(..) )
 import System.IO ( stdout, hFlush, hGetBuffering
@@ -27,6 +30,11 @@ import Database.Schema.Migrations.Store ( StoreData
                                         , storeMigrations
                                         )
 import Moo.Core
+
+getCurrentTimestamp :: IO String
+getCurrentTimestamp =
+  replace ":" "-" . replace " " "-" . take 19 . show <$> getCurrentTime
+
 
 apply :: Migration -> StoreData -> Backend -> Bool -> IO [Migration]
 apply m storeData backend complain = do
@@ -217,4 +225,3 @@ askDepsChoices = [ ('y', (Yes, Just "yes, depend on this migration"))
                  , ('d', (Done, Just "done, do not ask me about more dependencies"))
                  , ('q', (Quit, Just "cancel this operation and quit"))
                  ]
-

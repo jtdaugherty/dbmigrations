@@ -90,6 +90,7 @@ prepareState m = do
     , _appDatabaseType = "none"
     , _appStoreData = storeData
     , _appLinearMigrations = True
+    , _appTimestampFilenames = False
     }
 
 prepareStateWith :: AppState -> String -> IO AppState

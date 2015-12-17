@@ -47,6 +47,7 @@ data AppState = AppState { _appOptions          :: CommandOptions
                          , _appDatabaseType     :: String
                          , _appStoreData        :: StoreData
                          , _appLinearMigrations :: Bool
+                         , _appTimestampFilenames :: Bool
                          }
 
 type ShellEnvironment = [(String, String)]

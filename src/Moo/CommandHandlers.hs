@@ -20,15 +20,19 @@ import Database.Schema.Migrations.Backend
 
 newCommand :: CommandHandler
 newCommand storeData = do
-  required <- asks _appRequiredArgs
-  store    <- asks _appStore
-  linear   <- asks _appLinearMigrations
-  let [migrationId] = required
+  required  <- asks _appRequiredArgs
+  store     <- asks _appStore
+  linear    <- asks _appLinearMigrations
+  timestamp <- asks _appTimestampFilenames
+  timeString <- (++"_") <$> liftIO getCurrentTimestamp
+
+  let [migrationId] = if timestamp 
+      then fmap (timeString++) required
+      else required
   noAsk <- _noAsk <$> asks _appOptions
 
   liftIO $ do
     fullPath <- fullMigrationName store migrationId
-
     when (isJust $ storeLookup storeData migrationId) $
          do
            putStrLn $ "Migration " ++ (show fullPath) ++ " already exists"
@@ -41,21 +45,21 @@ newCommand storeData = do
               putStrLn $ "Selecting dependencies for new migration: " ++ migrationId
               interactiveAskDeps storeData
 
-    result <- if noAsk then (return True) else
-              (confirmCreation migrationId deps)
+    result <- if noAsk then return True 
+                       else confirmCreation migrationId deps
 
-    case result of
-      True -> do
-               now <- Clock.getCurrentTime
-               status <- createNewMigration store $ (newMigration migrationId) { mDeps = deps
-                                                                               , mTimestamp = Just now
-                                                                               }
-               case status of
-                 Left e -> putStrLn e >> (exitWith (ExitFailure 1))
-                 Right _ -> putStrLn $ "Migration created successfully: " ++
-                            show fullPath
-      False -> do
-               putStrLn "Migration creation cancelled."
+    if result 
+       then do
+         now <- Clock.getCurrentTime
+         status <- createNewMigration store $ (newMigration migrationId) { mDeps = deps
+                                                                         , mTimestamp = Just now
+                                                                         }
+         case status of
+           Left e -> putStrLn e >> (exitWith (ExitFailure 1))
+           Right _ -> putStrLn $ "Migration created successfully: " ++
+                      show fullPath
+      else do
+        putStrLn "Migration creation cancelled."
 
 upgradeCommand :: CommandHandler
 upgradeCommand storeData = do

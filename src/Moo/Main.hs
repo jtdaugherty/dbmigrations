@@ -71,25 +71,26 @@ mainWithConf args conf = do
       linear = _linearMigrations conf
 
   if length required < length ( _cRequired command) then
-      usageSpecific command else
-      do
-        loadedStoreData <- loadMigrations store
-        case loadedStoreData of
-          Left es -> do
-            putStrLn "There were errors in the migration store:"
-            forM_ es $ \err -> putStrLn $ "  " ++ show err
-          Right storeData -> do
-            let st = AppState { _appOptions = opts
-                              , _appCommand = command
-                              , _appRequiredArgs = required
-                              , _appOptionalArgs = ["" :: String]
-                              , _appDatabaseConnStr = DbConnDescriptor dbConnStr
-                              , _appDatabaseType = dbType
-                              , _appStore = store
-                              , _appStoreData = storeData
-                              , _appLinearMigrations = linear
-                              }
-            runReaderT (_cHandler command storeData) st `catchSql` reportSqlError
+      usageSpecific command
+  else do
+    loadedStoreData <- loadMigrations store
+    case loadedStoreData of
+      Left es -> do
+        putStrLn "There were errors in the migration store:"
+        forM_ es $ \err -> putStrLn $ "  " ++ show err
+      Right storeData -> do
+        let st = AppState { _appOptions = opts
+                          , _appCommand = command
+                          , _appRequiredArgs = required
+                          , _appOptionalArgs = ["" :: String]
+                          , _appDatabaseConnStr = DbConnDescriptor dbConnStr
+                          , _appDatabaseType = dbType
+                          , _appStore = store
+                          , _appStoreData = storeData
+                          , _appLinearMigrations = linear
+                          , _appTimestampFilenames = _timestampFilenames conf
+                          }
+        runReaderT (_cHandler command storeData) st `catchSql` reportSqlError
 
 reportSqlError :: SqlError -> IO a
 reportSqlError e = do
