@@ -1,6 +1,7 @@
 module Database.Schema.Migrations.Migration
     ( Migration(..)
     , newMigration
+    , emptyMigration
     )
 where
 
@@ -22,12 +23,19 @@ instance Dependable Migration where
     depsOf = mDeps
     depId = mId
 
-newMigration :: String -> Migration
-newMigration theId =
+emptyMigration :: String -> Migration
+emptyMigration name =
   Migration { mTimestamp = Nothing
-            , mId = theId
-            , mApply = "(Apply SQL here.)"
+            , mId = name
+            , mApply = ""
             , mRevert = Nothing
-            , mDesc = Just "(Describe migration here.)"
+            , mDesc = Nothing
             , mDeps = []
             }
+
+newMigration :: String -> Migration
+newMigration theId = 
+  (emptyMigration theId) 
+    { mApply = "(Apply SQL here.)"
+    , mDesc = Just "(Describe migration here.)"
+    }
