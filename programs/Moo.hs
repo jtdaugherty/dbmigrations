@@ -3,7 +3,7 @@ module Main
     )
 where
 
-import  Prelude hiding (lookup)
+import  Prelude  hiding (lookup)
 import  System.Environment (getArgs)
 import  System.Exit
 

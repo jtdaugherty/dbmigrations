@@ -71,7 +71,7 @@ mainWithConf args conf = do
       linear = _linearMigrations conf
 
   if length required < length ( _cRequired command) then
-      usageSpecific command else 
+      usageSpecific command else
       do
         loadedStoreData <- loadMigrations store
         case loadedStoreData of

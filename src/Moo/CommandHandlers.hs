@@ -39,27 +39,28 @@ newCommand storeData = do
            exitWith (ExitFailure 1)
 
     -- Default behavior: ask for dependencies if linear mode is disabled
-    deps <- if linear then (return $ leafMigrations storeData)
-            else if noAsk then (return []) 
-            else do
-              putStrLn $ "Selecting dependencies for new migration: " ++ migrationId
-              interactiveAskDeps storeData
+    deps <- if linear then (return $ leafMigrations storeData) else
+           if noAsk then (return []) else 
+           do
+             putStrLn $ "Selecting dependencies for new \
+                        \migration: " ++ migrationId
+             interactiveAskDeps storeData
 
-    result <- if noAsk then (return True) else 
+    result <- if noAsk then (return True) else
               (confirmCreation migrationId deps)
 
     case result of
-         True -> do
-                  now <- Clock.getCurrentTime
-                  status <- createNewMigration store $ (newMigration migrationId) { mDeps = deps
-                                                       , mTimestamp = Just now
-                                                       }
-                  case status of
-                       Left e -> putStrLn e >> (exitWith (ExitFailure 1))
-                       Right _ -> putStrLn $ "Migration created successfully: " ++
-                                  show fullPath
-         False -> do
-                 putStrLn "Migration creation cancelled."
+      True -> do
+               now <- Clock.getCurrentTime
+               status <- createNewMigration store $ (newMigration migrationId) { mDeps = deps
+                                                    , mTimestamp = Just now
+                                                    }
+               case status of
+                    Left e -> putStrLn e >> (exitWith (ExitFailure 1))
+                    Right _ -> putStrLn $ "Migration created successfully: " ++
+                               show fullPath
+      False -> do
+              putStrLn "Migration creation cancelled."
 
 upgradeCommand :: CommandHandler
 upgradeCommand storeData = do
