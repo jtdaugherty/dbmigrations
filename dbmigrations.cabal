@@ -71,7 +71,6 @@ Library
     yaml-light >= 0.1,
     bytestring >= 0.9,
     text >= 0.11,
-    MissingH,
     configurator >= 0.2,
     HDBC-postgresql,
     HDBC-sqlite3
