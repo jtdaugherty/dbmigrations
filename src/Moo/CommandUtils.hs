@@ -246,12 +246,9 @@ list instead of just one element.
 breakList :: ([a] -> Bool) -> [a] -> ([a], [a])
 breakList func = spanList (not . func)
 
-
-
 replace :: Eq a => [a] -> [a] -> [a] -> [a]
 replace old new = intercalate new . split old
 
--- Vendored from MissingH Data.List.Utils
 split :: Eq a => [a] -> [a] -> [[a]]
 split _ [] = []
 split delim str =
