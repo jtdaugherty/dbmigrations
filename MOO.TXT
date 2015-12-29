@@ -127,6 +127,7 @@ its fields. An example configuration is as follows:
   DBM_DATABASE = "/path/to/database.db"
   DBM_MIGRATION_STORE = "/path/to/migration/store"
   DBM_LINEAR_MIGRATIONS = on/off (or true/false; defaults to off)
+  DBM_TIMESTAMP_FILENAMES = on/off (or true/false; defaults to off)
 
 Alternatively, you may save your settings to "moo.cfg" file in the current
 directory (probably a project root) and moo will load it automatically, if
@@ -188,7 +189,8 @@ For a full treatment of this behavior, see the YAML spec.
 Environment
 -----------
 
-Moo depends on these environment variables:
+Moo depends on these environment variables / configuration file
+settings:
 
   DBM_DATABASE_TYPE
 
@@ -226,6 +228,11 @@ Moo depends on these environment variables:
 
     If set to true/on, the linear migrations feature will be enabled.
     Defaults to off. See 'Linear migrations' section for more details.
+
+  DBM_TIMESTAMP_FILENAMES
+
+    If set to true/on, the migration filename for new migrations will
+    have a timestamp embedded in it.
 
 Commands
 --------
