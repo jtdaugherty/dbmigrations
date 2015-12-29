@@ -18,6 +18,7 @@ tests = sequence [prepareTestEnv >> e | e <- entries]
                     , ifNoConfigFileIsAvailableEnvironmentIsUsed
                     , throwsWhenConfigFileIsInvalid
                     , returnsErrorWhenNotAllPropertiesAreSet
+                    , canReadTimestampsConfig
                     ]
 
 prepareTestEnv :: IO ()
@@ -27,6 +28,12 @@ prepareTestEnv = do
     unsetEnv "DBM_DATABASE"
     unsetEnv "DBM_MIGRATION_STORE"
     unsetEnv "DBM_LINEAR_MIGRATIONS"
+    unsetEnv "DBM_TIMESTAMP_FILENAMES"
+
+canReadTimestampsConfig :: IO Test
+canReadTimestampsConfig = do
+  Right cfg <- loadConfiguration (Just "cfg_ts.cfg")
+  satisfies "Timestamp not set" cfg _timestampFilenames
 
 loadsConfigFile :: IO Test
 loadsConfigFile = do
@@ -95,4 +102,3 @@ throwsWhenConfigFileIsInvalid :: IO Test
 throwsWhenConfigFileIsInvalid = do
     c <- try $ loadConfiguration (Just "invalid.cfg")
     satisfies "Should throw" c (isLeft :: Either SomeException a -> Bool)
-

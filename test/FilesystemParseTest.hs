@@ -116,4 +116,4 @@ mkParsingTest (fname, expected) = do
 
 migrationParsingTests :: IO [Test]
 migrationParsingTests =
-    sequence $ map mkParsingTest migrationParsingTestCases
+    traverse mkParsingTest migrationParsingTestCases

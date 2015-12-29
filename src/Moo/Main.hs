@@ -88,6 +88,7 @@ mainWithConf args conf = do
                               , _appStore = store
                               , _appStoreData = storeData
                               , _appLinearMigrations = linear
+                              , _appTimestampFilenames = _timestampFilenames conf
                               }
             runReaderT (_cHandler command storeData) st `catchSql` reportSqlError
 

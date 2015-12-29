@@ -29,7 +29,7 @@ import Data.Yaml.YamlLight
 
 import Database.Schema.Migrations.Migration
     ( Migration(..)
-    , newMigration
+    , emptyMigration
     )
 import Database.Schema.Migrations.Filesystem.Serialize
 import Database.Schema.Migrations.Store
@@ -98,7 +98,7 @@ migrationFromPath path = do
 
       case length missing of
         0 -> do
-          let newM = newMigration name
+          let newM = emptyMigration name
           case migrationFromFields newM fields of
             Nothing -> throwFS $ "Error in " ++ (show path) ++ ": unrecognized field found"
             Just m -> return m

@@ -108,6 +108,7 @@ test-suite dbmigrations-tests
     template-haskell,
     yaml-light >= 0.1,
     bytestring >= 0.9,
+    MissingH,
     HDBC >= 2.2.1,
     HDBC-postgresql,
     HDBC-sqlite3,

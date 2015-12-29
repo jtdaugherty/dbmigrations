@@ -7,13 +7,15 @@ module Moo.CommandUtils
        , revert
        , withBackend
        , makeBackend
+       , getCurrentTimestamp
        ) where
 
 import Control.Exception ( bracket )
 import Control.Monad ( when, forM_, unless )
 import Control.Monad.Reader ( asks )
 import Control.Monad.Trans ( liftIO )
-import Data.List ( intercalate, sortBy )
+import Data.List ( intercalate, sortBy, isPrefixOf )
+import Data.Time.Clock (getCurrentTime)
 import Data.Maybe ( fromJust, isJust )
 import System.Exit ( exitWith, ExitCode(..) )
 import System.IO ( stdout, hFlush, hGetBuffering
@@ -27,6 +29,10 @@ import Database.Schema.Migrations.Store ( StoreData
                                         , storeMigrations
                                         )
 import Moo.Core
+
+getCurrentTimestamp :: IO String
+getCurrentTimestamp =
+  replace ":" "-" . replace " " "_" . take 19 . show <$> getCurrentTime
 
 apply :: Migration -> StoreData -> Backend -> Bool -> IO [Migration]
 apply m storeData backend complain = do
@@ -218,3 +224,37 @@ askDepsChoices = [ ('y', (Yes, Just "yes, depend on this migration"))
                  , ('q', (Quit, Just "cancel this operation and quit"))
                  ]
 
+-- The following code is vendored from MissingH Data.List.Utils:
+
+{- | Similar to Data.List.span, but performs the test on the entire remaining
+list instead of just one element.
+
+@spanList p xs@ is the same as @(takeWhileList p xs, dropWhileList p xs)@
+-}
+spanList :: ([a] -> Bool) -> [a] -> ([a], [a])
+
+spanList _ [] = ([],[])
+spanList func list@(x:xs) =
+    if func list
+       then (x:ys,zs)
+       else ([],list)
+    where (ys,zs) = spanList func xs
+
+{- | Similar to Data.List.break, but performs the test on the entire remaining
+list instead of just one element.
+-}
+breakList :: ([a] -> Bool) -> [a] -> ([a], [a])
+breakList func = spanList (not . func)
+
+replace :: Eq a => [a] -> [a] -> [a] -> [a]
+replace old new = intercalate new . split old
+
+split :: Eq a => [a] -> [a] -> [[a]]
+split _ [] = []
+split delim str =
+  let (firstline, remainder) = breakList (isPrefixOf delim) str
+   in firstline : case remainder of
+                       [] -> []
+                       x -> if x == delim
+                               then [[]]
+                               else split delim (drop (length delim) x)
