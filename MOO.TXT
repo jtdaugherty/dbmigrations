@@ -6,7 +6,8 @@ The dbmigrations package exposes a library and a tool. The tool, called
 "moo", is responsible for creating, installing, and reverting migrations
 in your database backend.
 
-At present, PostgreSQL and Sqlite3 are the only supported database backends.
+At present, PostgreSQL and Sqlite3 are the only supported database
+backends.
 
 The moo tool works by creating migration files in a specific location,
 called a migration store, on your filesystem. This directory is where

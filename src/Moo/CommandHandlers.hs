@@ -26,7 +26,7 @@ newCommand storeData = do
   timestamp  <- asks _appTimestampFilenames
   timeString <- (++"_") <$> liftIO getCurrentTimestamp
 
-  let [migrationId] = if timestamp 
+  let [migrationId] = if timestamp
       then fmap (timeString++) required
       else required
   noAsk <- _noAsk <$> asks _appOptions
@@ -40,7 +40,7 @@ newCommand storeData = do
 
     -- Default behavior: ask for dependencies if linear mode is disabled
     deps <- if linear then (return $ leafMigrations storeData) else
-           if noAsk then (return []) else 
+           if noAsk then (return []) else
            do
              putStrLn $ "Selecting dependencies for new \
                         \migration: " ++ migrationId
