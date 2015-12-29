@@ -1,5 +1,5 @@
 Name:                dbmigrations
-Version:             0.9.1
+Version:             1.0
 Synopsis:            An implementation of relational database "migrations"
 Description:         A library and program for the creation,
                      management, and installation of schema updates
