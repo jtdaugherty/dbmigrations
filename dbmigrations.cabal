@@ -74,6 +74,7 @@ Library
     configurator >= 0.2,
     HDBC-postgresql,
     HDBC-sqlite3,
+    mysql >= 0.1.1.8,
     mysql-simple >= 0.2.2.5,
     split >= 0.2.2
 
@@ -120,6 +121,7 @@ test-suite dbmigrations-tests
     configurator >= 0.2,
     text >= 0.11,
     mysql-simple >= 0.2.2.5,
+    mysql >= 0.1.1.8,
     split >= 0.2.2
 
   other-modules:

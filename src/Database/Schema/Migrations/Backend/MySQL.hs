@@ -1,5 +1,6 @@
 module Database.Schema.Migrations.Backend.MySQL (mysqlBackend) where
 
+import Control.Monad (when)
 import Database.MySQL.Simple
 import Database.Schema.Migrations.Backend
        (Backend(..), rootMigrationName)
@@ -8,6 +9,7 @@ import Database.Schema.Migrations.Migration
 import Data.Time.Clock (getCurrentTime)
 import Data.String (fromString)
 import Data.Maybe (listToMaybe)
+import qualified Database.MySQL.Base as Base
 
 mysqlBackend :: Connection -> Backend
 mysqlBackend conn =
@@ -27,6 +29,7 @@ mysqlBackend conn =
           ,applyMigration =
              \m ->
                do execute_ conn (fromString (mApply m))
+                  discardResults conn
                   execute conn
                           (fromString
                              ("INSERT INTO " ++
@@ -41,6 +44,7 @@ mysqlBackend conn =
                     Just sql ->
                       do execute_ conn (fromString sql)
                          return ()
+                  discardResults conn
                   -- Remove migration from installed_migrations in either case.
                   execute
                     conn
@@ -58,6 +62,11 @@ mysqlBackend conn =
           ,commitBackend = commit conn
           ,rollbackBackend = rollback conn
           ,disconnectBackend = close conn}
+
+discardResults :: Connection -> IO ()
+discardResults conn =
+  do more <- Base.nextResult conn
+     when more (discardResults conn)
 
 migrationTableName :: String
 migrationTableName = "installed_migrations"

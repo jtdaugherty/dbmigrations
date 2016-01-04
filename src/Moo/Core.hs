@@ -27,6 +27,7 @@ import Database.HDBC.Sqlite3 (connectSqlite3)
 import System.Environment (getEnvironment)
 import Data.Maybe (isJust, fromMaybe)
 import qualified Database.MySQL.Simple as MySQL
+import qualified Database.MySQL.Base as MySQLB
 
 import Database.Schema.Migrations ()
 import Database.Schema.Migrations.Store (MigrationStore, StoreData)
@@ -205,7 +206,7 @@ connectMySQL connectionString =
           <*> lookup "user" kvs
           <*> pure (fromMaybe "" (lookup "password" kvs))
           <*> lookup "database" kvs
-          <*> pure []
+          <*> pure [MySQLB.MultiStatements]
           <*> pure ""
           <*> pure Nothing
   in MySQL.connect (fromMaybe (error "Invalid connection string. Expected form: host=hostname; user=username; port=portNumber; database=dbname; password=pwd.")
