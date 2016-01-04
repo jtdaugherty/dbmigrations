@@ -14,7 +14,7 @@ mysqlBackend conn =
   Backend {isBootstrapped =
              fmap ((Just migrationTableName ==) . listToMaybe . fmap fromOnly)
                   (query conn
-                         (fromString "SELECT table_name FROM information_schema.tables WHERE table_name = ?")
+                         (fromString "SELECT table_name FROM information_schema.tables WHERE table_name = ? AND table_schema = database()")
                          (Only migrationTableName) :: IO [Only String])
           ,getBootstrapMigration =
              do ts <- getCurrentTime
