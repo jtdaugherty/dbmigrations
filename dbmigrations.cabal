@@ -73,7 +73,10 @@ Library
     text >= 0.11,
     configurator >= 0.2,
     HDBC-postgresql,
-    HDBC-sqlite3
+    HDBC-sqlite3,
+    mysql >= 0.1.1.8,
+    mysql-simple >= 0.2.2.5,
+    split >= 0.2.2
 
   Hs-Source-Dirs:    src
   Exposed-Modules:
@@ -83,6 +86,7 @@ Library
           Database.Schema.Migrations.Filesystem
           Database.Schema.Migrations.Backend
           Database.Schema.Migrations.Backend.HDBC
+          Database.Schema.Migrations.Backend.MySQL
           Database.Schema.Migrations.Store
           Moo.Main
           Moo.CommandHandlers
@@ -115,7 +119,10 @@ test-suite dbmigrations-tests
     HUnit >= 1.2,
     process >= 1.1,
     configurator >= 0.2,
-    text >= 0.11
+    text >= 0.11,
+    mysql-simple >= 0.2.2.5,
+    mysql >= 0.1.1.8,
+    split >= 0.2.2
 
   other-modules:
     BackendTest

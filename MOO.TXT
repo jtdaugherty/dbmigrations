@@ -6,7 +6,7 @@ The dbmigrations package exposes a library and a tool. The tool, called
 "moo", is responsible for creating, installing, and reverting migrations
 in your database backend.
 
-At present, PostgreSQL and Sqlite3 are the only supported database
+At present, MySQL, PostgreSQL and Sqlite3 are the only supported database
 backends.
 
 The moo tool works by creating migration files in a specific location,
@@ -34,11 +34,13 @@ Getting started
     directory you created in step 1.
 
  3. Set an environment variable DBM_DATABASE_TYPE to a supported
-    backend. Valid values are "postgresql" and "sqlite3".
+    backend. Valid values are "mysql", "postgresql" and "sqlite3".
 
  4. Set an environment variable DBM_DATABASE to a database connection
     string that is appropriate for the value of DBM_DATABASE_TYPE you
-    chose.
+    chose. The contents of this depend on the value of
+    DBM_DATABASE_TYPE, see the "Environment" documentation section for
+    more information.
 
  5. Run "moo upgrade". This command will not actually install any
     migrations, since you have not created any, but it will attempt to
@@ -195,9 +197,9 @@ settings:
 
   DBM_DATABASE_TYPE
 
-    The type of database you'll be managing.  The only supported value
-    at present is "postgresql".  This will determine the format of
-    DBM_DATABASE.
+    The type of database you'll be managing.  Supported values
+    at present are "mysql", "postgresql" and "sqlite3". This will
+    determine the format of DBM_DATABASE.
 
   DBM_DATABASE
 
@@ -216,6 +218,15 @@ settings:
 
       The format of this value is a filesystem path to the Sqlite3
       database to be used.
+
+    DBM_DATABASE_TYPE=mysql:
+
+      For MySQL, DBM_DATABASE should be a value of key value pairs,
+      where each pair is formed by `key=value`, and each pair separated
+      by a semicolon. Required keys are `host`, `user` and `database`,
+      and you can optionally supply `port` and `password`.
+
+      Example: DBM_DATABASE="host=localhost; user=root; database=cows"
 
   DBM_MIGRATION_STORE
 

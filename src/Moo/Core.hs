@@ -14,6 +14,8 @@ module Moo.Core
     , envStoreName
     , loadConfiguration) where
 
+import Data.List.Split (wordsBy)
+import Data.Char (isSpace)
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad.Reader (ReaderT)
 import qualified Data.Configurator as C
@@ -24,12 +26,14 @@ import Database.HDBC.PostgreSQL (connectPostgreSQL)
 import Database.HDBC.Sqlite3 (connectSqlite3)
 import System.Environment (getEnvironment)
 import Data.Maybe (isJust, fromMaybe)
-
+import qualified Database.MySQL.Simple as MySQL
+import qualified Database.MySQL.Base as MySQLB
 
 import Database.Schema.Migrations ()
 import Database.Schema.Migrations.Store (MigrationStore, StoreData)
 import Database.Schema.Migrations.Backend
 import Database.Schema.Migrations.Backend.HDBC
+import Database.Schema.Migrations.Backend.MySQL
 
 -- |The monad in which the application runs.
 type AppT a = ReaderT AppState IO a
@@ -180,7 +184,33 @@ newtype DbConnDescriptor = DbConnDescriptor String
 databaseTypes :: [(String, String -> IO Backend)]
 databaseTypes = [ ("postgresql", fmap hdbcBackend . connectPostgreSQL)
                 , ("sqlite3", fmap hdbcBackend . connectSqlite3)
+                , ("mysql", fmap mysqlBackend . connectMySQL)
                 ]
+
+-- A slightly hacky connection string parser for MySQL, because mysql-simple
+-- doesn't come with one.
+connectMySQL :: String -> IO MySQL.Connection
+connectMySQL connectionString =
+  let kvs =
+        [(map toLower (trimlr k),trimlr v) | kvPair <-
+                                              wordsBy (== ';') connectionString :: [String]
+                                           , let (k,v) = case wordsBy (== '=') kvPair of
+                                                           (k:v:_) -> (k,v)
+                                                           [k] -> (k,"")
+                                                           [] -> error "impossible"]
+      trimlr = takeWhile (not . isSpace) . dropWhile isSpace
+      connInfo =
+        MySQL.ConnectInfo
+          <$> lookup "host" kvs
+          <*> pure (read (fromMaybe "3306" (lookup "port" kvs)))
+          <*> lookup "user" kvs
+          <*> pure (fromMaybe "" (lookup "password" kvs))
+          <*> lookup "database" kvs
+          <*> pure [MySQLB.MultiStatements]
+          <*> pure ""
+          <*> pure Nothing
+  in MySQL.connect (fromMaybe (error "Invalid connection string. Expected form: host=hostname; user=username; port=portNumber; database=dbname; password=pwd.")
+                              connInfo)
 
 envDatabaseType :: String
 envDatabaseType = "DBM_DATABASE_TYPE"
