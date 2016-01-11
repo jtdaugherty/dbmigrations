@@ -17,22 +17,27 @@ import qualified LinearMigrationsTest
 import qualified ConfigurationTest
 
 import Control.Monad ( forM )
-import Control.Exception ( finally, catch, SomeException )
+import Control.Exception ( finally, catch, try, SomeException(..) )
+import Data.String (fromString)
 
 import Database.HDBC ( IConnection(disconnect) )
 import Database.HDBC.Sqlite3 ( connectSqlite3 )
 import qualified Database.HDBC.PostgreSQL as PostgreSQL
+import qualified Database.MySQL.Simple as MySQL
 
 loadTests :: IO [Test]
 loadTests = do
 
   sqliteConn <- connectSqlite3 ":memory:"
-  pgConn <- setupPostgresDb
+  --pgConn <- setupPostgresDb
+  mysqlConn <- setupMySQLDb
 
-  let backends = [ ("Sqlite", (BackendTest.tests sqliteConn) `finally`
+  let backends = [ ("Sqlite", (BackendTest.tests (BackendTest.HDBCConnection sqliteConn)) `finally`
                                 (disconnect sqliteConn))
-                 , ("PostgreSQL", (BackendTest.tests pgConn) `finally`
-                                    (disconnect pgConn >> teardownPostgresDb))
+                 -- , ("PostgreSQL", (BackendTest.tests (BackendTest.HDBCConnection pgConn)) `finally`
+                 --                    (disconnect pgConn >> teardownPostgresDb))
+                 , ("MySQL", (BackendTest.tests (BackendTest.MySQLConnection mysqlConn)) `finally`
+                               (MySQL.close mysqlConn >> teardownMySQLDb))
                  ]
 
   backendTests <- forM backends $ \(name, testAct) -> do
@@ -56,8 +61,8 @@ loadTests = do
                   , StoreTest.tests
                   ]
 
-tempPgDatabase :: String
-tempPgDatabase = "dbmigrations_test"
+tempDatabase :: String
+tempDatabase = "dbmigrations_test"
 
 ignoreException :: SomeException -> IO ()
 ignoreException _ = return ()
@@ -67,21 +72,37 @@ setupPostgresDb = do
   teardownPostgresDb `catch` ignoreException
 
   -- create database
-  status <- system $ "createdb " ++ tempPgDatabase
+  status <- system $ "createdb " ++ tempDatabase
   case status of
     ExitSuccess -> return ()
-    ExitFailure _ -> error $ "Failed to create PostgreSQL database " ++ (show tempPgDatabase)
+    ExitFailure _ -> error $ "Failed to create PostgreSQL database " ++ (show tempDatabase)
 
   -- return test db connection
-  PostgreSQL.connectPostgreSQL $ "dbname=" ++ tempPgDatabase
+  PostgreSQL.connectPostgreSQL $ "dbname=" ++ tempDatabase
 
 teardownPostgresDb :: IO ()
 teardownPostgresDb = do
-  -- create database
-  status <- system $ "dropdb " ++ tempPgDatabase ++ " 2>/dev/null"
+  -- drop database
+  status <- system $ "dropdb " ++ tempDatabase ++ " 2>/dev/null"
   case status of
     ExitSuccess -> return ()
-    ExitFailure _ -> error $ "Failed to drop PostgreSQL database " ++ (show tempPgDatabase)
+    ExitFailure _ -> error $ "Failed to drop PostgreSQL database " ++ (show tempDatabase)
+
+setupMySQLDb :: IO MySQL.Connection
+setupMySQLDb = do
+  teardownMySQLDb `catch` ignoreException
+  conn <- MySQL.connect MySQL.defaultConnectInfo
+  MySQL.execute_ conn (fromString ("CREATE DATABASE " ++ tempDatabase))
+  MySQL.execute_ conn (fromString ("USE " ++ tempDatabase))
+  pure conn
+
+teardownMySQLDb :: IO ()
+teardownMySQLDb = do
+  conn <- MySQL.connect MySQL.defaultConnectInfo
+  e <- try (MySQL.execute_ conn (fromString ("DROP DATABASE " ++ tempDatabase)))
+  case e of
+    Left ex@SomeException{} -> error ("Failed to drop test MySQL database: " ++ show ex)
+    Right _ -> return ()
 
 main :: IO ()
 main = do
