@@ -1,5 +1,5 @@
 Name:                dbmigrations
-Version:             1.0
+Version:             1.1
 Synopsis:            An implementation of relational database "migrations"
 Description:         A library and program for the creation,
                      management, and installation of schema updates
@@ -11,8 +11,9 @@ Description:         A library and program for the creation,
                      transactions for safety.
 
                      This package is written to support any
-                     HDBC-supported database, although at present only
-                     PostgreSQL is fully supported.
+                     HDBC-supported database. This package supports
+                     SQLite, PostgreSQL, and MySQL. Please see MOO.TXT
+                     for warnings about MySQL!
 
                      To get started, see the included 'README.md' and
                      'MOO.TXT' files and the usage output for the
