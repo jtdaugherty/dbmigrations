@@ -1,6 +1,13 @@
 dbmigrations changelog
 ----------------------
 
+1.1
+---
+
+- Add support for MySQL databases (thanks Ollie Charles
+<ollie@ocharles.org.uk>). Please see MOO.TXT for a disclaimer about this
+feature!
+
 1.0
 ---
 

@@ -25,6 +25,42 @@ When migrations are installed into your database, the set of installed
 migrations is tracked by way of a migration table that is installed into
 your database.
 
+WARNING TO MYSQL USERS
+----------------------
+
+If you are using this library with MySQL, beware of the following
+caveat!
+
+Unlike PostgreSQL and SQLite, MySQL does not support transactional
+Data Definition Language (DDL) statements such as CREATE TABLE. Since
+dbmigrations is designed around the assumption that it's useful and
+important to make migrations atomic, and since most migrations will have
+at least some DDL in them, this means that dbmigrations cannot make
+atomicity guarantees about your migrations if you are using MySQL as
+your backend.  The MySQL docs have this to say:
+
+http://dev.mysql.com/doc/refman/5.7/en/cannot-roll-back.html
+
+This means that features like moo's "--test" flag will not do what you
+expect, that mistakes in migrations will be tough to fix in development,
+and that a problem in a migration in a production deployment COULD
+HOSE YOUR DATABASE and BREAK RUNNING APPLICATIONS. Note that MySQL's
+DDL statements cause an implicit commit, so any errors after each DDL
+statement will have to be corrected by hand!
+
+It is the author's opinion that this makes MySQL unfit for production
+use and that you should strongly consider using some other backend such
+as PostgreSQL which has much more robust support for transactional DDL.
+
+You might be wondering why support for MySQL is included if it can be
+so dangerous to use. Some users have requested and contributed support
+for it, and of course we can't always choose to use a different backend
+for preexisting systems. In those cases at least dbmigrations doesn't
+make your problem any worse than it already is, provided you heed this
+disclaimer. :)
+
+You have been warned!
+
 Getting started
 ---------------
 
