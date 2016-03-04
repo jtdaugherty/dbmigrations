@@ -20,7 +20,6 @@ import qualified Database.Schema.Migrations.Backend as B
 import qualified Database.Schema.Migrations.Store as S
 import Database.Schema.Migrations.Migration
     ( Migration(..)
-    , newMigration
     )
 
 -- |Given a 'B.Backend' and a 'S.MigrationMap', query the backend and
