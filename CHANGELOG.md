@@ -1,6 +1,13 @@
 dbmigrations changelog
 ----------------------
 
+1.1.1
+-----
+
+- Improve configuration validation error messages and clean up
+validation routine
+- Reinstate support for GHC 7.8
+
 1.1
 ---
 
