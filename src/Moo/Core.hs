@@ -25,7 +25,7 @@ import Data.Char (toLower)
 import Database.HDBC.PostgreSQL (connectPostgreSQL)
 import Database.HDBC.Sqlite3 (connectSqlite3)
 import System.Environment (getEnvironment)
-import Data.Maybe (isJust, fromMaybe)
+import Data.Maybe (fromMaybe)
 import qualified Database.MySQL.Simple as MySQL
 import qualified Database.MySQL.Base as MySQLB
 
@@ -79,15 +79,15 @@ defConfigFile = "moo.cfg"
 newLoadConfig :: LoadConfig
 newLoadConfig = LoadConfig Nothing Nothing Nothing Nothing Nothing
 
-isValidConfig :: LoadConfig -> Bool
-isValidConfig (LoadConfig a b c _ _) = all isJust [a, b, c]
-
-loadConfigToConfig :: LoadConfig -> Configuration
-loadConfigToConfig (LoadConfig (Just cs) (Just dt) (Just msp) lm ts) =
-  Configuration cs dt msp
-    (fromMaybe False lm)
-    (fromMaybe False ts)
-loadConfigToConfig _ = error "LoadConfig is invalid!"
+validateLoadConfig :: LoadConfig -> Either String Configuration
+validateLoadConfig (LoadConfig Nothing _ _ _ _) =
+    Left "Invalid configuration: connection string not specified"
+validateLoadConfig (LoadConfig _ Nothing _ _ _) =
+    Left "Invalid configuration: database type not specified"
+validateLoadConfig (LoadConfig _ _ Nothing _ _) =
+    Left "Invalid configuration: migration store path not specified"
+validateLoadConfig (LoadConfig (Just cs) (Just dt) (Just msp) lm ts) =
+    Right $ Configuration cs dt msp (fromMaybe False lm) (fromMaybe False ts)
 
 -- |Setters for fields of 'LoadConfig'.
 lcConnectionString, lcDatabaseType, lcMigrationStorePath
@@ -146,9 +146,7 @@ loadConfiguration pth = do
     env <- getEnvironment
     cfg <- applyConfigFile file newLoadConfig >>= applyEnvironment env
 
-    if isValidConfig cfg
-       then return $ Right $ loadConfigToConfig cfg
-       else return $ Left "Configuration is invalid, check if everything is set."
+    return $ validateLoadConfig cfg
 
 -- |Converts @Just "on"@ and @Just "true"@ (case insensitive) to @True@,
 -- anything else to @False@.
