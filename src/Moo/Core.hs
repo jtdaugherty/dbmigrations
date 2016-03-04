@@ -16,7 +16,7 @@ module Moo.Core
 
 import Data.List.Split (wordsBy)
 import Data.Char (isSpace)
-import Control.Applicative ((<$>), (<*>))
+import Control.Applicative
 import Control.Monad.Reader (ReaderT)
 import qualified Data.Configurator as C
 import Data.Configurator.Types (Config, Configured)
@@ -98,6 +98,8 @@ lcMigrationStorePath c v = c { _lcMigrationStorePath = v }
 
 lcLinearMigrations :: LoadConfig -> Maybe Bool -> LoadConfig
 lcLinearMigrations c v   = c { _lcLinearMigrations   = v }
+
+lcTimestampFilenames :: LoadConfig -> Maybe Bool -> LoadConfig
 lcTimestampFilenames c v = c { _lcTimestampFilenames = v }
 
 
@@ -195,8 +197,8 @@ connectMySQL connectionString =
         [(map toLower (trimlr k),trimlr v) | kvPair <-
                                               wordsBy (== ';') connectionString :: [String]
                                            , let (k,v) = case wordsBy (== '=') kvPair of
-                                                           (k:v:_) -> (k,v)
-                                                           [k] -> (k,"")
+                                                           (k':v':_) -> (k',v')
+                                                           [k'] -> (k',"")
                                                            [] -> error "impossible"]
       trimlr = takeWhile (not . isSpace) . dropWhile isSpace
       connInfo =
