@@ -124,6 +124,7 @@ applyEnvironment env lc =
               & lcDatabaseType       .= f envDatabaseType
               & lcMigrationStorePath .= f envStoreName
               & lcLinearMigrations   .= readFlag <$> f envLinearMigrations
+              & lcTimestampFilenames .= readFlag <$> f envTimestampFilenames
     where f n = return $ lookup n env
 
 applyConfigFile :: Config -> LoadConfig -> IO LoadConfig
