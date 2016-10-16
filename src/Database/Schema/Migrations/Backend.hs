@@ -69,3 +69,6 @@ data Backend =
             , disconnectBackend :: IO ()
             -- ^ Disconnect from the backend.
             }
+
+instance Show Backend where
+   show _ = show "dbmigrations backend"

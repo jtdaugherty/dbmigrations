@@ -5,6 +5,8 @@ module Moo.Core
     , CommandOptions (..)
     , Command (..)
     , AppState (..)
+    , AppStateBackendConfig (..)
+    , BackendConfiguration (..)
     , Configuration (..)
     , DbConnDescriptor (..)
     , databaseTypes
@@ -14,8 +16,6 @@ module Moo.Core
     , envStoreName
     , loadConfiguration) where
 
-import Data.List.Split (wordsBy)
-import Data.Char (isSpace)
 import Control.Applicative
 import Control.Monad.Reader (ReaderT)
 import qualified Data.Configurator as C
@@ -26,14 +26,11 @@ import Database.HDBC.PostgreSQL (connectPostgreSQL)
 import Database.HDBC.Sqlite3 (connectSqlite3)
 import System.Environment (getEnvironment)
 import Data.Maybe (fromMaybe)
-import qualified Database.MySQL.Simple as MySQL
-import qualified Database.MySQL.Base as MySQLB
 
 import Database.Schema.Migrations ()
 import Database.Schema.Migrations.Store (MigrationStore, StoreData)
 import Database.Schema.Migrations.Backend
 import Database.Schema.Migrations.Backend.HDBC
-import Database.Schema.Migrations.Backend.MySQL
 
 -- |The monad in which the application runs.
 type AppT a = ReaderT AppState IO a
@@ -41,14 +38,19 @@ type AppT a = ReaderT AppState IO a
 -- |The type of actions that are invoked to handle specific commands
 type CommandHandler = StoreData -> AppT ()
 
+data AppStateBackendConfig = AppStateBackendConfig
+                           { _appDatabaseConnStr  :: DbConnDescriptor
+                           , _appDatabaseType     :: String
+                           }
+
 -- |Application state which can be accessed by any command handler.
 data AppState = AppState { _appOptions          :: CommandOptions
                          , _appCommand          :: Command
                          , _appRequiredArgs     :: [String]
                          , _appOptionalArgs     :: [String]
+                         , _appBackendOrConf    ::
+                             Either AppStateBackendConfig Backend
                          , _appStore            :: MigrationStore
-                         , _appDatabaseConnStr  :: DbConnDescriptor
-                         , _appDatabaseType     :: String
                          , _appStoreData        :: StoreData
                          , _appLinearMigrations :: Bool
                          , _appTimestampFilenames :: Bool
@@ -56,9 +58,13 @@ data AppState = AppState { _appOptions          :: CommandOptions
 
 type ShellEnvironment = [(String, String)]
 
-data Configuration = Configuration
+data BackendConfiguration = BackendConfiguration
     { _connectionString   :: String
     , _databaseType       :: String
+    } deriving Show
+
+data Configuration = Configuration
+    { _backendOrConf      :: Either BackendConfiguration Backend
     , _migrationStorePath :: FilePath
     , _linearMigrations   :: Bool
     , _timestampFilenames :: Bool
@@ -87,7 +93,7 @@ validateLoadConfig (LoadConfig _ Nothing _ _ _) =
 validateLoadConfig (LoadConfig _ _ Nothing _ _) =
     Left "Invalid configuration: migration store path not specified"
 validateLoadConfig (LoadConfig (Just cs) (Just dt) (Just msp) lm ts) =
-    Right $ Configuration cs dt msp (fromMaybe False lm) (fromMaybe False ts)
+    Right $ Configuration (Left $ BackendConfiguration cs dt) msp (fromMaybe False lm) (fromMaybe False ts)
 
 -- |Setters for fields of 'LoadConfig'.
 lcConnectionString, lcDatabaseType, lcMigrationStorePath
@@ -180,38 +186,14 @@ data Command = Command { _cName           :: String
 
 newtype DbConnDescriptor = DbConnDescriptor String
 
+
 -- |The values of DBM_DATABASE_TYPE and their corresponding connection
 -- factory functions.
 databaseTypes :: [(String, String -> IO Backend)]
 databaseTypes = [ ("postgresql", fmap hdbcBackend . connectPostgreSQL)
                 , ("sqlite3", fmap hdbcBackend . connectSqlite3)
-                , ("mysql", fmap mysqlBackend . connectMySQL)
+                , ("mysql", exitWithMysqlErrorMessage)
                 ]
-
--- A slightly hacky connection string parser for MySQL, because mysql-simple
--- doesn't come with one.
-connectMySQL :: String -> IO MySQL.Connection
-connectMySQL connectionString =
-  let kvs =
-        [(map toLower (trimlr k),trimlr v) | kvPair <-
-                                              wordsBy (== ';') connectionString :: [String]
-                                           , let (k,v) = case wordsBy (== '=') kvPair of
-                                                           (k':v':_) -> (k',v')
-                                                           [k'] -> (k',"")
-                                                           [] -> error "impossible"]
-      trimlr = takeWhile (not . isSpace) . dropWhile isSpace
-      connInfo =
-        MySQL.ConnectInfo
-          <$> lookup "host" kvs
-          <*> pure (read (fromMaybe "3306" (lookup "port" kvs)))
-          <*> lookup "user" kvs
-          <*> pure (fromMaybe "" (lookup "password" kvs))
-          <*> lookup "database" kvs
-          <*> pure [MySQLB.MultiStatements]
-          <*> pure ""
-          <*> pure Nothing
-  in MySQL.connect (fromMaybe (error "Invalid connection string. Expected form: host=hostname; user=username; port=portNumber; database=dbname; password=pwd.")
-                              connInfo)
 
 envDatabaseType :: String
 envDatabaseType = "DBM_DATABASE_TYPE"
@@ -227,3 +209,7 @@ envLinearMigrations = "DBM_LINEAR_MIGRATIONS"
 
 envTimestampFilenames :: String
 envTimestampFilenames = "DBM_TIMESTAMP_FILENAMES"
+
+exitWithMysqlErrorMessage :: String -> IO Backend
+exitWithMysqlErrorMessage _ = do
+  error "MySQL is no longer directly supported by dbmigrations. Please use the package dbmigrations-mysql instead."

@@ -3,7 +3,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Moo.CommandHandlers where
 
-import Control.Applicative ((<$>))
 import Moo.Core
 import Moo.CommandUtils
 import Control.Monad ( when, forM_ )

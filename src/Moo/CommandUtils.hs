@@ -105,9 +105,14 @@ makeBackend dbType (DbConnDescriptor connStr) =
 -- with the connection.  Return its result.
 withBackend :: (Backend -> IO a) -> AppT a
 withBackend act = do
-  dbPath <- asks _appDatabaseConnStr
-  dbType <- asks _appDatabaseType
-  liftIO $ bracket (makeBackend dbType dbPath) disconnectBackend act
+  backendOrConf <- asks _appBackendOrConf
+  let backend = case backendOrConf of
+                Left config ->
+                  let dbPath = _appDatabaseConnStr config
+                      dbType = _appDatabaseType config
+                  in makeBackend dbType dbPath
+                Right preConfiguredBackend -> return preConfiguredBackend
+  liftIO $ bracket backend disconnectBackend act
 
 -- Given a migration name and selected dependencies, get the user's
 -- confirmation that a migration should be created.

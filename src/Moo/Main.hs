@@ -64,9 +64,7 @@ mainWithConf :: Args -> Configuration -> IO ()
 mainWithConf args conf = do
   (command, opts, required) <- procArgs args
 
-  let dbConnStr = _connectionString conf
-      dbType = _databaseType conf
-      storePathStr = _migrationStorePath conf
+  let storePathStr = _migrationStorePath conf
       store = filesystemStore $ FSStore { storePath = storePathStr }
       linear = _linearMigrations conf
 
@@ -79,12 +77,21 @@ mainWithConf args conf = do
             putStrLn "There were errors in the migration store:"
             forM_ es $ \err -> putStrLn $ "  " ++ show err
           Right storeData -> do
-            let st = AppState { _appOptions = opts
+            let appBackendOrConf = case _backendOrConf conf of
+                  Left backendConf ->
+                    let dbConnStr = _connectionString backendConf
+                        dbType = _databaseType backendConf
+                        appDbConnStr = DbConnDescriptor dbConnStr
+                    in Left $ AppStateBackendConfig
+                            { _appDatabaseConnStr = appDbConnStr
+                            , _appDatabaseType = dbType
+                            }
+                  Right backend -> Right backend
+                st = AppState { _appOptions = opts
                               , _appCommand = command
                               , _appRequiredArgs = required
                               , _appOptionalArgs = ["" :: String]
-                              , _appDatabaseConnStr = DbConnDescriptor dbConnStr
-                              , _appDatabaseType = dbType
+                              , _appBackendOrConf = appBackendOrConf
                               , _appStore = store
                               , _appStoreData = storeData
                               , _appLinearMigrations = linear
