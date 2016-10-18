@@ -125,7 +125,6 @@ test-suite dbmigrations-tests
     split >= 0.2.2
 
   other-modules:
-    BackendTest
     Common
     CommonTH
     CycleDetectionTest
