@@ -32,14 +32,14 @@ type AppT a = ReaderT AppState IO a
 type CommandHandler = StoreData -> AppT ()
 
 -- |Application state which can be accessed by any command handler.
-data AppState = AppState { _appOptions          :: CommandOptions
-                         , _appCommand          :: Command
-                         , _appRequiredArgs     :: [String]
-                         , _appOptionalArgs     :: [String]
-                         , _appBackend          :: Backend
-                         , _appStore            :: MigrationStore
-                         , _appStoreData        :: StoreData
-                         , _appLinearMigrations :: Bool
+data AppState = AppState { _appOptions            :: CommandOptions
+                         , _appCommand            :: Command
+                         , _appRequiredArgs       :: [String]
+                         , _appOptionalArgs       :: [String]
+                         , _appBackend            :: Backend
+                         , _appStore              :: MigrationStore
+                         , _appStoreData          :: StoreData
+                         , _appLinearMigrations   :: Bool
                          , _appTimestampFilenames :: Bool
                          }
 
