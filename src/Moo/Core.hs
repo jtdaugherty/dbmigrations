@@ -22,12 +22,9 @@ import qualified Data.Configurator as C
 import Data.Configurator.Types (Config, Configured)
 import qualified Data.Text as T
 import Data.Char (toLower)
-import Database.HDBC.PostgreSQL (connectPostgreSQL)
-import Database.HDBC.Sqlite3 (connectSqlite3)
 import System.Environment (getEnvironment)
 import Data.Maybe (fromMaybe)
 
-import Database.Schema.Migrations ()
 import Database.Schema.Migrations.Store (MigrationStore, StoreData)
 import Database.Schema.Migrations.Backend
 import Database.Schema.Migrations.Backend.HDBC
@@ -190,9 +187,15 @@ newtype DbConnDescriptor = DbConnDescriptor String
 -- |The values of DBM_DATABASE_TYPE and their corresponding connection
 -- factory functions.
 databaseTypes :: [(String, String -> IO Backend)]
-databaseTypes = [ ("postgresql", fmap hdbcBackend . connectPostgreSQL)
-                , ("sqlite3", fmap hdbcBackend . connectSqlite3)
-                , ("mysql", exitWithMysqlErrorMessage)
+databaseTypes = [ ("postgresql",
+                   exitWithNoDirectBackendSupportErrorMessage
+                     "PostgreSQL" "postgresql")
+                , ("sqlite3",
+                   exitWithNoDirectBackendSupportErrorMessage
+                     "SQLite" "sqlite")
+                , ("mysql",
+                   exitWithNoDirectBackendSupportErrorMessage
+                     "MySQL" "mysql")
                 ]
 
 envDatabaseType :: String
@@ -210,6 +213,15 @@ envLinearMigrations = "DBM_LINEAR_MIGRATIONS"
 envTimestampFilenames :: String
 envTimestampFilenames = "DBM_TIMESTAMP_FILENAMES"
 
-exitWithMysqlErrorMessage :: String -> IO Backend
-exitWithMysqlErrorMessage _ = do
-  error "MySQL is no longer directly supported by dbmigrations. Please use the package dbmigrations-mysql instead."
+exitWithNoDirectBackendSupportErrorMessage ::
+  String
+  -> String
+  -> String
+  -> IO Backend
+exitWithNoDirectBackendSupportErrorMessage backendType packageSuffix _ = do
+  error $
+    backendType ++
+    " is no longer directly supported by dbmigrations. " ++
+    "Please use the package dbmigrations-" ++ packageSuffix ++
+    " instead."
+

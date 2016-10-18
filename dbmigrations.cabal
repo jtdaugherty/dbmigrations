@@ -10,14 +10,22 @@ Description:         A library and program for the creation,
                      installs or reverts migrations accordingly, using
                      transactions for safety.
 
-                     This package is written to support any
-                     HDBC-supported database. This package supports
-                     SQLite, PostgreSQL. For MySQL support, please use
-                     the package dbmigrations-mysql.
+                     This package is written to support a number of
+                     different databases. For each supported
+                     database, a small wrapper package exists that
+                     contains the executable for this particular
+                     database type (usually called moo-postgresql,
+                     moo-mysql, moo-sqlite and so on).
+
+                     Currently, PostgreSQL, MySQL and SQLite are
+                     supported. To use dbmigrations with one of these
+                     databases, please use the package for your particular
+                     database, that is, dbmigrations-postgresql,
+                     dbmigrations-mysql or dbmigrations-sqlite.
 
                      To get started, see the included 'README.md' and
                      'MOO.TXT' files and the usage output for the
-                     'moo' command.
+                     'moo-' executable for your database type.
 
 Category:            Database
 Author:              Jonathan Daugherty <cygnus@foobox.com>
@@ -73,8 +81,6 @@ Library
     bytestring >= 0.9,
     text >= 0.11,
     configurator >= 0.2,
-    HDBC-postgresql,
-    HDBC-sqlite3,
     split >= 0.2.2
 
   Hs-Source-Dirs:    src
@@ -112,8 +118,6 @@ test-suite dbmigrations-tests
     bytestring >= 0.9,
     MissingH,
     HDBC >= 2.2.1,
-    HDBC-postgresql,
-    HDBC-sqlite3,
     HUnit >= 1.2,
     process >= 1.1,
     configurator >= 0.2,
