@@ -5,13 +5,10 @@ module Moo.Core
     , CommandOptions (..)
     , Command (..)
     , AppState (..)
-    , AppStateBackendConfig (..)
-    , BackendConfiguration (..)
     , Configuration (..)
-    , DbConnDescriptor (..)
-    , databaseTypes
+    , makeParameters
+    , ExecutableParameters (..)
     , envDatabaseName
-    , envDatabaseType
     , envLinearMigrations
     , envStoreName
     , loadConfiguration) where
@@ -27,7 +24,6 @@ import Data.Maybe (fromMaybe)
 
 import Database.Schema.Migrations.Store (MigrationStore, StoreData)
 import Database.Schema.Migrations.Backend
-import Database.Schema.Migrations.Backend.HDBC
 
 -- |The monad in which the application runs.
 type AppT a = ReaderT AppState IO a
@@ -35,18 +31,12 @@ type AppT a = ReaderT AppState IO a
 -- |The type of actions that are invoked to handle specific commands
 type CommandHandler = StoreData -> AppT ()
 
-data AppStateBackendConfig = AppStateBackendConfig
-                           { _appDatabaseConnStr  :: DbConnDescriptor
-                           , _appDatabaseType     :: String
-                           }
-
 -- |Application state which can be accessed by any command handler.
 data AppState = AppState { _appOptions          :: CommandOptions
                          , _appCommand          :: Command
                          , _appRequiredArgs     :: [String]
                          , _appOptionalArgs     :: [String]
-                         , _appBackendOrConf    ::
-                             Either AppStateBackendConfig Backend
+                         , _appBackend          :: Backend
                          , _appStore            :: MigrationStore
                          , _appStoreData        :: StoreData
                          , _appLinearMigrations :: Bool
@@ -55,48 +45,51 @@ data AppState = AppState { _appOptions          :: CommandOptions
 
 type ShellEnvironment = [(String, String)]
 
-data BackendConfiguration = BackendConfiguration
-    { _connectionString   :: String
-    , _databaseType       :: String
+-- |Intermediate type used during config loading.
+data LoadConfig = LoadConfig
+    { _lcConnectionString   :: Maybe String
+    , _lcMigrationStorePath :: Maybe FilePath
+    , _lcLinearMigrations   :: Maybe Bool
+    , _lcTimestampFilenames :: Maybe Bool
     } deriving Show
 
+-- |Loading the configuration from a file or having it specified via environment
+-- |variables results in a value of type Configuration.
 data Configuration = Configuration
-    { _backendOrConf      :: Either BackendConfiguration Backend
+    { _connectionString   :: String
     , _migrationStorePath :: FilePath
     , _linearMigrations   :: Bool
     , _timestampFilenames :: Bool
     } deriving Show
 
--- |Intermediate type used during config loading.
-data LoadConfig = LoadConfig
-    { _lcConnectionString   :: Maybe String
-    , _lcDatabaseType       :: Maybe String
-    , _lcMigrationStorePath :: Maybe FilePath
-    , _lcLinearMigrations   :: Maybe Bool
-    , _lcTimestampFilenames :: Maybe Bool
+-- |A value of type ExecutableParameters is what a moo executable (moo-postgresql,
+-- |moo-mysql, etc.) pass to the core package when they want to execute a
+-- |command.
+data ExecutableParameters = ExecutableParameters
+    { _parametersBackend            :: Backend
+    , _parametersMigrationStorePath :: FilePath
+    , _parametersLinearMigrations   :: Bool
+    , _parametersTimestampFilenames :: Bool
     } deriving Show
 
 defConfigFile :: String
 defConfigFile = "moo.cfg"
 
 newLoadConfig :: LoadConfig
-newLoadConfig = LoadConfig Nothing Nothing Nothing Nothing Nothing
+newLoadConfig = LoadConfig Nothing Nothing Nothing Nothing
 
 validateLoadConfig :: LoadConfig -> Either String Configuration
-validateLoadConfig (LoadConfig Nothing _ _ _ _) =
+validateLoadConfig (LoadConfig Nothing _ _ _) =
     Left "Invalid configuration: connection string not specified"
-validateLoadConfig (LoadConfig _ Nothing _ _ _) =
-    Left "Invalid configuration: database type not specified"
-validateLoadConfig (LoadConfig _ _ Nothing _ _) =
+validateLoadConfig (LoadConfig _ Nothing _ _) =
     Left "Invalid configuration: migration store path not specified"
-validateLoadConfig (LoadConfig (Just cs) (Just dt) (Just msp) lm ts) =
-    Right $ Configuration (Left $ BackendConfiguration cs dt) msp (fromMaybe False lm) (fromMaybe False ts)
+validateLoadConfig (LoadConfig (Just cs) (Just msp) lm ts) =
+    Right $ Configuration cs msp (fromMaybe False lm) (fromMaybe False ts)
 
 -- |Setters for fields of 'LoadConfig'.
-lcConnectionString, lcDatabaseType, lcMigrationStorePath
+lcConnectionString, lcMigrationStorePath
     :: LoadConfig -> Maybe String -> LoadConfig
 lcConnectionString c v   = c { _lcConnectionString   = v }
-lcDatabaseType c v       = c { _lcDatabaseType       = v }
 lcMigrationStorePath c v = c { _lcMigrationStorePath = v }
 
 lcLinearMigrations :: LoadConfig -> Maybe Bool -> LoadConfig
@@ -124,7 +117,6 @@ infixl 2 &
 applyEnvironment :: ShellEnvironment -> LoadConfig -> IO LoadConfig
 applyEnvironment env lc =
     return lc & lcConnectionString   .= f envDatabaseName
-              & lcDatabaseType       .= f envDatabaseType
               & lcMigrationStorePath .= f envStoreName
               & lcLinearMigrations   .= readFlag <$> f envLinearMigrations
               & lcTimestampFilenames .= readFlag <$> f envTimestampFilenames
@@ -133,7 +125,6 @@ applyEnvironment env lc =
 applyConfigFile :: Config -> LoadConfig -> IO LoadConfig
 applyConfigFile cfg lc =
     return lc & lcConnectionString   .= f envDatabaseName
-              & lcDatabaseType       .= f envDatabaseType
               & lcMigrationStorePath .= f envStoreName
               & lcLinearMigrations   .= f envLinearMigrations
               & lcTimestampFilenames .= f envTimestampFilenames
@@ -151,6 +142,15 @@ loadConfiguration pth = do
     cfg <- applyConfigFile file newLoadConfig >>= applyEnvironment env
 
     return $ validateLoadConfig cfg
+
+makeParameters :: Configuration -> Backend -> ExecutableParameters
+makeParameters conf backend =
+   ExecutableParameters
+    { _parametersBackend            = backend
+    , _parametersMigrationStorePath = _migrationStorePath conf
+    , _parametersLinearMigrations   = _linearMigrations   conf
+    , _parametersTimestampFilenames = _timestampFilenames conf
+    }
 
 -- |Converts @Just "on"@ and @Just "true"@ (case insensitive) to @True@,
 -- anything else to @False@.
@@ -181,26 +181,6 @@ data Command = Command { _cName           :: String
                        , _cHandler        :: CommandHandler
                        }
 
-newtype DbConnDescriptor = DbConnDescriptor String
-
-
--- |The values of DBM_DATABASE_TYPE and their corresponding connection
--- factory functions.
-databaseTypes :: [(String, String -> IO Backend)]
-databaseTypes = [ ("postgresql",
-                   exitWithNoDirectBackendSupportErrorMessage
-                     "PostgreSQL" "postgresql")
-                , ("sqlite3",
-                   exitWithNoDirectBackendSupportErrorMessage
-                     "SQLite" "sqlite")
-                , ("mysql",
-                   exitWithNoDirectBackendSupportErrorMessage
-                     "MySQL" "mysql")
-                ]
-
-envDatabaseType :: String
-envDatabaseType = "DBM_DATABASE_TYPE"
-
 envDatabaseName :: String
 envDatabaseName = "DBM_DATABASE"
 
@@ -212,16 +192,4 @@ envLinearMigrations = "DBM_LINEAR_MIGRATIONS"
 
 envTimestampFilenames :: String
 envTimestampFilenames = "DBM_TIMESTAMP_FILENAMES"
-
-exitWithNoDirectBackendSupportErrorMessage ::
-  String
-  -> String
-  -> String
-  -> IO Backend
-exitWithNoDirectBackendSupportErrorMessage backendType packageSuffix _ = do
-  error $
-    backendType ++
-    " is no longer directly supported by dbmigrations. " ++
-    "Please use the package dbmigrations-" ++ packageSuffix ++
-    " instead."
 

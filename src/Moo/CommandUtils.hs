@@ -6,7 +6,6 @@ module Moo.CommandUtils
        , lookupMigration
        , revert
        , withBackend
-       , makeBackend
        , getCurrentTimestamp
        ) where
 
@@ -88,30 +87,15 @@ lookupMigration storeData name = do
       exitWith (ExitFailure 1)
     Just m' -> return m'
 
--- Given a database type string and a database connection string,
--- return a database connection or raise an error if the database
--- connection cannot be established, or if the database type is not
--- supported.
-makeBackend :: String -> DbConnDescriptor -> IO Backend
-makeBackend dbType (DbConnDescriptor connStr) =
-    case lookup dbType databaseTypes of
-      Nothing -> error $ "Unsupported database type " ++ show dbType ++
-                 " (supported types: " ++
-                 intercalate "," (map fst databaseTypes) ++ ")"
-      Just mkBackend -> mkBackend connStr
-
 -- Given an action that needs a database connection, connect to the
 -- database using the application configuration and invoke the action
 -- with the connection.  Return its result.
 withBackend :: (Backend -> IO a) -> AppT a
 withBackend act = do
-  backendOrConf <- asks _appBackendOrConf
-  let backend = case backendOrConf of
-                Left config ->
-                  let dbPath = _appDatabaseConnStr config
-                      dbType = _appDatabaseType config
-                  in makeBackend dbType dbPath
-                Right preConfiguredBackend -> return preConfiguredBackend
+  -- TODO The next two lines can probably be written in a less nonsensical way,
+  -- unfortunately I'm not very familiar with the Reader monad :-/
+  backendIO <- asks _appBackend
+  let backend = return backendIO
   liftIO $ bracket backend disconnectBackend act
 
 -- Given a migration name and selected dependencies, get the user's
