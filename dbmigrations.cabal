@@ -81,7 +81,8 @@ Library
     bytestring >= 0.9,
     text >= 0.11,
     configurator >= 0.2,
-    split >= 0.2.2
+    split >= 0.2.2,
+    HUnit >= 1.2
 
   Hs-Source-Dirs:    src
   Exposed-Modules:
@@ -97,6 +98,7 @@ Library
           Moo.CommandInterface
           Moo.CommandUtils
           Moo.Core
+          Database.Schema.Migrations.Test.BackendTest
 
   Other-Modules:
           Database.Schema.Migrations.CycleDetection

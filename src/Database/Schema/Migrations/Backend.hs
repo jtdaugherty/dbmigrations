@@ -1,5 +1,6 @@
 module Database.Schema.Migrations.Backend
     ( Backend(..)
+    , DatabaseType(..)
     , rootMigrationName
     )
 where
@@ -13,6 +14,10 @@ import Database.Schema.Migrations.Migration
 rootMigrationName :: String
 rootMigrationName = "root"
 
+-- |An enumeration of all database types supported by dbmigrations.
+data DatabaseType = PostgreSQL | SQLite | MySQL
+    deriving (Show, Eq)
+
 -- |A Backend represents a database engine backend such as MySQL or
 -- SQLite.  A Backend supplies relatively low-level functions for
 -- inspecting the backend's state, applying migrations, and reverting
@@ -20,7 +25,10 @@ rootMigrationName = "root"
 -- "bootstrap" a backend so that it can track which migrations are
 -- installed.
 data Backend =
-    Backend { getBootstrapMigration :: IO Migration
+    Backend { getType :: DatabaseType
+            -- ^ Returns the database type that this backend supports.
+
+            , getBootstrapMigration :: IO Migration
             -- ^ The migration necessary to bootstrap a database with
             -- this connection interface. This might differ slightly
             -- from one backend to another.
