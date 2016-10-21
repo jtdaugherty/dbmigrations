@@ -3,12 +3,7 @@ module Main
     )
 where
 
-import  Prelude  hiding (lookup)
-import  System.Environment (getArgs)
-import  System.Exit
-
-import  Moo.Core
-import  Moo.Main
+import Prelude
 
 main :: IO ()
 main = do

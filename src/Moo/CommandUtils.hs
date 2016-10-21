@@ -10,7 +10,7 @@ module Moo.CommandUtils
        ) where
 
 import Control.Applicative
-import Control.Exception ( bracket )
+import Control.Exception ( finally )
 import Control.Monad ( when, forM_, unless )
 import Control.Monad.Reader ( asks )
 import Control.Monad.Trans ( liftIO )
@@ -88,15 +88,12 @@ lookupMigration storeData name = do
     Just m' -> return m'
 
 -- Given an action that needs a database connection, connect to the
--- database using the application configuration and invoke the action
--- with the connection.  Return its result.
+-- database using the backend and invoke the action
+-- with the connection. Return its result.
 withBackend :: (Backend -> IO a) -> AppT a
 withBackend act = do
-  -- TODO The next two lines can probably be written in a less nonsensical way,
-  -- unfortunately I'm not very familiar with the Reader monad :-/
-  backendIO <- asks _appBackend
-  let backend = return backendIO
-  liftIO $ bracket backend disconnectBackend act
+  backend <- asks _appBackend
+  liftIO $ (act backend) `finally` (disconnectBackend backend)
 
 -- Given a migration name and selected dependencies, get the user's
 -- confirmation that a migration should be created.
