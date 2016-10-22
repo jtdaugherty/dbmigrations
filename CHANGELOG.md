@@ -1,6 +1,21 @@
 dbmigrations changelog
 ----------------------
 
+2.0.0
+-----
+
+This release contains breaking changes!
+
+- Factored out all database-specific functionality into separate
+packages (thanks Bastian Krol)
+- Replaced "moo" program with one that emits an error instructing users
+to use backend-specific dbmigrations packages
+- Added missing test data files to package
+- Removed `DBM_DATABASE_TYPE` environment variable in favor of backend
+selection by use of backend-specific packages
+- Allow `DBM_TIMESTAMP_FILENAMES` to be set via environment variable
+(thanks Alexander Lippling)
+
 1.1.1
 -----
 
