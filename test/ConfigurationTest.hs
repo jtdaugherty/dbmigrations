@@ -24,7 +24,6 @@ tests = sequence [prepareTestEnv >> e | e <- entries]
 prepareTestEnv :: IO ()
 prepareTestEnv = do
     setCurrentDirectory $ testFile "config_loading"
-    unsetEnv "DBM_DATABASE_TYPE"
     unsetEnv "DBM_DATABASE"
     unsetEnv "DBM_MIGRATION_STORE"
     unsetEnv "DBM_LINEAR_MIGRATIONS"
@@ -62,7 +61,6 @@ loadsDefaultConfigFile = do
 
 environmentOverridesProperties :: IO Test
 environmentOverridesProperties = do
-    setEnv "DBM_DATABASE_TYPE" "envdb"
     setEnv "DBM_DATABASE" "envconn"
     setEnv "DBM_MIGRATION_STORE" "envstore"
     setEnv "DBM_LINEAR_MIGRATIONS" "off"
@@ -77,7 +75,6 @@ environmentOverridesProperties = do
 ifNoConfigFileIsAvailableEnvironmentIsUsed :: IO Test
 ifNoConfigFileIsAvailableEnvironmentIsUsed = do
     setCurrentDirectory $ testFile ""
-    setEnv "DBM_DATABASE_TYPE" "envdb"
     setEnv "DBM_DATABASE" "envconn"
     setEnv "DBM_MIGRATION_STORE" "envstore"
     setEnv "DBM_LINEAR_MIGRATIONS" "off"
