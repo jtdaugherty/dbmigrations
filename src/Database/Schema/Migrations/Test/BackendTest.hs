@@ -37,7 +37,6 @@ class BackendConnection c where
     -- | Returns a backend instance.
     makeBackend :: c -> Backend
 
--- | The full test suite a proper dbmigrations backend needs to comply to.
 testSuite :: BackendConnection bc => Bool -> [bc -> IO ()]
 testSuite transactDDL =
     [ isBootstrappedFalseTest
