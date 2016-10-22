@@ -83,18 +83,18 @@ Library
   Hs-Source-Dirs:    src
   Exposed-Modules:
           Database.Schema.Migrations
-          Database.Schema.Migrations.Dependencies
-          Database.Schema.Migrations.Migration
-          Database.Schema.Migrations.Filesystem
           Database.Schema.Migrations.Backend
           Database.Schema.Migrations.Backend.HDBC
+          Database.Schema.Migrations.Dependencies
+          Database.Schema.Migrations.Filesystem
+          Database.Schema.Migrations.Migration
           Database.Schema.Migrations.Store
-          Moo.Main
+          Database.Schema.Migrations.Test.BackendTest
           Moo.CommandHandlers
           Moo.CommandInterface
           Moo.CommandUtils
           Moo.Core
-          Database.Schema.Migrations.Test.BackendTest
+          Moo.Main
 
   Other-Modules:
           Database.Schema.Migrations.CycleDetection
