@@ -2,26 +2,23 @@
 dbmigrations
 ------------
 
-This package contains a library for the creation,
-management, and installation of schema updates (called "migrations")
-for a relational database. In particular, this package lets the
-migration author express explicit dependencies between migrations.
-It is accompanied by a number of other packages (which
-are database type specific) that contain the management tools to
-automatically install or revert migrations accordingly, using
-transactions for safety.
+This package contains a library for the creation, management, and
+installation of schema updates (called "migrations") for a relational
+database. In particular, this package lets the migration author express
+explicit dependencies between migrations. This library is accompanied
+by a number database-specific packages that contain the management
+tools to automatically install or revert migrations accordingly.
 
 This package operates on two logical entities:
 
- - The "backend", which is the relational database whose schema you
-   want to manage.
+ - The "backend": the relational database whose schema you want to
+   manage.
 
- - The "migration store" (or simply "store"), which is the collection
-   of schema changes you want to apply to the database.  These
-   migrations are expressed using plain text files collected together
-   in a single directory, although the library is general enough to
-   permit easy implementation of other storage backends for
-   migrations.
+ - The "migration store": the collection of schema changes you want to
+   apply to the database. These migrations are expressed using plain
+   text files collected together in a single directory, although the
+   library is general enough to permit easy implementation of other
+   storage representations for migrations.
 
 Getting started
 ---------------
