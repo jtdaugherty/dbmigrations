@@ -23,22 +23,16 @@ This package operates on two logical entities:
    permit easy implementation of other storage backends for
    migrations.
 
-Getting started with dbmigrations
----------------------------------
+Getting started
+---------------
 
 Users should probably not use this package directly but rather install
 and use the database-specific package, like dbmigrations-postgresql,
-dbmigrations-mysql or dbmigrations-sqlite. These packages includes programs
-("moo-postgresql", "moo-mysql", and "moo-sqlite" respectively).
-See MOO.TXT for details on how to use this tool to manage your database
+dbmigrations-mysql or dbmigrations-sqlite. These packages include
+backend-specific variants of the "moo" management program
+("moo-postgresql", "moo-mysql", and "moo-sqlite" respectively). See
+MOO.TXT for details on how to use these tools to manage your database
 migrations.
-
-Installation
-------------
-
-If you've obtained this package in source form and would like to
-install it, you'll need the "cabal" program. To install this package
-from the source directory, run `cabal install`.
 
 Submitting patches
 ------------------
