@@ -38,26 +38,12 @@ class BackendConnection c where
     makeBackend :: c -> Backend
 
 -- | The full test suite a proper dbmigrations backend needs to comply to.
-fullTestSuite :: BackendConnection bc => [bc -> IO ()]
-fullTestSuite =
+testSuite :: BackendConnection bc => Bool -> [bc -> IO ()]
+testSuite transactDDL =
     [ isBootstrappedFalseTest
     , bootstrapTest
     , isBootstrappedTrueTest
-    , applyMigrationFailure
-    , applyMigrationSuccess
-    , revertMigrationFailure
-    , revertMigrationNothing
-    , revertMigrationJust
-    ]
-
--- | Some test (applyMigrationFailure in particular) assume that DDL statements
--- support transactions. MySQL does not support DDL transactions so we exclude
--- this test for MySQL backends.
-nonTransactionalDdlTestSuite :: BackendConnection bc => [bc -> IO ()]
-nonTransactionalDdlTestSuite =
-    [ isBootstrappedFalseTest
-    , bootstrapTest
-    , isBootstrappedTrueTest
+    , if transactDDL then applyMigrationFailure else (const $ return ())
     , applyMigrationSuccess
     , revertMigrationFailure
     , revertMigrationNothing
@@ -66,9 +52,7 @@ nonTransactionalDdlTestSuite =
 
 tests :: BackendConnection bc => bc -> IO ()
 tests conn = do
-  let acts = case supportsTransactionalDDL conn of
-             False -> nonTransactionalDdlTestSuite
-             True  -> fullTestSuite
+  let acts = testSuite $ supportsTransactionalDDL conn
   forM_ acts $ \act -> do
                commit conn
                act conn
