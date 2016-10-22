@@ -12,23 +12,16 @@ module Database.Schema.Migrations.Test.BackendTest
 import Control.Monad ( forM_ )
 import Test.HUnit
 
-import Database.Schema.Migrations.Backend (DatabaseType(MySQL))
 import Database.Schema.Migrations.Migration ( Migration(..), newMigration )
 import Database.Schema.Migrations.Backend ( Backend(..) )
-
-
-import Control.Monad.Trans ( liftIO )
-
 
 -- | A typeclass for database connections that needs to implemented for each
 -- specific database type to use this test.
 class BackendConnection c where
 
-    -- | Returns the database type
-    getDatabaseType :: c -> DatabaseType
-
-    -- | Returns a backend instance.
-    migrationBackend :: DatabaseType -> c -> Backend
+    -- | Whether this backend supports transactional DDL; if it doesn't,
+    -- we'll skip any tests that rely on that behavior.
+    supportsTransactionalDDL :: c -> Bool
 
     -- | Commits the current transaction.
     commit :: c -> IO ()
@@ -41,9 +34,8 @@ class BackendConnection c where
 
     catchAll :: c -> (IO a -> IO a -> IO a)
 
+    -- | Returns a backend instance.
     makeBackend :: c -> Backend
-    makeBackend c = migrationBackend (getDatabaseType c) c
-
 
 -- | The full test suite a proper dbmigrations backend needs to comply to.
 fullTestSuite :: BackendConnection bc => [bc -> IO ()]
@@ -74,11 +66,9 @@ nonTransactionalDdlTestSuite =
 
 tests :: BackendConnection bc => bc -> IO ()
 tests conn = do
-  let databaseType = getDatabaseType conn
-      acts = case databaseType of
-             MySQL -> nonTransactionalDdlTestSuite
-             _ -> fullTestSuite
-  liftIO $ putStrLn ("XXX databaseType: " ++ show(databaseType))
+  let acts = case supportsTransactionalDDL conn of
+             False -> nonTransactionalDdlTestSuite
+             True  -> fullTestSuite
   forM_ acts $ \act -> do
                commit conn
                act conn

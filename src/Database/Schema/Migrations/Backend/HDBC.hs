@@ -15,7 +15,6 @@ import Database.HDBC
 
 import Database.Schema.Migrations.Backend
     ( Backend(..)
-    , DatabaseType
     , rootMigrationName
     )
 import Database.Schema.Migrations.Migration
@@ -36,10 +35,9 @@ revertSql :: String
 revertSql = "DROP TABLE " ++ migrationTableName
 
 -- |General Backend constructor for all HDBC connection implementations.
-hdbcBackend :: (IConnection conn) => DatabaseType -> conn -> Backend
-hdbcBackend databaseType conn =
-    Backend { getType = databaseType
-            , isBootstrapped = elem migrationTableName <$> getTables conn
+hdbcBackend :: (IConnection conn) => conn -> Backend
+hdbcBackend conn =
+    Backend { isBootstrapped = elem migrationTableName <$> getTables conn
             , getBootstrapMigration =
                   do
                     ts <- getCurrentTime
