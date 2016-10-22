@@ -6,7 +6,6 @@ import           Test.HUnit
 import           Common
 import           Control.Monad.Reader                 (runReaderT)
 import           Data.Either                          (isRight)
-import           Data.Maybe                           (isNothing)
 import           Database.Schema.Migrations.Migration
 import           Database.Schema.Migrations.Store
 import           Moo.CommandHandlers
@@ -73,6 +72,7 @@ prepareState m = do
     Right storeData <- loadMigrations store
     return AppState {
       _appOptions = CommandOptions Nothing False True
+    , _appBackend = undefined -- Not used here
     , _appCommand = undefined -- Not used by newCommand
     , _appRequiredArgs = [m]
     , _appOptionalArgs = []
