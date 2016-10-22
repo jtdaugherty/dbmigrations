@@ -23,13 +23,17 @@ This package operates on two logical entities:
 Getting started
 ---------------
 
-Users should probably not use this package directly but rather install
-and use the database-specific package, like dbmigrations-postgresql,
-dbmigrations-mysql or dbmigrations-sqlite. These packages include
-backend-specific variants of the "moo" management program
-("moo-postgresql", "moo-mysql", and "moo-sqlite" respectively). See
-MOO.TXT for details on how to use these tools to manage your database
-migrations.
+To get started, install the right database-specific dbmigrations package
+for your database. Current options are:
+
+ * `dbmigrations-postgresql`
+ * `dbmigrations-mysql`
+ * `dbmigrations-sqlite`
+
+Each package provides a variant of the "moo" management program
+("moo-postgresql", "moo-mysql", and "moo-sqlite" respectively) to be
+used to manage your database schema. See MOO.TXT for details on how to
+use these tools to manage your database migrations.
 
 Submitting patches
 ------------------
