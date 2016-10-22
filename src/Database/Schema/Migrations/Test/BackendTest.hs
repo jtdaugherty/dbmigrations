@@ -84,14 +84,14 @@ applyMigrationSuccess :: BackendConnection bc => bc -> IO ()
 applyMigrationSuccess conn = do
     let backend = makeBackend conn
 
-    let m1 = (newMigration "validMigration") { mApply = "CREATE TABLE valid1 (a int); CREATE TABLE valid2 (a int);" }
+    let m1 = (newMigration "validMigration") { mApply = "CREATE TABLE valid1 (a int)" }
 
     -- Apply the migrations, ignore exceptions
     withTransaction conn $ \conn' -> applyMigration (makeBackend conn') m1
 
     -- Check that none of the migrations were installed
     assertEqual "Installed migrations" ["root", "validMigration"] =<< getMigrations backend
-    assertEqual "Installed tables" ["installed_migrations", "valid1", "valid2"] =<< getTables conn
+    assertEqual "Installed tables" ["installed_migrations", "valid1"] =<< getTables conn
 
 -- |Does a failure to apply a migration imply a transaction rollback?
 applyMigrationFailure :: BackendConnection bc => bc -> IO ()
@@ -117,7 +117,7 @@ revertMigrationFailure conn = do
 
     let m1 = (newMigration "second") { mApply = "CREATE TABLE validRMF (a int)"
                                      , mRevert = Just "DROP TABLE validRMF"}
-        m2 = (newMigration "third") { mApply = "SELECT * FROM validRMF"
+        m2 = (newMigration "third") { mApply = "alter table validRMF add column b int"
                                     , mRevert = Just "INVALID REVERT SQL"}
 
     applyMigration backend m1
@@ -142,7 +142,7 @@ revertMigrationNothing :: BackendConnection bc => bc -> IO ()
 revertMigrationNothing conn = do
     let backend = makeBackend conn
 
-    let m1 = (newMigration "second") { mApply = "SELECT 1"
+    let m1 = (newMigration "second") { mApply = "create table revert_nothing (a int)"
                                      , mRevert = Nothing }
 
     applyMigration backend m1
