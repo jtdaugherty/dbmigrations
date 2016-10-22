@@ -37,6 +37,11 @@ Data-Files:
   test/example_store/root
   test/example_store/update1
   test/example_store/update2
+  test/config_loading/cfg1.cfg
+  test/config_loading/cfg_ts.cfg
+  test/config_loading/invalid.cfg
+  test/config_loading/missing.cfg
+  test/config_loading/moo.cfg
   test/migration_parsing/invalid_field_name.txt
   test/migration_parsing/invalid_missing_required_fields.txt
   test/migration_parsing/invalid_syntax.txt
@@ -45,6 +50,7 @@ Data-Files:
   test/migration_parsing/valid_no_depends.txt
   test/migration_parsing/valid_no_desc.txt
   test/migration_parsing/valid_no_revert.txt
+  test/migration_parsing/valid_no_timestamp.txt
   test/migration_parsing/valid_with_colon.txt
   test/migration_parsing/valid_with_comments.txt
   test/migration_parsing/valid_with_comments2.txt
