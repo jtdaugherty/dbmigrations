@@ -3,29 +3,25 @@ Version:             2.0.0
 Synopsis:            An implementation of relational database "migrations"
 Description:         A library and program for the creation,
                      management, and installation of schema updates
-                     (called /migrations/) for a relational database.
-                     In particular, this package lets the migration
-                     author express explicit dependencies between
-                     migrations and the management tool automatically
-                     installs or reverts migrations accordingly, using
-                     transactions for safety.
+                     (called /migrations/) for a relational database. In
+                     particular, this package lets the migration author
+                     express explicit dependencies between migrations
+                     and the management tool automatically installs or
+                     reverts migrations accordingly, using transactions
+                     for safety.
 
                      This package is written to support a number of
-                     different databases. For each supported
-                     database, a small wrapper package exists that
-                     contains the executable for this particular
-                     database type (usually called moo-postgresql,
-                     moo-mysql, moo-sqlite and so on).
+                     different databases. For packages that support
+                     specific databases using this library, see packages
+                     named "dbmigrations-BACKEND". Each package
+                     provides an executable "moo-BACKEND" for managing
+                     migrations. Usage information for the "moo-"
+                     executables can be found in "MOO.TXT" in this
+                     package.
 
-                     Currently, PostgreSQL, MySQL and SQLite are
-                     supported. To use dbmigrations with one of these
-                     databases, please use the package for your particular
-                     database, that is, dbmigrations-postgresql,
-                     dbmigrations-mysql or dbmigrations-sqlite.
-
-                     To get started, see the included 'README.md' and
-                     'MOO.TXT' files and the usage output for the
-                     'moo-' executable for your database type.
+                     This package also includes a conformance test suite
+                     to ensure that backend implementations respect the
+                     library's required semantics.
 
 Category:            Database
 Author:              Jonathan Daugherty <cygnus@foobox.com>
