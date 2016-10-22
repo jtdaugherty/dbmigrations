@@ -46,7 +46,6 @@ loadsPropertiesFromFile = do
     return
         (
         _connectionString   cfg ~?= "connection" .&&.
-        _databaseType       cfg ~?= "dbtype"     .&&.
         _migrationStorePath cfg ~?= "store"      .&&.
         _linearMigrations   cfg ~?= True
         )
@@ -57,7 +56,6 @@ loadsDefaultConfigFile = do
     return
         (
         _connectionString   cfg ~?= "mooconn"  .&&.
-        _databaseType       cfg ~?= "moodb"    .&&.
         _migrationStorePath cfg ~?= "moostore" .&&.
         _linearMigrations   cfg ~?= True
         )
@@ -72,7 +70,6 @@ environmentOverridesProperties = do
     return
         (
         _connectionString   cfg ~?= "envconn"  .&&.
-        _databaseType       cfg ~?= "envdb"    .&&.
         _migrationStorePath cfg ~?= "envstore" .&&.
         _linearMigrations   cfg ~?= False
         )
@@ -88,7 +85,6 @@ ifNoConfigFileIsAvailableEnvironmentIsUsed = do
     return
         (
         _connectionString   cfg ~?= "envconn"  .&&.
-        _databaseType       cfg ~?= "envdb"    .&&.
         _migrationStorePath cfg ~?= "envstore" .&&.
         _linearMigrations   cfg ~?= False
         )

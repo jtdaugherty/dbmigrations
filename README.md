@@ -2,12 +2,14 @@
 dbmigrations
 ------------
 
-This package contains a library and program for the creation,
+This package contains a library for the creation,
 management, and installation of schema updates (called "migrations")
-for a relational database.  In particular, this package lets the
-migration author express explicit dependencies between migrations and
-the management tool automatically installs or reverts migrations
-accordingly, using transactions for safety.
+for a relational database. In particular, this package lets the
+migration author express explicit dependencies between migrations.
+It is accompanied by a number of other packages (which
+are database type specific) that contain the management tools to
+automatically install or revert migrations accordingly, using
+transactions for safety.
 
 This package operates on two logical entities:
 
@@ -24,8 +26,12 @@ This package operates on two logical entities:
 Getting started with dbmigrations
 ---------------------------------
 
-This package includes one program, "moo". See MOO.TXT for details on how
-to use this tool to manage your database migrations.
+Users should probably not use this package directly but rather install
+and use the database-specific package, like dbmigrations-postgresql,
+dbmigrations-mysql or dbmigrations-sqlite. These packages includes programs
+("moo-postgresql", "moo-mysql", and "moo-sqlite" respectively).
+See MOO.TXT for details on how to use this tool to manage your database
+migrations.
 
 Installation
 ------------

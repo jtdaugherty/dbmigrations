@@ -3,18 +3,16 @@ module Main
     )
 where
 
-import  Prelude  hiding (lookup)
-import  System.Environment (getArgs)
-import  System.Exit
-
-import  Moo.Core
-import  Moo.Main
+import Prelude
 
 main :: IO ()
 main = do
-  args <- getArgs
-  (_, opts, _) <- procArgs args
-  conf <- loadConfiguration $ _configFilePath opts
-  case conf of
-      Left e -> putStrLn e >> exitFailure
-      Right c -> mainWithConf args c
+  error $
+    "This package (dbmigrations) does no longer contain the executable to \
+    \create, apply or revert database migrations. Please install the specific \
+    \wrapper-package for your database, that is, dbmigrations-postgresql, \
+    \dbmigrations-mysql, or dbmigrations-sqlite. These packages contain \
+    \database specific executables (moo-postgresql, moo-mysql and moo-sqlite \
+    \respectively) that replace the former moo executable from the \
+    \dbmigrations package."
+

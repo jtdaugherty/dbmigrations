@@ -6,12 +6,11 @@ module Moo.CommandUtils
        , lookupMigration
        , revert
        , withBackend
-       , makeBackend
        , getCurrentTimestamp
        ) where
 
 import Control.Applicative
-import Control.Exception ( bracket )
+import Control.Exception ( finally )
 import Control.Monad ( when, forM_, unless )
 import Control.Monad.Reader ( asks )
 import Control.Monad.Trans ( liftIO )
@@ -88,26 +87,13 @@ lookupMigration storeData name = do
       exitWith (ExitFailure 1)
     Just m' -> return m'
 
--- Given a database type string and a database connection string,
--- return a database connection or raise an error if the database
--- connection cannot be established, or if the database type is not
--- supported.
-makeBackend :: String -> DbConnDescriptor -> IO Backend
-makeBackend dbType (DbConnDescriptor connStr) =
-    case lookup dbType databaseTypes of
-      Nothing -> error $ "Unsupported database type " ++ show dbType ++
-                 " (supported types: " ++
-                 intercalate "," (map fst databaseTypes) ++ ")"
-      Just mkBackend -> mkBackend connStr
-
 -- Given an action that needs a database connection, connect to the
--- database using the application configuration and invoke the action
--- with the connection.  Return its result.
+-- database using the backend and invoke the action
+-- with the connection. Return its result.
 withBackend :: (Backend -> IO a) -> AppT a
 withBackend act = do
-  dbPath <- asks _appDatabaseConnStr
-  dbType <- asks _appDatabaseType
-  liftIO $ bracket (makeBackend dbType dbPath) disconnectBackend act
+  backend <- asks _appBackend
+  liftIO $ (act backend) `finally` (disconnectBackend backend)
 
 -- Given a migration name and selected dependencies, get the user's
 -- confirmation that a migration should be created.

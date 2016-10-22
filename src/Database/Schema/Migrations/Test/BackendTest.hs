@@ -1,118 +1,136 @@
-{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 
-module BackendTest where
+-- | A test that is not executed as part of this package's test suite but rather
+-- acts as a conformance test suit for database specific backend
+-- implementations. All backend specific executable packages are expected to
+-- have a test suite that runs this test.
+module Database.Schema.Migrations.Test.BackendTest
+    ( BackendConnection (..)
+    , tests
+    ) where
 
-import Test.HUnit
-import Control.Exception (Handler(..), catches)
 import Control.Monad ( forM_ )
+import Test.HUnit
 
-import Database.Schema.Migrations.Backend.HDBC (hdbcBackend)
-import Database.Schema.Migrations.Backend.MySQL
+import Database.Schema.Migrations.Backend (DatabaseType(MySQL))
 import Database.Schema.Migrations.Migration ( Migration(..), newMigration )
 import Database.Schema.Migrations.Backend ( Backend(..) )
 
-import qualified Database.HDBC as HDBC
-import qualified Database.MySQL.Simple as MySQL
-import qualified Database.MySQL.Base as MySQL
 
-data BackendConnection
-  = forall a. HDBC.IConnection a => HDBCConnection a
-  | MySQLConnection MySQL.Connection
+import Control.Monad.Trans ( liftIO )
 
-migrationBackend :: BackendConnection -> Backend
-migrationBackend (HDBCConnection c) = hdbcBackend c
-migrationBackend (MySQLConnection c) = mysqlBackend c
 
-commit :: BackendConnection -> IO ()
-commit (HDBCConnection c) = HDBC.commit c
-commit (MySQLConnection c) = MySQL.commit c
+-- | A typeclass for database connections that needs to implemented for each
+-- specific database type to use this test.
+class BackendConnection c where
 
-getTables :: BackendConnection -> IO [String]
-getTables (HDBCConnection c) = HDBC.getTables c
-getTables (MySQLConnection c) =
-  fmap (map MySQL.fromOnly)
-       (MySQL.query_ c "SHOW TABLES")
+    -- | Returns the database type
+    getDatabaseType :: c -> DatabaseType
 
-catchSql_ :: IO a -> IO a -> IO a
-catchSql_ act handler =
-  act `catches`
-  [Handler (\(_ :: MySQL.FormatError) -> handler)
-  ,Handler (\(_ :: MySQL.QueryError) -> handler)
-  ,Handler (\(_ :: MySQL.MySQLError) -> handler)
-  ,Handler (\(_ :: MySQL.ResultError) -> handler)
-  ,Handler (\(_ :: HDBC.SqlError) -> handler)]
+    -- | Returns a backend instance.
+    migrationBackend :: DatabaseType -> c -> Backend
 
-withTransaction
-  :: BackendConnection -> (BackendConnection -> IO a) -> IO a
-withTransaction (HDBCConnection c) transaction =
-  HDBC.withTransaction c
-                       (transaction . HDBCConnection)
-withTransaction (MySQLConnection c) transaction =
-  MySQL.withTransaction c
-                        (transaction (MySQLConnection c))
-tests :: BackendConnection -> IO ()
+    -- | Commits the current transaction.
+    commit :: c -> IO ()
+
+    -- | Executes an IO action inside a transaction.
+    withTransaction :: c -> (c -> IO a) -> IO a
+
+    -- | Retrieves a list of all tables in the current database/scheme.
+    getTables :: c -> IO [String]
+
+    catchAll :: c -> (IO a -> IO a -> IO a)
+
+    makeBackend :: c -> Backend
+    makeBackend c = migrationBackend (getDatabaseType c) c
+
+
+-- | The full test suite a proper dbmigrations backend needs to comply to.
+fullTestSuite :: BackendConnection bc => [bc -> IO ()]
+fullTestSuite =
+    [ isBootstrappedFalseTest
+    , bootstrapTest
+    , isBootstrappedTrueTest
+    , applyMigrationFailure
+    , applyMigrationSuccess
+    , revertMigrationFailure
+    , revertMigrationNothing
+    , revertMigrationJust
+    ]
+
+-- | Some test (applyMigrationFailure in particular) assume that DDL statements
+-- support transactions. MySQL does not support DDL transactions so we exclude
+-- this test for MySQL backends.
+nonTransactionalDdlTestSuite :: BackendConnection bc => [bc -> IO ()]
+nonTransactionalDdlTestSuite =
+    [ isBootstrappedFalseTest
+    , bootstrapTest
+    , isBootstrappedTrueTest
+    , applyMigrationSuccess
+    , revertMigrationFailure
+    , revertMigrationNothing
+    , revertMigrationJust
+    ]
+
+tests :: BackendConnection bc => bc -> IO ()
 tests conn = do
-  let acts = [ isBootstrappedFalseTest
-             , bootstrapTest
-             , isBootstrappedTrueTest
-             , applyMigrationFailure
-             , applyMigrationSuccess
-             , revertMigrationFailure
-             , revertMigrationNothing
-             , revertMigrationJust
-             ]
+  let databaseType = getDatabaseType conn
+      acts = case databaseType of
+             MySQL -> nonTransactionalDdlTestSuite
+             _ -> fullTestSuite
+  liftIO $ putStrLn ("XXX databaseType: " ++ show(databaseType))
   forM_ acts $ \act -> do
                commit conn
                act conn
 
-bootstrapTest :: BackendConnection -> IO ()
+bootstrapTest :: BackendConnection bc => bc -> IO ()
 bootstrapTest conn = do
-  let backend = migrationBackend conn
+  let backend = makeBackend conn
   bs <- getBootstrapMigration backend
   applyMigration backend bs
   assertEqual "installed_migrations table exists" ["installed_migrations"] =<< getTables conn
   assertEqual "successfully bootstrapped" [mId bs] =<< getMigrations backend
 
-isBootstrappedTrueTest :: BackendConnection -> IO ()
+isBootstrappedTrueTest :: BackendConnection bc => bc -> IO ()
 isBootstrappedTrueTest conn = do
-  result <- isBootstrapped $ migrationBackend conn
+  result <- isBootstrapped $ makeBackend conn
   assertBool "Bootstrapped check" result
 
-isBootstrappedFalseTest :: BackendConnection -> IO ()
+isBootstrappedFalseTest :: BackendConnection bc => bc -> IO ()
 isBootstrappedFalseTest conn = do
-  result <- isBootstrapped $ migrationBackend conn
+  result <- isBootstrapped $ makeBackend conn
   assertBool "Bootstrapped check" $ not result
 
-ignoreSqlExceptions :: IO a -> IO (Maybe a)
-ignoreSqlExceptions act = (act >>= return . Just) `catchSql_`
-                          (return Nothing)
+ignoreSqlExceptions :: BackendConnection bc => bc -> IO a -> IO (Maybe a)
+ignoreSqlExceptions conn act =
+  (catchAll conn)
+    (act >>= return . Just)
+    (return Nothing)
 
-applyMigrationSuccess :: BackendConnection -> IO ()
+applyMigrationSuccess :: BackendConnection bc => bc -> IO ()
 applyMigrationSuccess conn = do
-    let backend = migrationBackend conn
+    let backend = makeBackend conn
 
     let m1 = (newMigration "validMigration") { mApply = "CREATE TABLE valid1 (a int); CREATE TABLE valid2 (a int);" }
 
     -- Apply the migrations, ignore exceptions
-    withTransaction conn $ \conn' -> applyMigration (migrationBackend conn') m1
+    withTransaction conn $ \conn' -> applyMigration (makeBackend conn') m1
 
     -- Check that none of the migrations were installed
     assertEqual "Installed migrations" ["root", "validMigration"] =<< getMigrations backend
     assertEqual "Installed tables" ["installed_migrations", "valid1", "valid2"] =<< getTables conn
 
 -- |Does a failure to apply a migration imply a transaction rollback?
-applyMigrationFailure :: BackendConnection -> IO ()
+applyMigrationFailure :: BackendConnection bc => bc -> IO ()
 applyMigrationFailure conn = do
-    let backend = migrationBackend conn
+    let backend = makeBackend conn
 
     let m1 = (newMigration "second") { mApply = "CREATE TABLE validButTemporary (a int)" }
         m2 = (newMigration "third") { mApply = "INVALID SQL" }
 
     -- Apply the migrations, ignore exceptions
-    ignoreSqlExceptions $ withTransaction conn $ \conn' -> do
-        let backend' = migrationBackend conn'
+    ignoreSqlExceptions conn $ withTransaction conn $ \conn' -> do
+        let backend' = makeBackend conn'
         applyMigration backend' m1
         applyMigration backend' m2
 
@@ -120,9 +138,9 @@ applyMigrationFailure conn = do
     assertEqual "Installed migrations" ["root"] =<< getMigrations backend
     assertEqual "Installed tables" ["installed_migrations"] =<< getTables conn
 
-revertMigrationFailure :: BackendConnection -> IO ()
+revertMigrationFailure :: BackendConnection bc => bc -> IO ()
 revertMigrationFailure conn = do
-    let backend = migrationBackend conn
+    let backend = makeBackend conn
 
     let m1 = (newMigration "second") { mApply = "CREATE TABLE validRMF (a int)"
                                      , mRevert = Just "DROP TABLE validRMF"}
@@ -138,8 +156,8 @@ revertMigrationFailure conn = do
 
     -- Revert the migrations, ignore exceptions; the revert will fail,
     -- but withTransaction will roll back.
-    ignoreSqlExceptions $ withTransaction conn $ \conn' -> do
-        let backend' = migrationBackend conn'
+    ignoreSqlExceptions conn $ withTransaction conn $ \conn' -> do
+        let backend' = makeBackend conn'
         revertMigration backend' m2
         revertMigration backend' m1
 
@@ -147,9 +165,9 @@ revertMigrationFailure conn = do
     assertEqual "successfully roll back failed revert" installedBeforeRevert
         =<< getMigrations backend
 
-revertMigrationNothing :: BackendConnection -> IO ()
+revertMigrationNothing :: BackendConnection bc => bc -> IO ()
 revertMigrationNothing conn = do
-    let backend = migrationBackend conn
+    let backend = makeBackend conn
 
     let m1 = (newMigration "second") { mApply = "SELECT 1"
                                      , mRevert = Nothing }
@@ -166,10 +184,10 @@ revertMigrationNothing conn = do
     installed <- getMigrations backend
     assertBool "Check that the migration was reverted" $ not $ "second" `elem` installed
 
-revertMigrationJust :: BackendConnection -> IO ()
+revertMigrationJust :: BackendConnection bc => bc -> IO ()
 revertMigrationJust conn = do
     let name = "revertable"
-        backend = migrationBackend conn
+        backend = makeBackend conn
 
     let m1 = (newMigration name) { mApply = "CREATE TABLE the_test_table (a int)"
                                  , mRevert = Just "DROP TABLE the_test_table" }

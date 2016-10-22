@@ -1,5 +1,5 @@
 Name:                dbmigrations
-Version:             1.1.1
+Version:             2.0.0
 Synopsis:            An implementation of relational database "migrations"
 Description:         A library and program for the creation,
                      management, and installation of schema updates
@@ -10,14 +10,22 @@ Description:         A library and program for the creation,
                      installs or reverts migrations accordingly, using
                      transactions for safety.
 
-                     This package is written to support any
-                     HDBC-supported database. This package supports
-                     SQLite, PostgreSQL, and MySQL. Please see MOO.TXT
-                     for warnings about MySQL!
+                     This package is written to support a number of
+                     different databases. For each supported
+                     database, a small wrapper package exists that
+                     contains the executable for this particular
+                     database type (usually called moo-postgresql,
+                     moo-mysql, moo-sqlite and so on).
+
+                     Currently, PostgreSQL, MySQL and SQLite are
+                     supported. To use dbmigrations with one of these
+                     databases, please use the package for your particular
+                     database, that is, dbmigrations-postgresql,
+                     dbmigrations-mysql or dbmigrations-sqlite.
 
                      To get started, see the included 'README.md' and
                      'MOO.TXT' files and the usage output for the
-                     'moo' command.
+                     'moo-' executable for your database type.
 
 Category:            Database
 Author:              Jonathan Daugherty <cygnus@foobox.com>
@@ -73,11 +81,8 @@ Library
     bytestring >= 0.9,
     text >= 0.11,
     configurator >= 0.2,
-    HDBC-postgresql,
-    HDBC-sqlite3,
-    mysql >= 0.1.1.8,
-    mysql-simple >= 0.2.2.5,
-    split >= 0.2.2
+    split >= 0.2.2,
+    HUnit >= 1.2
 
   Hs-Source-Dirs:    src
   Exposed-Modules:
@@ -87,13 +92,13 @@ Library
           Database.Schema.Migrations.Filesystem
           Database.Schema.Migrations.Backend
           Database.Schema.Migrations.Backend.HDBC
-          Database.Schema.Migrations.Backend.MySQL
           Database.Schema.Migrations.Store
           Moo.Main
           Moo.CommandHandlers
           Moo.CommandInterface
           Moo.CommandUtils
           Moo.Core
+          Database.Schema.Migrations.Test.BackendTest
 
   Other-Modules:
           Database.Schema.Migrations.CycleDetection
@@ -115,18 +120,13 @@ test-suite dbmigrations-tests
     bytestring >= 0.9,
     MissingH,
     HDBC >= 2.2.1,
-    HDBC-postgresql,
-    HDBC-sqlite3,
     HUnit >= 1.2,
     process >= 1.1,
     configurator >= 0.2,
     text >= 0.11,
-    mysql-simple >= 0.2.2.5,
-    mysql >= 0.1.1.8,
     split >= 0.2.2
 
   other-modules:
-    BackendTest
     Common
     CommonTH
     CycleDetectionTest

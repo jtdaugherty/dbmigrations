@@ -1,5 +1,6 @@
 module Moo.Main
-    ( mainWithConf
+    ( mainWithParameters
+    , ExecutableParameters (..)
     , Configuration (..)
     , Args
     , usage
@@ -9,7 +10,6 @@ module Moo.Main
 where
 
 import  Control.Monad.Reader (forM_, runReaderT, when)
-import  Data.List (intercalate)
 import  Database.HDBC (SqlError, catchSql, seErrorMsg)
 import  Prelude  hiding (lookup)
 import  System.Environment (getProgName)
@@ -29,8 +29,6 @@ usage = do
   putStrLn $ "Usage: " ++ progName ++ " <command> [args]"
   putStrLn "Environment:"
   putStrLn $ "  " ++ envDatabaseName ++ ": database connection string"
-  putStrLn $ "  " ++ envDatabaseType ++ ": database type, one of " ++
-           intercalate "," (map fst databaseTypes)
   putStrLn $ "  " ++ envStoreName ++ ": path to migration store"
   putStrLn $ "  " ++ envLinearMigrations ++ ": whether to use linear migrations (defaults to False)"
   putStrLn "Commands:"
@@ -60,15 +58,13 @@ procArgs args = do
 
   return (command, opts, required)
 
-mainWithConf :: Args -> Configuration -> IO ()
-mainWithConf args conf = do
+mainWithParameters :: Args -> ExecutableParameters -> IO ()
+mainWithParameters args parameters = do
   (command, opts, required) <- procArgs args
 
-  let dbConnStr = _connectionString conf
-      dbType = _databaseType conf
-      storePathStr = _migrationStorePath conf
+  let storePathStr = _parametersMigrationStorePath parameters
       store = filesystemStore $ FSStore { storePath = storePathStr }
-      linear = _linearMigrations conf
+      linear = _parametersLinearMigrations parameters
 
   if length required < length ( _cRequired command) then
       usageSpecific command else
@@ -83,12 +79,12 @@ mainWithConf args conf = do
                               , _appCommand = command
                               , _appRequiredArgs = required
                               , _appOptionalArgs = ["" :: String]
-                              , _appDatabaseConnStr = DbConnDescriptor dbConnStr
-                              , _appDatabaseType = dbType
+                              , _appBackend = _parametersBackend parameters
                               , _appStore = store
                               , _appStoreData = storeData
                               , _appLinearMigrations = linear
-                              , _appTimestampFilenames = _timestampFilenames conf
+                              , _appTimestampFilenames =
+                                  _parametersTimestampFilenames parameters
                               }
             runReaderT (_cHandler command storeData) st `catchSql` reportSqlError
 

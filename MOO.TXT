@@ -1,15 +1,21 @@
 
-moo: the dbmigrations management tool
--------------------------------------
+moo: the dbmigrations management tools
+------------------------------------------
 
-The dbmigrations package exposes a library and a tool. The tool, called
-"moo", is responsible for creating, installing, and reverting migrations
-in your database backend.
+The database type specific package that work as a companion to this
+library contain tools called "moo-postgresql", "moo-mysql", "moo-sqlite",
+etc. They are responsible for creating, installing, and reverting migrations
+in your database backend. Since all of these command line tools offer the
+exact same interface, they are described here in a single document.
+The executables mentioned above are simply called "moo" for the rest of
+this document. That is, given an example that reads as "moo command" you
+actually have to execute "moo-postgresql command" or "moo-mysql command"
+and so on.
 
 At present, MySQL, PostgreSQL and Sqlite3 are the only supported database
 backends.
 
-The moo tool works by creating migration files in a specific location,
+The moo tools work by creating migration files in a specific location,
 called a migration store, on your filesystem. This directory is where
 all possible migrations for your project will be kept. Moo allows you to
 create migrations that depend on each other. When you use moo to upgrade
@@ -25,41 +31,19 @@ When migrations are installed into your database, the set of installed
 migrations is tracked by way of a migration table that is installed into
 your database.
 
-WARNING TO MYSQL USERS
-----------------------
 
-If you are using this library with MySQL, beware of the following
-caveat!
+Using dbmigrations with MySQL
+-----------------------------
 
-Unlike PostgreSQL and SQLite, MySQL does not support transactional
-Data Definition Language (DDL) statements such as CREATE TABLE. Since
-dbmigrations is designed around the assumption that it's useful and
-important to make migrations atomic, and since most migrations will have
-at least some DDL in them, this means that dbmigrations cannot make
-atomicity guarantees about your migrations if you are using MySQL as
-your backend.  The MySQL docs have this to say:
+While dbmigrations supports MySQL in general, the moo executable in this
+package does not work with a MySQL backend directly. MySQL support has
+been factored out into a separate package, called dbmigrations-mysql.
+If you want to apply migrations to a MySQL backend, please install and
+use dbmigrations-mysql instead of this package. The reason is that the
+MySQL support depends on MySQL Haskell libraries which in turn have
+build dependencies that make it necessary for MySQL itself to be
+installed during build time.
 
-http://dev.mysql.com/doc/refman/5.7/en/cannot-roll-back.html
-
-This means that features like moo's "--test" flag will not do what you
-expect, that mistakes in migrations will be tough to fix in development,
-and that a problem in a migration in a production deployment COULD
-HOSE YOUR DATABASE and BREAK RUNNING APPLICATIONS. Note that MySQL's
-DDL statements cause an implicit commit, so any errors after each DDL
-statement will have to be corrected by hand!
-
-It is the author's opinion that this makes MySQL unfit for production
-use and that you should strongly consider using some other backend such
-as PostgreSQL which has much more robust support for transactional DDL.
-
-You might be wondering why support for MySQL is included if it can be
-so dangerous to use. Some users have requested and contributed support
-for it, and of course we can't always choose to use a different backend
-for preexisting systems. In those cases at least dbmigrations doesn't
-make your problem any worse than it already is, provided you heed this
-disclaimer. :)
-
-You have been warned!
 
 Getting started
 ---------------
@@ -69,16 +53,12 @@ Getting started
  2. Set an environment variable DBM_MIGRATION_STORE to the path to the
     directory you created in step 1.
 
- 3. Set an environment variable DBM_DATABASE_TYPE to a supported
-    backend. Valid values are "mysql", "postgresql" and "sqlite3".
+ 3. Set an environment variable DBM_DATABASE to a database connection
+    string that is appropriate for the database type you
+    chose. The contents of this depend on the database type, see the
+    "Environment" documentation section for more information.
 
- 4. Set an environment variable DBM_DATABASE to a database connection
-    string that is appropriate for the value of DBM_DATABASE_TYPE you
-    chose. The contents of this depend on the value of
-    DBM_DATABASE_TYPE, see the "Environment" documentation section for
-    more information.
-
- 5. Run "moo upgrade". This command will not actually install any
+ 4. Run "moo upgrade". This command will not actually install any
     migrations, since you have not created any, but it will attempt to
     connect to your database and install a migration-tracking table.
 
@@ -86,17 +66,17 @@ Getting started
 
     Database is up to date.
 
- 6. Create a migration with "moo new".  Here is an example output:
+ 5. Create a migration with "moo new".  Here is an example output:
 
     $ moo new hello-world
     Selecting dependencies for new migration: hello-world
-    
+
     Confirm: create migration 'hello-world'
       (No dependencies)
     Are you sure? (yn): y
     Migration created successfully: ".../hello-world.txt"
 
- 7. Edit the migration you created. In this case, moo created a file
+ 6. Edit the migration you created. In this case, moo created a file
     $DBM_MIGRATION_STORE/hello_world.txt that looks like this:
 
       Description: (Description here.)
@@ -104,7 +84,7 @@ Getting started
       Depends:
       Apply: |
         (Apply SQL here.)
-      
+
       Revert: |
         (Revert SQL here.)
 
@@ -113,11 +93,11 @@ Getting started
 
       Apply: |
         CREATE TABLE foo (a int);
-      
+
       Revert: |
         DROP TABLE foo;
 
- 8. Test the new migration with "moo test". This will install the
+ 7. Test the new migration with "moo test". This will install the
     migration in a transaction and roll it back. Here is example output:
 
     $ moo test hello-world
@@ -125,7 +105,7 @@ Getting started
     Reverting: hello-world... done.
     Successfully tested migrations.
 
- 9. Install the migration. This can be done in one of two ways: with
+ 8. Install the migration. This can be done in one of two ways: with
     "moo upgrade" or with "moo apply".  Here are examples:
 
     $ moo apply hello-world
@@ -136,7 +116,7 @@ Getting started
     Applying: hello-world... done.
     Database successfully upgraded.
 
- 10. List installed migrations with "moo list".
+ 9. List installed migrations with "moo list".
 
     $ moo list
     hello-world
@@ -162,7 +142,6 @@ approach is an alternative to setting environment variables. The
 configuration file format uses the same environment variable names for
 its fields. An example configuration is as follows:
 
-  DBM_DATABASE_TYPE = "sqlite3"
   DBM_DATABASE = "/path/to/database.db"
   DBM_MIGRATION_STORE = "/path/to/migration/store"
   DBM_LINEAR_MIGRATIONS = on/off (or true/false; defaults to off)
@@ -231,31 +210,25 @@ Environment
 Moo depends on these environment variables / configuration file
 settings:
 
-  DBM_DATABASE_TYPE
-
-    The type of database you'll be managing.  Supported values
-    at present are "mysql", "postgresql" and "sqlite3". This will
-    determine the format of DBM_DATABASE.
-
   DBM_DATABASE
 
     The database connection string for the database you'll be
     managing.  The connection strings for each supported database type
     are as follows:
 
-    DBM_DATABASE_TYPE=postgresql:
+    PostgreSQL:
 
       The format of this value is a PostgreSQL database connection
       string, i.e., that described at:
 
       http://www.postgresql.org/docs/8.1/static/libpq.html#LIBPQ-CONNECT
 
-    DBM_DATABASE_TYPE=sqlite3:
+    SQlite3:
 
       The format of this value is a filesystem path to the Sqlite3
       database to be used.
 
-    DBM_DATABASE_TYPE=mysql:
+    MySQL:
 
       For MySQL, DBM_DATABASE should be a value of key value pairs,
       where each pair is formed by `key=value`, and each pair separated
