@@ -47,7 +47,7 @@ throwFS :: String -> a
 throwFS = throw . FilesystemStoreError
 
 filenameExtension :: String
-filenameExtension = ".txt"
+filenameExtension = ".yml"
 
 filesystemStore :: FilesystemStoreSettings -> MigrationStore
 filesystemStore s =
