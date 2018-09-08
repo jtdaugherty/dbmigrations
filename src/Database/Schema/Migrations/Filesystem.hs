@@ -9,7 +9,7 @@ module Database.Schema.Migrations.Filesystem
     )
 where
 
-import Prelude hiding ( catch )
+import Prelude
 
 import System.Directory ( getDirectoryContents, doesFileExist )
 import System.FilePath ( (</>), takeExtension, dropExtension

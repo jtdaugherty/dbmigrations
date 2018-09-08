@@ -42,19 +42,19 @@ Data-Files:
   test/config_loading/invalid.cfg
   test/config_loading/missing.cfg
   test/config_loading/moo.cfg
-  test/migration_parsing/invalid_field_name.txt
-  test/migration_parsing/invalid_missing_required_fields.txt
-  test/migration_parsing/invalid_syntax.txt
-  test/migration_parsing/invalid_timestamp.txt
-  test/migration_parsing/valid_full.txt
-  test/migration_parsing/valid_no_depends.txt
-  test/migration_parsing/valid_no_desc.txt
-  test/migration_parsing/valid_no_revert.txt
-  test/migration_parsing/valid_no_timestamp.txt
-  test/migration_parsing/valid_with_colon.txt
-  test/migration_parsing/valid_with_comments.txt
-  test/migration_parsing/valid_with_comments2.txt
-  test/migration_parsing/valid_with_multiline_deps.txt
+  test/migration_parsing/invalid_field_name.yml
+  test/migration_parsing/invalid_missing_required_fields.yml
+  test/migration_parsing/invalid_syntax.yml
+  test/migration_parsing/invalid_timestamp.yml
+  test/migration_parsing/valid_full.yml
+  test/migration_parsing/valid_no_depends.yml
+  test/migration_parsing/valid_no_desc.yml
+  test/migration_parsing/valid_no_revert.yml
+  test/migration_parsing/valid_no_timestamp.yml
+  test/migration_parsing/valid_with_colon.yml
+  test/migration_parsing/valid_with_comments.yml
+  test/migration_parsing/valid_with_comments2.yml
+  test/migration_parsing/valid_with_multiline_deps.yml
 
 Source-Repository head
   type:     git
@@ -139,7 +139,6 @@ test-suite dbmigrations-tests
     FilesystemTest
     MigrationsTest
     StoreTest
-    TestDriver
     InMemoryStore
     LinearMigrationsTest
     ConfigurationTest
@@ -151,13 +150,14 @@ test-suite dbmigrations-tests
     ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields
 
   Hs-Source-Dirs:  src,test
-  Main-is:         TestDriver.hs
+  Main-is:         Main.hs
 
 Executable moo
   default-language: Haskell2010
   Build-Depends:
     base >= 4 && < 5,
     configurator >= 0.2,
+    HDBC-postgresql >= 2.2.1,
     dbmigrations
 
   if impl(ghc >= 6.12.0)

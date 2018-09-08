@@ -6,4 +6,4 @@ packages:
 extra-deps:
 - HsSyck-0.53
 - yaml-light-0.1.4
-- hasql-1.1.1
+- HDBC-postgresql-2.3.2.5
