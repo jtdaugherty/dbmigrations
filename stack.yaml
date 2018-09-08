@@ -1,0 +1,9 @@
+resolver: lts-12.8
+
+packages:
+- .
+
+extra-deps:
+- HsSyck-0.53
+- yaml-light-0.1.4
+- HDBC-postgresql-2.3.2.5

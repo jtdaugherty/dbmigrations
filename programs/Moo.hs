@@ -3,15 +3,25 @@ module Main
     )
 where
 
-import Prelude
+import Database.HDBC.PostgreSQL (connectPostgreSQL)
+import Prelude  hiding (lookup)
+import System.Environment (getArgs)
+import System.Exit
+
+import Database.Schema.Migrations.Backend.HDBC (hdbcBackend)
+import Moo.Core
+import Moo.Main
 
 main :: IO ()
 main = do
-  error $
-    "This package (dbmigrations) does no longer contain the executable to \
-    \create, apply or revert database migrations. Please install the specific \
-    \wrapper package for your database: dbmigrations-postgresql, \
-    \dbmigrations-mysql, or dbmigrations-sqlite. These packages contain \
-    \database-specific executables that replace the former moo executable from the \
-    \dbmigrations package."
-
+  args <- getArgs
+  (_, opts, _) <- procArgs args
+  loadedConf <- loadConfiguration $ _configFilePath opts
+  case loadedConf of
+    Left e -> putStrLn e >> exitFailure
+    Right conf -> do
+      let connectionString = _connectionString conf
+      connection <- connectPostgreSQL connectionString
+      let backend = hdbcBackend connection
+          parameters = makeParameters conf backend
+      mainWithParameters args parameters

@@ -9,7 +9,6 @@ module Moo.CommandUtils
        , getCurrentTimestamp
        ) where
 
-import Control.Applicative
 import Control.Exception ( finally )
 import Control.Monad ( when, forM_, unless )
 import Control.Monad.Reader ( asks )

@@ -9,7 +9,7 @@ module Database.Schema.Migrations.Filesystem
     )
 where
 
-import Prelude hiding ( catch )
+import Prelude
 
 import System.Directory ( getDirectoryContents, doesFileExist )
 import System.FilePath ( (</>), takeExtension, dropExtension
@@ -47,7 +47,7 @@ throwFS :: String -> a
 throwFS = throw . FilesystemStoreError
 
 filenameExtension :: String
-filenameExtension = ".txt"
+filenameExtension = ".yml"
 
 filesystemStore :: FilesystemStoreSettings -> MigrationStore
 filesystemStore s =
