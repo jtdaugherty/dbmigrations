@@ -1,0 +1,16 @@
+# Do not choose a language; we provide our own build tools.
+language: generic
+
+before_install:
+- wget https://www.haskell.org/platform/download/8.4.3/haskell-platform-8.4.3-unknown-posix--full-x86_64.tar.gz
+- tar xf haskell-platform-8.4.3-unknown-posix--full-x86_64.tar.gz
+- sudo ./install-haskell-platform.sh
+- cabal --version
+
+install:
+- cabal update
+- cabal install --enable-tests
+
+script:
+- cabal test
+- cabal haddock
