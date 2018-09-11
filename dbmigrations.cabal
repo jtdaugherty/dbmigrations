@@ -139,7 +139,6 @@ test-suite dbmigrations-tests
     FilesystemTest
     MigrationsTest
     StoreTest
-    TestDriver
     InMemoryStore
     LinearMigrationsTest
     ConfigurationTest
@@ -151,7 +150,7 @@ test-suite dbmigrations-tests
     ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields
 
   Hs-Source-Dirs:  src,test
-  Main-is:         TestDriver.hs
+  Main-is:         Main.hs
 
 Executable moo
   default-language: Haskell2010

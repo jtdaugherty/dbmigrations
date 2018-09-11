@@ -102,8 +102,8 @@ reinstallCommand storeData = do
       ensureBootstrappedBackend backend >> commitBackend backend
       m <- lookupMigration storeData migrationId
 
-      revert m storeData backend
-      apply m storeData backend True
+      _ <- revert m storeData backend
+      _ <- apply m storeData backend True
 
       case isTesting of
         False -> do
@@ -130,7 +130,7 @@ applyCommand storeData = do
   withBackend $ \backend -> do
         ensureBootstrappedBackend backend >> commitBackend backend
         m <- lookupMigration storeData migrationId
-        apply m storeData backend True
+        _ <- apply m storeData backend True
         case isTesting of
           False -> do
             commitBackend backend
@@ -148,7 +148,7 @@ revertCommand storeData = do
   withBackend $ \backend -> do
       ensureBootstrappedBackend backend >> commitBackend backend
       m <- lookupMigration storeData migrationId
-      revert m storeData backend
+      _ <- revert m storeData backend
 
       case isTesting of
         False -> do
@@ -170,7 +170,7 @@ testCommand storeData = do
         -- If the migration is already installed, remove it as part of
         -- the test
         when (not $ migrationId `elem` migrationNames) $
-             do revert m storeData backend
+             do _ <- revert m storeData backend
                 return ()
         applied <- apply m storeData backend True
         forM_ (reverse applied) $ \migration -> do

@@ -102,7 +102,7 @@ applyMigrationFailure conn = do
         m2 = (newMigration "third") { mApply = "INVALID SQL" }
 
     -- Apply the migrations, ignore exceptions
-    ignoreSqlExceptions conn $ withTransaction conn $ \conn' -> do
+    _ <- ignoreSqlExceptions conn $ withTransaction conn $ \conn' -> do
         let backend' = makeBackend conn'
         applyMigration backend' m1
         applyMigration backend' m2
@@ -129,7 +129,7 @@ revertMigrationFailure conn = do
 
     -- Revert the migrations, ignore exceptions; the revert will fail,
     -- but withTransaction will roll back.
-    ignoreSqlExceptions conn $ withTransaction conn $ \conn' -> do
+    _ <- ignoreSqlExceptions conn $ withTransaction conn $ \conn' -> do
         let backend' = makeBackend conn'
         revertMigration backend' m2
         revertMigration backend' m1

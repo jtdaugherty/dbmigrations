@@ -50,7 +50,7 @@ hdbcBackend conn =
 
             , applyMigration = \m -> do
                 runRaw conn (mApply m)
-                run conn ("INSERT INTO " ++ migrationTableName ++
+                _ <- run conn ("INSERT INTO " ++ migrationTableName ++
                           " (migration_id) VALUES (?)") [toSql $ mId m]
                 return ()
 
@@ -59,7 +59,7 @@ hdbcBackend conn =
                     Nothing -> return ()
                     Just query -> runRaw conn query
                   -- Remove migration from installed_migrations in either case.
-                  run conn ("DELETE FROM " ++ migrationTableName ++
+                  _ <- run conn ("DELETE FROM " ++ migrationTableName ++
                             " WHERE migration_id = ?") [toSql $ mId m]
                   return ()
 

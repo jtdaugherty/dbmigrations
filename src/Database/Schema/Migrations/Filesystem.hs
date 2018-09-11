@@ -9,7 +9,7 @@ module Database.Schema.Migrations.Filesystem
     )
 where
 
-import Prelude hiding ( catch )
+import Prelude
 
 import System.Directory ( getDirectoryContents, doesFileExist )
 import System.FilePath ( (</>), takeExtension, dropExtension, takeBaseName )
@@ -101,14 +101,14 @@ migrationFromPath path = do
   (Right <$> process name) `catch` (\(FilesystemStoreError s) -> return $ Left $ "Could not parse migration " ++ path ++ ":" ++ s)
 
   where
-    readMigrationFile path = do
+    readMigrationFile = do
       ymlExists <- doesFileExist (addNewMigrationExtension path)
       if ymlExists
         then parseYamlFile (addNewMigrationExtension path) `catch` (\(e::IOException) -> throwFS $ show e)
         else parseYamlFile (addLegacyMigrationExtension path) `catch` (\(e::IOException) -> throwFS $ show e)
 
     process name = do
-      yaml <- readMigrationFile path
+      yaml <- readMigrationFile
 
       -- Convert yaml structure into basic key/value map
       let fields = getFields yaml
