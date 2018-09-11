@@ -12,8 +12,7 @@ where
 import Prelude hiding ( catch )
 
 import System.Directory ( getDirectoryContents, doesFileExist )
-import System.FilePath ( (</>), takeExtension, dropExtension
-                       , takeFileName, takeBaseName )
+import System.FilePath ( (</>), takeExtension, dropExtension, takeBaseName )
 import Data.ByteString.Char8 ( unpack )
 
 import Data.Typeable ( Typeable )
@@ -47,11 +46,17 @@ throwFS :: String -> a
 throwFS = throw . FilesystemStoreError
 
 filenameExtension :: String
-filenameExtension = ".txt"
+filenameExtension = ".yml"
+
+filenameExtensionTxt :: String
+filenameExtensionTxt = ".txt"
+
+supportedFilenameExtensions :: [String]
+supportedFilenameExtensions = [filenameExtension, filenameExtensionTxt]
 
 filesystemStore :: FilesystemStoreSettings -> MigrationStore
 filesystemStore s =
-    MigrationStore { fullMigrationName = fsFullMigrationName s
+    MigrationStore { fullMigrationName = fmap addNewMigrationExtension . fsFullMigrationName s
 
                    , loadMigration = \theId -> migrationFromFile s theId
 
@@ -64,14 +69,21 @@ filesystemStore s =
 
                    , saveMigration = \m -> do
                        filename <- fsFullMigrationName s $ mId m
-                       writeFile filename $ serializeMigration m
+                       writeFile (addNewMigrationExtension filename) $ serializeMigration m
                    }
 
+addNewMigrationExtension :: FilePath -> FilePath
+addNewMigrationExtension path = path ++ filenameExtension
+
+addLegacyMigrationExtension :: FilePath -> FilePath
+addLegacyMigrationExtension path = path ++ filenameExtensionTxt
+
+-- |Build path to migrations without extension.
 fsFullMigrationName :: FilesystemStoreSettings -> FilePath -> IO FilePath
-fsFullMigrationName s name = return $ storePath s </> name ++ filenameExtension
+fsFullMigrationName s name = return $ storePath s </> name
 
 isMigrationFilename :: FilePath -> Bool
-isMigrationFilename path = takeExtension path == filenameExtension
+isMigrationFilename path = takeExtension path `elem` supportedFilenameExtensions
 
 -- |Given a store and migration name, read and parse the associated
 -- migration and return the migration if successful.  Otherwise return
@@ -85,12 +97,18 @@ migrationFromFile store name =
 -- error message.
 migrationFromPath :: FilePath -> IO (Either String Migration)
 migrationFromPath path = do
-  let name = takeBaseName $ takeFileName path
+  let name = takeBaseName path
   (Right <$> process name) `catch` (\(FilesystemStoreError s) -> return $ Left $ "Could not parse migration " ++ path ++ ":" ++ s)
 
   where
+    readMigrationFile path = do
+      ymlExists <- doesFileExist (addNewMigrationExtension path)
+      if ymlExists
+        then parseYamlFile (addNewMigrationExtension path) `catch` (\(e::IOException) -> throwFS $ show e)
+        else parseYamlFile (addLegacyMigrationExtension path) `catch` (\(e::IOException) -> throwFS $ show e)
+
     process name = do
-      yaml <- parseYamlFile path `catch` (\(e::IOException) -> throwFS $ show e)
+      yaml <- readMigrationFile path
 
       -- Convert yaml structure into basic key/value map
       let fields = getFields yaml
