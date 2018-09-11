@@ -84,27 +84,27 @@ migrationParsingTestCases = [ ("valid_full", Right valid_full)
                               , Right (valid_full { mId = "valid_no_timestamp", mTimestamp = Nothing }))
                             , ("invalid_missing_required_fields"
                               , Left $ "Could not parse migration " ++
-                                         (fp "invalid_missing_required_fields.txt") ++
+                                         (fp "invalid_missing_required_fields") ++
                                          ":Error in " ++
-                                         (show $ fp "invalid_missing_required_fields.txt") ++
+                                         (show $ fp "invalid_missing_required_fields") ++
                                          ": missing required field(s): " ++
                                          "[\"Depends\"]")
                             , ("invalid_field_name"
                               , Left $ "Could not parse migration " ++
-                                         (fp "invalid_field_name.txt") ++
+                                         (fp "invalid_field_name") ++
                                          ":Error in " ++
-                                         (show $ fp "invalid_field_name.txt") ++
+                                         (show $ fp "invalid_field_name") ++
                                          ": unrecognized field found")
                             , ("invalid_syntax"
                               , Left $ "Could not parse migration " ++
-                                         (fp "invalid_syntax.txt") ++
+                                         (fp "invalid_syntax") ++
                                          ":user error (syntax error: line 7, " ++
                                          "column 0)")
                             , ("invalid_timestamp"
                               , Left $ "Could not parse migration " ++
-                                         (fp "invalid_timestamp.txt") ++
+                                         (fp "invalid_timestamp") ++
                                          ":Error in " ++
-                                         (show $ fp "invalid_timestamp.txt") ++
+                                         (show $ fp "invalid_timestamp") ++
                                          ": unrecognized field found")
                             ]
 
