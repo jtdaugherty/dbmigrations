@@ -74,10 +74,12 @@ Getting started
     Confirm: create migration 'hello-world'
       (No dependencies)
     Are you sure? (yn): y
-    Migration created successfully: ".../hello-world.txt"
+    Migration created successfully: ".../hello-world.yml"
+
+   New migration will be stored with .yml extension. Older .txt migrations are supported.
 
  6. Edit the migration you created. In this case, moo created a file
-    $DBM_MIGRATION_STORE/hello_world.txt that looks like this:
+    $DBM_MIGRATION_STORE/hello_world.yml that looks like this:
 
       Description: (Description here.)
       Created: 2015-02-18 00:50:12.041176 UTC
