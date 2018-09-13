@@ -91,8 +91,10 @@ Library
           Database.Schema.Migrations
           Database.Schema.Migrations.Backend
           Database.Schema.Migrations.Backend.HDBC
+          Database.Schema.Migrations.CycleDetection
           Database.Schema.Migrations.Dependencies
           Database.Schema.Migrations.Filesystem
+          Database.Schema.Migrations.Filesystem.Serialize
           Database.Schema.Migrations.Migration
           Database.Schema.Migrations.Store
           Database.Schema.Migrations.Test.BackendTest
@@ -101,10 +103,6 @@ Library
           Moo.CommandUtils
           Moo.Core
           Moo.Main
-
-  Other-Modules:
-          Database.Schema.Migrations.CycleDetection
-          Database.Schema.Migrations.Filesystem.Serialize
 
 test-suite dbmigrations-tests
   default-language: Haskell2010
@@ -149,7 +147,7 @@ test-suite dbmigrations-tests
   else
     ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields
 
-  Hs-Source-Dirs:  src,test
+  Hs-Source-Dirs:  test
   Main-is:         Main.hs
 
 Executable moo
