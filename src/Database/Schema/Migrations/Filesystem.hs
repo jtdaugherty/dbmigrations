@@ -51,9 +51,6 @@ filenameExtension = ".yml"
 filenameExtensionTxt :: String
 filenameExtensionTxt = ".txt"
 
-supportedFilenameExtensions :: [String]
-supportedFilenameExtensions = [filenameExtension, filenameExtensionTxt]
-
 filesystemStore :: FilesystemStoreSettings -> MigrationStore
 filesystemStore s =
     MigrationStore { fullMigrationName = fmap addNewMigrationExtension . fsFullMigrationName s
@@ -75,15 +72,15 @@ filesystemStore s =
 addNewMigrationExtension :: FilePath -> FilePath
 addNewMigrationExtension path = path ++ filenameExtension
 
-addLegacyMigrationExtension :: FilePath -> FilePath
-addLegacyMigrationExtension path = path ++ filenameExtensionTxt
+addMigrationExtension :: FilePath -> String -> FilePath
+addMigrationExtension path ext = path ++ ext
 
 -- |Build path to migrations without extension.
 fsFullMigrationName :: FilesystemStoreSettings -> FilePath -> IO FilePath
 fsFullMigrationName s name = return $ storePath s </> name
 
 isMigrationFilename :: FilePath -> Bool
-isMigrationFilename path = takeExtension path `elem` supportedFilenameExtensions
+isMigrationFilename path = takeExtension path `elem` [filenameExtension, filenameExtensionTxt]
 
 -- |Given a store and migration name, read and parse the associated
 -- migration and return the migration if successful.  Otherwise return
@@ -105,7 +102,7 @@ migrationFromPath path = do
       ymlExists <- doesFileExist (addNewMigrationExtension path)
       if ymlExists
         then parseYamlFile (addNewMigrationExtension path) `catch` (\(e::IOException) -> throwFS $ show e)
-        else parseYamlFile (addLegacyMigrationExtension path) `catch` (\(e::IOException) -> throwFS $ show e)
+        else parseYamlFile (addMigrationExtension path filenameExtensionTxt) `catch` (\(e::IOException) -> throwFS $ show e)
 
     process name = do
       yaml <- readMigrationFile
