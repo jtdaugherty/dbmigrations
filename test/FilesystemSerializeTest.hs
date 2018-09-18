@@ -4,6 +4,8 @@ module FilesystemSerializeTest
 where
 
 import Test.HUnit
+import Data.ByteString ( ByteString )
+import Data.String.Conversions ( (<>), cs )
 import Data.Time.Clock ( UTCTime )
 
 import Database.Schema.Migrations.Filesystem.Serialize
@@ -12,7 +14,7 @@ import Database.Schema.Migrations.Migration
 tests :: [Test]
 tests = serializationTests
 
-mkSerializationTest :: (Migration, String) -> Test
+mkSerializationTest :: (Migration, ByteString) -> Test
 mkSerializationTest (m, expectedString) = test $ expectedString ~=? serializeMigration m
 
 tsStr :: String
@@ -31,9 +33,9 @@ valid_full = Migration {
              , mRevert = Just "DROP TABLE test;"
              }
 
-serializationTestCases :: [(Migration, String)]
-serializationTestCases = [ (valid_full, "Description: A valid full migration.\n\
-                                        \Created: " ++ tsStr ++ "\n\
+serializationTestCases :: [(Migration, ByteString)]
+serializationTestCases = [ (valid_full, cs $ "Description: A valid full migration.\n\
+                                        \Created: " <> tsStr <> "\n\
                                         \Depends: another_migration\n\
                                         \Apply: |\n\
                                         \  CREATE TABLE test (\n\
@@ -42,7 +44,7 @@ serializationTestCases = [ (valid_full, "Description: A valid full migration.\n\
                                         \Revert: |\n\
                                         \  DROP TABLE test;\n")
                          , (valid_full { mDesc = Nothing }
-                           , "Created: " ++ tsStr ++ "\n\
+                           , cs $ "Created: " <> tsStr <> "\n\
                              \Depends: another_migration\n\
                              \Apply: |\n\
                              \  CREATE TABLE test (\n\
@@ -51,8 +53,8 @@ serializationTestCases = [ (valid_full, "Description: A valid full migration.\n\
                              \Revert: |\n\
                              \  DROP TABLE test;\n")
                          , (valid_full { mDeps = ["one", "two"] }
-                           , "Description: A valid full migration.\n\
-                             \Created: " ++ tsStr ++ "\n\
+                           , cs $ "Description: A valid full migration.\n\
+                             \Created: " <> tsStr <> "\n\
                              \Depends: one two\n\
                              \Apply: |\n\
                              \  CREATE TABLE test (\n\
@@ -61,8 +63,8 @@ serializationTestCases = [ (valid_full, "Description: A valid full migration.\n\
                              \Revert: |\n\
                              \  DROP TABLE test;\n")
                          , (valid_full { mRevert = Nothing }
-                           , "Description: A valid full migration.\n\
-                             \Created: " ++ tsStr ++ "\n\
+                           , cs $ "Description: A valid full migration.\n\
+                             \Created: " <> tsStr <> "\n\
                              \Depends: another_migration\n\
                              \Apply: |\n\
                              \  CREATE TABLE test (\n\

@@ -23,6 +23,7 @@ module Database.Schema.Migrations.Store
     )
 where
 
+import Data.Text ( Text )
 import Data.Maybe ( isJust )
 import Control.Monad ( mzero )
 import Control.Applicative ( (<$>) )
@@ -41,7 +42,7 @@ import Database.Schema.Migrations.Dependencies
 -- |A mapping from migration name to 'Migration'.  This is exported
 -- for testing purposes, but you'll want to interface with this
 -- through the encapsulating 'StoreData' type.
-type MigrationMap = Map.Map String Migration
+type MigrationMap = Map.Map Text Migration
 
 data StoreData = StoreData { storeDataMapping :: MigrationMap
                            , storeDataGraph :: DependencyGraph Migration
@@ -51,17 +52,17 @@ data StoreData = StoreData { storeDataMapping :: MigrationMap
 -- facility in which new migrations can be created, and from which
 -- existing migrations can be loaded.
 data MigrationStore =
-    MigrationStore { loadMigration :: String -> IO (Either String Migration)
+    MigrationStore { loadMigration :: Text -> IO (Either String Migration)
                    -- ^ Load a migration from the store.
 
                    , saveMigration :: Migration -> IO ()
                    -- ^ Save a migration to the store.
 
-                   , getMigrations :: IO [String]
+                   , getMigrations :: IO [Text]
                    -- ^ Return a list of all available migrations'
                    -- names.
 
-                   , fullMigrationName :: String -> IO String
+                   , fullMigrationName :: Text -> IO FilePath
                    -- ^ Return the full representation of a given
                    -- migration name; mostly for filesystem stores,
                    -- where the full representation includes the store
@@ -69,7 +70,7 @@ data MigrationStore =
                    }
 
 -- |A type for types of validation errors for migration maps.
-data MapValidationError = DependencyReferenceError String String
+data MapValidationError = DependencyReferenceError Text Text
                           -- ^ A migration claims a dependency on a
                           -- migration that does not exist.
                         | DependencyGraphError String
@@ -96,7 +97,7 @@ storeMigrations storeData =
 
 -- |A convenience function for looking up a 'Migration' by name in the
 -- specified 'StoreData'.
-storeLookup :: StoreData -> String -> Maybe Migration
+storeLookup :: StoreData -> Text -> Maybe Migration
 storeLookup storeData migrationName =
     Map.lookup migrationName $ storeDataMapping storeData
 
@@ -153,6 +154,6 @@ depGraphFromMapping mapping = mkDepGraph $ Map.elems mapping
 
 -- |Finds migrations that no other migration depends on (effectively finds all
 -- vertices with in-degree equal to zero).
-leafMigrations :: StoreData -> [String]
+leafMigrations :: StoreData -> [Text]
 leafMigrations s = [l | (n, l) <- labNodes g, indeg g n == 0]
     where g = depGraph $ storeDataGraph s

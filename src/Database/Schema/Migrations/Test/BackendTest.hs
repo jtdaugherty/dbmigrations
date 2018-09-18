@@ -9,6 +9,8 @@ module Database.Schema.Migrations.Test.BackendTest
     , tests
     ) where
 
+import Data.ByteString ( ByteString )
+
 import Control.Monad ( forM_ )
 import Test.HUnit
 
@@ -30,7 +32,7 @@ class BackendConnection c where
     withTransaction :: c -> (c -> IO a) -> IO a
 
     -- | Retrieves a list of all tables in the current database/scheme.
-    getTables :: c -> IO [String]
+    getTables :: c -> IO [ByteString]
 
     catchAll :: c -> (IO a -> IO a -> IO a)
 

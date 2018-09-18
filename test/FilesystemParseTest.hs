@@ -6,6 +6,7 @@ where
 import Test.HUnit
 import Data.Time.Clock ( UTCTime )
 import System.FilePath ( (</>) )
+import Data.String.Conversions ( cs )
 
 import Common
 
@@ -111,7 +112,7 @@ migrationParsingTestCases = [ ("valid_full", Right valid_full)
 mkParsingTest :: MigrationParsingTestCase -> IO Test
 mkParsingTest (fname, expected) = do
   let store = FSStore { storePath = testStorePath }
-  actual <- migrationFromFile store fname
+  actual <- migrationFromFile store (cs fname)
   return $ test $ expected ~=? actual
 
 migrationParsingTests :: IO [Test]

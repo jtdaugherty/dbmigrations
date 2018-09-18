@@ -7,15 +7,16 @@ where
 
 import Database.Schema.Migrations.Dependencies
 
+import Data.Text ( Text )
 import Data.Time () -- for UTCTime Show instance
 import qualified Data.Time.Clock as Clock
 
 data Migration = Migration { mTimestamp :: Maybe Clock.UTCTime
-                           , mId :: String
-                           , mDesc :: Maybe String
-                           , mApply :: String
-                           , mRevert :: Maybe String
-                           , mDeps :: [String]
+                           , mId :: Text
+                           , mDesc :: Maybe Text
+                           , mApply :: Text
+                           , mRevert :: Maybe Text
+                           , mDeps :: [Text]
                            }
                deriving (Eq, Show, Ord)
 
@@ -23,7 +24,7 @@ instance Dependable Migration where
     depsOf = mDeps
     depId = mId
 
-emptyMigration :: String -> Migration
+emptyMigration :: Text -> Migration
 emptyMigration name =
   Migration { mTimestamp = Nothing
             , mId = name
@@ -33,7 +34,7 @@ emptyMigration name =
             , mDeps = []
             }
 
-newMigration :: String -> Migration
+newMigration :: Text -> Migration
 newMigration theId = 
   (emptyMigration theId) 
     { mApply = "(Apply SQL here.)"

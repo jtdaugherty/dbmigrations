@@ -13,6 +13,8 @@ module Moo.Core
     , envStoreName
     , loadConfiguration) where
 
+import Data.Text ( Text )
+
 import Control.Monad.Reader (ReaderT)
 import qualified Data.Configurator as C
 import Data.Configurator.Types (Config, Configured)
@@ -33,8 +35,8 @@ type CommandHandler = StoreData -> AppT ()
 -- |Application state which can be accessed by any command handler.
 data AppState = AppState { _appOptions            :: CommandOptions
                          , _appCommand            :: Command
-                         , _appRequiredArgs       :: [String]
-                         , _appOptionalArgs       :: [String]
+                         , _appRequiredArgs       :: [Text]
+                         , _appOptionalArgs       :: [Text]
                          , _appBackend            :: Backend
                          , _appStore              :: MigrationStore
                          , _appStoreData          :: StoreData

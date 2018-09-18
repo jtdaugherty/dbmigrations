@@ -9,6 +9,7 @@ module Database.Schema.Migrations
     )
 where
 
+import Data.Text ( Text )
 import qualified Data.Set as Set
 import Data.Maybe ( catMaybes )
 
@@ -25,7 +26,7 @@ import Database.Schema.Migrations.Migration
 -- |Given a 'B.Backend' and a 'S.MigrationMap', query the backend and
 -- return a list of migration names which are available in the
 -- 'S.MigrationMap' but which are not installed in the 'B.Backend'.
-missingMigrations :: B.Backend -> S.StoreData -> IO [String]
+missingMigrations :: B.Backend -> S.StoreData -> IO [Text]
 missingMigrations backend storeData = do
   let storeMigrationNames = map mId $ S.storeMigrations storeData
   backendMigrations <- B.getMigrations backend

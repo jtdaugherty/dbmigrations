@@ -5,6 +5,7 @@ import           Test.HUnit
 
 import           Common
 import           Control.Monad.Reader                 (runReaderT)
+import           Data.Text                            (Text)
 import           Data.Either                          (isRight)
 import           Database.Schema.Migrations.Migration
 import           Database.Schema.Migrations.Store
@@ -60,13 +61,13 @@ addTestMigration state = do
     runReaderT (newCommand $ _appStoreData state) state
     loadMigration store migrationId
 
-addTestMigrationWithDeps :: AppState -> [String] -> IO ()
+addTestMigrationWithDeps :: AppState -> [Text] -> IO ()
 addTestMigrationWithDeps state deps = do
     let store = _appStore state
     let [migrationId] = _appRequiredArgs state
     saveMigration store (newMigration migrationId) { mDeps = deps }
 
-prepareState :: String -> IO AppState
+prepareState :: Text -> IO AppState
 prepareState m = do
     store <- inMemoryStore
     Right storeData <- loadMigrations store
@@ -82,12 +83,12 @@ prepareState m = do
     , _appTimestampFilenames = False
     }
 
-prepareStateWith :: AppState -> String -> IO AppState
+prepareStateWith :: AppState -> Text -> IO AppState
 prepareStateWith state m = do
     Right storeData <- loadMigrations $ _appStore state
     return state { _appRequiredArgs = [m], _appStoreData = storeData }
 
-prepareNormalState :: String -> IO AppState
+prepareNormalState :: Text -> IO AppState
 prepareNormalState m = do
     state <- prepareState m
     return $ state { _appLinearMigrations = False }

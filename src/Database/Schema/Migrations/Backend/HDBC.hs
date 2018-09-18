@@ -22,22 +22,25 @@ import Database.Schema.Migrations.Migration
     , newMigration
     )
 
+import Data.Text ( Text )
+import Data.String.Conversions ( cs, (<>) )
+
 import Control.Applicative ( (<$>) )
 import Data.Time.Clock (getCurrentTime)
 
-migrationTableName :: String
+migrationTableName :: Text
 migrationTableName = "installed_migrations"
 
-createSql :: String
-createSql = "CREATE TABLE " ++ migrationTableName ++ " (migration_id TEXT)"
+createSql :: Text
+createSql = "CREATE TABLE " <> migrationTableName <> " (migration_id TEXT)"
 
-revertSql :: String
-revertSql = "DROP TABLE " ++ migrationTableName
+revertSql :: Text
+revertSql = "DROP TABLE " <> migrationTableName
 
 -- |General Backend constructor for all HDBC connection implementations.
 hdbcBackend :: (IConnection conn) => conn -> Backend
 hdbcBackend conn =
-    Backend { isBootstrapped = elem migrationTableName <$> getTables conn
+    Backend { isBootstrapped = elem (cs migrationTableName) <$> getTables conn
             , getBootstrapMigration =
                   do
                     ts <- getCurrentTime
@@ -49,22 +52,22 @@ hdbcBackend conn =
                         }
 
             , applyMigration = \m -> do
-                runRaw conn (mApply m)
-                _ <- run conn ("INSERT INTO " ++ migrationTableName ++
+                runRaw conn (cs $ mApply m)
+                _ <- run conn (cs $ "INSERT INTO " <> migrationTableName <>
                           " (migration_id) VALUES (?)") [toSql $ mId m]
                 return ()
 
             , revertMigration = \m -> do
                   case mRevert m of
                     Nothing -> return ()
-                    Just query -> runRaw conn query
+                    Just query -> runRaw conn (cs query)
                   -- Remove migration from installed_migrations in either case.
-                  _ <- run conn ("DELETE FROM " ++ migrationTableName ++
+                  _ <- run conn (cs $ "DELETE FROM " <> migrationTableName <>
                             " WHERE migration_id = ?") [toSql $ mId m]
                   return ()
 
             , getMigrations = do
-                results <- quickQuery' conn ("SELECT migration_id FROM " ++ migrationTableName) []
+                results <- quickQuery' conn (cs $ "SELECT migration_id FROM " <> migrationTableName) []
                 return $ map (fromSql . head) results
 
             , commitBackend = commit conn
