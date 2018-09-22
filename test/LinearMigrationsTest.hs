@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module LinearMigrationsTest (tests) where
 
 import           InMemoryStore

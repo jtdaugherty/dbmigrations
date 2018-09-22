@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Moo.Main
     ( mainWithParameters
     , ExecutableParameters (..)

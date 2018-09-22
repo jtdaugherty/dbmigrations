@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module DependencyTest
     ( tests
     )

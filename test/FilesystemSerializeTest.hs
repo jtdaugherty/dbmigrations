@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module FilesystemSerializeTest
     ( tests
     )
