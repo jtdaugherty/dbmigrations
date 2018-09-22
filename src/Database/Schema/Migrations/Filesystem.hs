@@ -15,7 +15,6 @@ import System.Directory ( getDirectoryContents, doesFileExist )
 import System.FilePath ( (</>), takeExtension, dropExtension, takeBaseName )
 import Data.Text ( Text )
 import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
 import qualified Data.ByteString.Char8 as BSC
 import Data.String.Conversions ( cs, (<>) )
 
@@ -126,7 +125,8 @@ migrationFromPath path = do
 getFields :: YamlLight -> [(Text, Text)]
 getFields (YMap mp) = map toPair $ Map.assocs mp
     where
-      toPair (YStr k, YStr v) = (T.decodeUtf8 k, T.decodeUtf8 v)
+      toPair :: (YamlLight, YamlLight) -> (Text, Text)
+      toPair (YStr k, YStr v) = (cs k, cs v)
       toPair (k, v) = throwFS $ "Error in YAML input; expected string key and string value, got " ++ (show (k, v))
 getFields _ = throwFS "Error in YAML input; expected mapping"
 
