@@ -9,6 +9,8 @@ module Database.Schema.Migrations.Test.BackendTest
     , tests
     ) where
 
+import Data.ByteString ( ByteString )
+
 import Control.Monad ( forM_ )
 import Test.HUnit
 
@@ -30,7 +32,7 @@ class BackendConnection c where
     withTransaction :: c -> (c -> IO a) -> IO a
 
     -- | Retrieves a list of all tables in the current database/scheme.
-    getTables :: c -> IO [String]
+    getTables :: c -> IO [ByteString]
 
     catchAll :: c -> (IO a -> IO a -> IO a)
 
@@ -102,7 +104,7 @@ applyMigrationFailure conn = do
         m2 = (newMigration "third") { mApply = "INVALID SQL" }
 
     -- Apply the migrations, ignore exceptions
-    ignoreSqlExceptions conn $ withTransaction conn $ \conn' -> do
+    _ <- ignoreSqlExceptions conn $ withTransaction conn $ \conn' -> do
         let backend' = makeBackend conn'
         applyMigration backend' m1
         applyMigration backend' m2
@@ -129,7 +131,7 @@ revertMigrationFailure conn = do
 
     -- Revert the migrations, ignore exceptions; the revert will fail,
     -- but withTransaction will roll back.
-    ignoreSqlExceptions conn $ withTransaction conn $ \conn' -> do
+    _ <- ignoreSqlExceptions conn $ withTransaction conn $ \conn' -> do
         let backend' = makeBackend conn'
         revertMigration backend' m2
         revertMigration backend' m1

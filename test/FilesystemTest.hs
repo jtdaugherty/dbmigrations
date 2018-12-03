@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module FilesystemTest
     ( tests
     )

@@ -3,6 +3,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Moo.CommandHandlers where
 
+import Data.String.Conversions (cs, (<>))
+
 import Moo.Core
 import Moo.CommandUtils
 import Control.Monad ( when, forM_ )
@@ -23,10 +25,10 @@ newCommand storeData = do
   store      <- asks _appStore
   linear     <- asks _appLinearMigrations
   timestamp  <- asks _appTimestampFilenames
-  timeString <- (++"_") <$> liftIO getCurrentTimestamp
+  timeString <- (<>"_") <$> liftIO getCurrentTimestamp
 
   let [migrationId] = if timestamp
-      then fmap (timeString++) required
+      then fmap (timeString<>) required
       else required
   noAsk <- _noAsk <$> asks _appOptions
 
@@ -34,15 +36,15 @@ newCommand storeData = do
     fullPath <- fullMigrationName store migrationId
     when (isJust $ storeLookup storeData migrationId) $
          do
-           putStrLn $ "Migration " ++ (show fullPath) ++ " already exists"
+           putStrLn $ "Migration " <> (show fullPath) ++ " already exists"
            exitWith (ExitFailure 1)
 
     -- Default behavior: ask for dependencies if linear mode is disabled
     deps <- if linear then (return $ leafMigrations storeData) else
            if noAsk then (return []) else
            do
-             putStrLn $ "Selecting dependencies for new \
-                        \migration: " ++ migrationId
+             putStrLn . cs $ "Selecting dependencies for new \
+                        \migration: " <> migrationId
              interactiveAskDeps storeData
 
     result <- if noAsk then (return True) else
@@ -90,7 +92,7 @@ upgradeListCommand storeData = do
                                putStrLn "Database is up to date."
                                exitSuccess
         putStrLn "Migrations to install:"
-        forM_ migrationNames (putStrLn . ("  " ++))
+        forM_ migrationNames (putStrLn . cs . ("  " <>))
 
 reinstallCommand :: CommandHandler
 reinstallCommand storeData = do
@@ -102,8 +104,8 @@ reinstallCommand storeData = do
       ensureBootstrappedBackend backend >> commitBackend backend
       m <- lookupMigration storeData migrationId
 
-      revert m storeData backend
-      apply m storeData backend True
+      _ <- revert m storeData backend
+      _ <- apply m storeData backend True
 
       case isTesting of
         False -> do
@@ -119,7 +121,7 @@ listCommand _ = do
       ensureBootstrappedBackend backend >> commitBackend backend
       ms <- getMigrations backend
       forM_ ms $ \m ->
-          when (not $ m == rootMigrationName) $ putStrLn m
+          when (not $ m == rootMigrationName) $ putStrLn . cs $ m
 
 applyCommand :: CommandHandler
 applyCommand storeData = do
@@ -130,7 +132,7 @@ applyCommand storeData = do
   withBackend $ \backend -> do
         ensureBootstrappedBackend backend >> commitBackend backend
         m <- lookupMigration storeData migrationId
-        apply m storeData backend True
+        _ <- apply m storeData backend True
         case isTesting of
           False -> do
             commitBackend backend
@@ -148,7 +150,7 @@ revertCommand storeData = do
   withBackend $ \backend -> do
       ensureBootstrappedBackend backend >> commitBackend backend
       m <- lookupMigration storeData migrationId
-      revert m storeData backend
+      _ <- revert m storeData backend
 
       case isTesting of
         False -> do
@@ -170,7 +172,7 @@ testCommand storeData = do
         -- If the migration is already installed, remove it as part of
         -- the test
         when (not $ migrationId `elem` migrationNames) $
-             do revert m storeData backend
+             do _ <- revert m storeData backend
                 return ()
         applied <- apply m storeData backend True
         forM_ (reverse applied) $ \migration -> do

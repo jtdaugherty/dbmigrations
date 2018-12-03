@@ -1,7 +1,10 @@
+{-# LANGUAGE OverloadedStrings #-}
 module DependencyTest
     ( tests
     )
 where
+
+import Data.Text ( Text )
 
 import Test.HUnit
 import Data.Graph.Inductive.Graph ( Graph(..) )
@@ -39,7 +42,7 @@ mkDepGraphTest :: DepGraphTestCase -> Test
 mkDepGraphTest (input, expected) = expected ~=? mkDepGraph input
 
 data Direction = Forward | Reverse deriving (Show)
-type DependencyTestCase = ([TestDependable], String, Direction, [String])
+type DependencyTestCase = ([TestDependable], Text, Direction, [Text])
 
 dependencyTestCases :: [DependencyTestCase]
 dependencyTestCases = [ ([TD "first" []], "first", Forward, [])

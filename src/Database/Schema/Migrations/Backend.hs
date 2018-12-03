@@ -1,8 +1,11 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Database.Schema.Migrations.Backend
     ( Backend(..)
     , rootMigrationName
     )
 where
+
+import Data.Text ( Text )
 
 import Database.Schema.Migrations.Migration
     ( Migration(..) )
@@ -10,7 +13,7 @@ import Database.Schema.Migrations.Migration
 -- |Backend instances should use this as the name of the migration
 -- returned by getBootstrapMigration; this migration is special
 -- because it cannot be reverted.
-rootMigrationName :: String
+rootMigrationName :: Text
 rootMigrationName = "root"
 
 -- |A Backend represents a database engine backend such as MySQL or
@@ -55,7 +58,7 @@ data Backend =
             -- does not supply a revert instruction, this has no effect
             -- other than bookkeeping.
 
-            , getMigrations :: IO [String]
+            , getMigrations :: IO [Text]
             -- ^ Returns a list of installed migration names from the
             -- backend.
 
@@ -71,4 +74,4 @@ data Backend =
             }
 
 instance Show Backend where
-   show _ = show "dbmigrations backend"
+   show _ = "dbmigrations backend"

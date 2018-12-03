@@ -81,6 +81,7 @@ Library
     template-haskell,
     yaml-light >= 0.1,
     bytestring >= 0.9,
+    string-conversions >= 0.4,
     text >= 0.11,
     configurator >= 0.2,
     split >= 0.2.2,
@@ -91,8 +92,10 @@ Library
           Database.Schema.Migrations
           Database.Schema.Migrations.Backend
           Database.Schema.Migrations.Backend.HDBC
+          Database.Schema.Migrations.CycleDetection
           Database.Schema.Migrations.Dependencies
           Database.Schema.Migrations.Filesystem
+          Database.Schema.Migrations.Filesystem.Serialize
           Database.Schema.Migrations.Migration
           Database.Schema.Migrations.Store
           Database.Schema.Migrations.Test.BackendTest
@@ -101,10 +104,6 @@ Library
           Moo.CommandUtils
           Moo.Core
           Moo.Main
-
-  Other-Modules:
-          Database.Schema.Migrations.CycleDetection
-          Database.Schema.Migrations.Filesystem.Serialize
 
 test-suite dbmigrations-tests
   default-language: Haskell2010
@@ -121,6 +120,7 @@ test-suite dbmigrations-tests
     template-haskell,
     yaml-light >= 0.1,
     bytestring >= 0.9,
+    string-conversions >= 0.4,
     MissingH,
     HDBC >= 2.2.1,
     HUnit >= 1.2,
@@ -139,7 +139,6 @@ test-suite dbmigrations-tests
     FilesystemTest
     MigrationsTest
     StoreTest
-    TestDriver
     InMemoryStore
     LinearMigrationsTest
     ConfigurationTest
@@ -150,8 +149,8 @@ test-suite dbmigrations-tests
   else
     ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields
 
-  Hs-Source-Dirs:  src,test
-  Main-is:         TestDriver.hs
+  Hs-Source-Dirs:  test
+  Main-is:         Main.hs
 
 Executable moo
   default-language: Haskell2010

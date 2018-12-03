@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances,GeneralizedNewtypeDeriving,MultiParamTypeClasses,FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances,GeneralizedNewtypeDeriving,MultiParamTypeClasses,FlexibleInstances,OverloadedStrings #-}
 module MigrationsTest
     ( tests
     )

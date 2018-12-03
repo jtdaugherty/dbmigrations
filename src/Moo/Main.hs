@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Moo.Main
     ( mainWithParameters
     , ExecutableParameters (..)
@@ -12,6 +13,8 @@ where
 import  Control.Monad.Reader (forM_, runReaderT, when)
 import  Database.HDBC (SqlError, catchSql, seErrorMsg)
 import  Prelude  hiding (lookup)
+import  Data.Text (Text)
+import  Data.String.Conversions (cs)
 import  System.Environment (getProgName)
 import  System.Exit (ExitCode (ExitFailure), exitWith)
 
@@ -77,8 +80,8 @@ mainWithParameters args parameters = do
           Right storeData -> do
             let st = AppState { _appOptions = opts
                               , _appCommand = command
-                              , _appRequiredArgs = required
-                              , _appOptionalArgs = ["" :: String]
+                              , _appRequiredArgs = map cs required
+                              , _appOptionalArgs = ["" :: Text]
                               , _appBackend = _parametersBackend parameters
                               , _appStore = store
                               , _appStoreData = storeData

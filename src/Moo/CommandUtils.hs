@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts, OverloadedStrings #-}
 module Moo.CommandUtils
        ( apply
        , confirmCreation
@@ -9,7 +9,10 @@ module Moo.CommandUtils
        , getCurrentTimestamp
        ) where
 
-import Control.Applicative
+import Data.Text ( Text )
+import qualified Data.Text as T
+import Data.String.Conversions ( cs, (<>) )
+
 import Control.Exception ( finally )
 import Control.Monad ( when, forM_, unless )
 import Control.Monad.Reader ( asks )
@@ -30,9 +33,9 @@ import Database.Schema.Migrations.Store ( StoreData
                                         )
 import Moo.Core
 
-getCurrentTimestamp :: IO String
+getCurrentTimestamp :: IO Text
 getCurrentTimestamp =
-  replace ":" "-" . replace " " "_" . take 19 . show <$> getCurrentTime
+  cs . replace ":" "-" . replace " " "_" . take 19 . show <$> getCurrentTime
 
 apply :: Migration -> StoreData -> Backend -> Bool -> IO [Migration]
 apply m storeData backend complain = do
@@ -47,12 +50,12 @@ apply m storeData backend complain = do
     where
       nothingToDo =
         when complain $
-             putStrLn $ "Nothing to do; " ++
-                          mId m ++
+             putStrLn . cs $ "Nothing to do; " <>
+                          mId m <>
                           " already installed."
 
       applyIt conn it = do
-        putStr $ "Applying: " ++ mId it ++ "... "
+        putStr . cs $ "Applying: " <> mId it <> "... "
         applyMigration conn it
         putStrLn "done."
 
@@ -68,22 +71,22 @@ revert m storeData backend = do
 
     where
       nothingToDo =
-        putStrLn $ "Nothing to do; " ++
-                 mId m ++
+        putStrLn . cs $ "Nothing to do; " <>
+                 mId m <>
                  " not installed."
 
       revertIt conn it = do
-        putStr $ "Reverting: " ++ mId it ++ "... "
+        putStr . cs $ "Reverting: " <> mId it <> "... "
         revertMigration conn it
         putStrLn "done."
 
 
-lookupMigration :: StoreData -> String -> IO Migration
+lookupMigration :: StoreData -> Text -> IO Migration
 lookupMigration storeData name = do
   let theMigration = storeLookup storeData name
   case theMigration of
     Nothing -> do
-      putStrLn $ "No such migration: " ++ name
+      putStrLn . cs $ "No such migration: " <> name
       exitWith (ExitFailure 1)
     Just m' -> return m'
 
@@ -97,13 +100,13 @@ withBackend act = do
 
 -- Given a migration name and selected dependencies, get the user's
 -- confirmation that a migration should be created.
-confirmCreation :: String -> [String] -> IO Bool
+confirmCreation :: Text -> [Text] -> IO Bool
 confirmCreation migrationId deps = do
   putStrLn ""
-  putStrLn $ "Confirm: create migration '" ++ migrationId ++ "'"
+  putStrLn . cs $ "Confirm: create migration '" <> migrationId <> "'"
   if null deps then putStrLn "  (No dependencies)"
      else putStrLn "with dependencies:"
-  forM_ deps $ \d -> putStrLn $ "  " ++ d
+  forM_ deps $ \d -> putStrLn . cs $ "  " <> d
   prompt "Are you sure?" [ ('y', (True, Nothing))
                          , ('n', (False, Nothing))
                          ]
@@ -162,7 +165,7 @@ data AskDepsChoice = Yes | No | View | Done | Quit
 
 -- Interactively ask the user about which dependencies should be used
 -- when creating a new migration.
-interactiveAskDeps :: StoreData -> IO [String]
+interactiveAskDeps :: StoreData -> IO [Text]
 interactiveAskDeps storeData = do
   -- For each migration in the store, starting with the most recently
   -- added, ask the user if it should be added to a dependency list
@@ -174,10 +177,10 @@ interactiveAskDeps storeData = do
 -- Recursive function to prompt the user for dependencies and let the
 -- user view information about potential dependencies.  Returns a list
 -- of migration names which were selected.
-interactiveAskDeps' :: StoreData -> [String] -> IO [String]
+interactiveAskDeps' :: StoreData -> [Text] -> IO [Text]
 interactiveAskDeps' _ [] = return []
 interactiveAskDeps' storeData (name:rest) = do
-  result <- prompt ("Depend on '" ++ name ++ "'?") askDepsChoices
+  result <- prompt ("Depend on '" ++ cs name ++ "'?") askDepsChoices
   if result == Done then return [] else
         case result of
           Yes -> do
@@ -189,12 +192,12 @@ interactiveAskDeps' storeData (name:rest) = do
             let Just m = storeLookup storeData name
             -- print out description, timestamp, deps
             when (isJust $ mDesc m)
-                     (putStrLn $ "  Description: " ++
+                     (putStrLn . cs $ "  Description: " <>
                                     fromJust  (mDesc m))
             putStrLn $ "      Created: " ++ show (mTimestamp m)
             unless (null $ mDeps m)
-                     (putStrLn $ "  Deps: " ++
-                                   intercalate "\n        "  (mDeps m))
+                     (putStrLn . cs $ "  Deps: " <>
+                                   T.intercalate "\n        "  (mDeps m))
             -- ask again
             interactiveAskDeps' storeData (name:rest)
           Quit -> do

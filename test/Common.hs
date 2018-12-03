@@ -8,6 +8,8 @@ module Common
     )
 where
 
+import Data.Text ( Text )
+
 import CommonTH
 import System.FilePath ( (</>) )
 import Language.Haskell.TH.Syntax (lift)
@@ -25,8 +27,8 @@ instance Dependable TestDependable where
     depId = tdId
     depsOf = tdDeps
 
-data TestDependable = TD { tdId :: String
-                         , tdDeps :: [String]
+data TestDependable = TD { tdId :: Text
+                         , tdDeps :: [Text]
                          }
                       deriving (Show, Eq, Ord)
 
