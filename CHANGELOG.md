@@ -1,3 +1,10 @@
+2.1.0
+-----
+
+Private Atlassian fork by hlevsen@atlassian.com for hackathon app:
+
+- Replace outdated yaml-light dependency with yaml package
+
 2.0.0
 -----
 
