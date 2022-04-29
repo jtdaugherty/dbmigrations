@@ -1,3 +1,5 @@
+- Replace outdated yaml-light dependency with yaml package
+
 2.0.0
 -----
 

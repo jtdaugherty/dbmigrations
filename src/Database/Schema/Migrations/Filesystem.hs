@@ -25,9 +25,11 @@ import qualified Data.Map as Map
 
 import Control.Applicative ( (<$>) )
 import Control.Monad ( filterM )
-import Control.Exception ( IOException, Exception(..), throw, catch )
+import Control.Exception ( Exception(..), throw, catch )
 
-import Data.Yaml.YamlLight
+import Data.Aeson as J (Object, Value(String, Null))
+import Data.HashMap.Strict as M (toList)
+import Data.Yaml
 
 import Database.Schema.Migrations.Migration
     ( Migration(..)
@@ -104,8 +106,8 @@ migrationFromPath path = do
     readMigrationFile = do
       ymlExists <- doesFileExist (addNewMigrationExtension path)
       if ymlExists
-        then parseYamlFile (addNewMigrationExtension path) `catch` (\(e::IOException) -> throwFS $ show e)
-        else parseYamlFile (addMigrationExtension path filenameExtensionTxt) `catch` (\(e::IOException) -> throwFS $ show e)
+        then decodeFileThrow (addNewMigrationExtension path) `catch` (\(e::ParseException) -> throwFS $ show e)
+        else decodeFileThrow (addMigrationExtension path filenameExtensionTxt) `catch` (\(e::ParseException) -> throwFS $ show e)
 
     process name = do
       yaml <- readMigrationFile
@@ -122,11 +124,12 @@ migrationFromPath path = do
             Just m -> return m
         _ -> throwFS $ "Error in " ++ (show path) ++ ": missing required field(s): " ++ (show missing)
 
-getFields :: YamlLight -> [(Text, Text)]
-getFields (YMap mp) = map toPair $ Map.assocs mp
+getFields :: J.Object -> [(Text, Text)]
+getFields mp = map toPair $ M.toList mp
     where
-      toPair :: (YamlLight, YamlLight) -> (Text, Text)
-      toPair (YStr k, YStr v) = (cs k, cs v)
+      toPair :: (Text, Value) -> (Text, Text)
+      toPair (k, J.String v) = (cs k, cs v)
+      toPair (k, J.Null) = (cs k, cs ("" :: String))
       toPair (k, v) = throwFS $ "Error in YAML input; expected string key and string value, got " ++ (show (k, v))
 getFields _ = throwFS "Error in YAML input; expected mapping"
 
