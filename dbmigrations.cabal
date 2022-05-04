@@ -79,13 +79,15 @@ Library
     directory >= 1.0,
     fgl >= 5.4,
     template-haskell,
-    yaml-light >= 0.1,
+    yaml,
     bytestring >= 0.9,
     string-conversions >= 0.4,
     text >= 0.11,
     configurator >= 0.2,
     split >= 0.2.2,
-    HUnit >= 1.2
+    HUnit >= 1.2,
+    aeson < 2,
+    unordered-containers
 
   Hs-Source-Dirs:    src
   Exposed-Modules:
@@ -118,7 +120,7 @@ test-suite dbmigrations-tests
     directory >= 1.0,
     fgl >= 5.4,
     template-haskell,
-    yaml-light >= 0.1,
+    yaml,
     bytestring >= 0.9,
     string-conversions >= 0.4,
     MissingH,

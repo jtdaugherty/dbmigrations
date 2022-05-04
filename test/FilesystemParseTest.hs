@@ -100,8 +100,7 @@ migrationParsingTestCases = [ ("valid_full", Right valid_full)
                             , ("invalid_syntax"
                               , Left $ "Could not parse migration " ++
                                          (fp "invalid_syntax") ++
-                                         ":user error (syntax error: line 7, " ++
-                                         "column 0)")
+                                         ":InvalidYaml (Just (YamlParseException {yamlProblem = \"could not find expected ':'\", yamlContext = \"while scanning a simple key\", yamlProblemMark = YamlMark {yamlIndex = 130, yamlLine = 6, yamlColumn = 0}}))")
                             , ("invalid_timestamp"
                               , Left $ "Could not parse migration " ++
                                          (fp "invalid_timestamp") ++
