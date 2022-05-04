@@ -1,4 +1,16 @@
-- Replace outdated yaml-light dependency with yaml package
+
+2.1.0
+-----
+
+Package changes:
+- Migrated from `yaml-light` to `yaml` package for YAML parsing (thanks
+  Hank Levsen <hlevsen@atlassian.com>)
+
+Other changes:
+- `Text` is now used instead of `String` in most parts of the codebase
+  (thanks Vitalii Guzeev <vitaliy@getshoptv.com>)
+- New migrations now get the `.yml` file extension, but old migration
+  `txt` files are also supported.
 
 2.0.0
 -----
