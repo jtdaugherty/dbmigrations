@@ -1,4 +1,16 @@
 
+Stability Note
+--------------
+
+Warning: this package is no longer actively maintained, and
+unfortunately I do not have plans to resume maintenance. This package
+is very old; in fact, it's the first Haskell package I published, and
+it shows in many ways. I also don't use it nowadays, which doesn't
+help when it comes to maintenance. If you are using this library in
+production, just keep this in mind and I encourage you to consider
+alternatives. If you would like to take over maintenance, please open a
+ticket and let's discuss!
+
 dbmigrations
 ------------
 
