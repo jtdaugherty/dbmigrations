@@ -113,7 +113,7 @@ data MigrationYaml = MigrationYaml
     , myDescription :: Maybe Text
     , myApply :: Text
     , myRevert :: Maybe Text
-    , myDepends :: Text
+    , myDepends :: Maybe Text
     -- ^ White-space separated names
     }
     deriving Generic
@@ -139,7 +139,7 @@ migrationYamlToMigration theId my = Migration
     , mDesc = myDescription my
     , mApply = myApply my
     , mRevert = myRevert my
-    , mDeps = T.words $ myDepends my
+    , mDeps = maybe [] T.words $ myDepends my
     }
 
 newtype UTCTimeYaml = UTCTimeYaml
