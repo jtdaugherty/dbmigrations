@@ -175,7 +175,7 @@ fieldProcessors = [ ("Created", setTimestamp )
 setTimestamp :: FieldProcessor
 setTimestamp value m = do
   ts <- case readTimestamp value of
-          ((t, ""):_) -> Right t
+          ((t, ""):_) -> return t
           [(t, _)] -> return t
           _ -> fail "expected one valid parse"
   return $ m { mTimestamp = Just ts }
