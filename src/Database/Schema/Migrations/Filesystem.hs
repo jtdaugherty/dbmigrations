@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, ScopedTypeVariables, OverloadedStrings #-}
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, ScopedTypeVariables, OverloadedStrings #-}
 -- |This module provides a type for interacting with a
 -- filesystem-backed 'MigrationStore'.
 module Database.Schema.Migrations.Filesystem
@@ -27,18 +27,14 @@ import Control.Applicative ( (<$>) )
 import Control.Monad ( filterM )
 import Control.Exception ( Exception(..), throw, catch )
 
-import Data.Aeson as J (Object, Value(String, Null))
+import Data.Aeson
 import Data.HashMap.Strict as M (toList)
-import Data.Yaml
+import qualified Data.Yaml as Yaml
+import GHC.Generics (Generic)
 
-import Database.Schema.Migrations.Migration
-    ( Migration(..)
-    , emptyMigration
-    )
+import Database.Schema.Migrations.Migration (Migration(..))
 import Database.Schema.Migrations.Filesystem.Serialize
 import Database.Schema.Migrations.Store
-
-type FieldProcessor = Text -> Migration -> Maybe Migration
 
 data FilesystemStoreSettings = FSStore { storePath :: FilePath }
 
@@ -106,79 +102,42 @@ migrationFromPath path = do
     readMigrationFile = do
       ymlExists <- doesFileExist (addNewMigrationExtension path)
       if ymlExists
-        then decodeFileThrow (addNewMigrationExtension path) `catch` (\(e::ParseException) -> throwFS $ show e)
-        else decodeFileThrow (addMigrationExtension path filenameExtensionTxt) `catch` (\(e::ParseException) -> throwFS $ show e)
+        then Yaml.decodeFileThrow (addNewMigrationExtension path) `catch` (\(e::Yaml.ParseException) -> throwFS $ show e)
+        else Yaml.decodeFileThrow (addMigrationExtension path filenameExtensionTxt) `catch` (\(e::Yaml.ParseException) -> throwFS $ show e)
 
-    process name = do
-      yaml <- readMigrationFile
+    process name = migrationYamlToMigration name <$> readMigrationFile
 
-      -- Convert yaml structure into basic key/value map
-      let fields = getFields yaml
-          missing = missingFields fields
+-- | TODO: re-use this for the generation side too
+data MigrationYaml = MigrationYaml
+    { myCreated :: Maybe UTCTime
+    , myDescription :: Maybe Text
+    , myApply :: Text
+    , myRevert :: Maybe Text
+    , myDepends :: Text
+    -- ^ White-space separated names
+    }
+    deriving Generic
 
-      case length missing of
-        0 -> do
-          let newM = emptyMigration name
-          case migrationFromFields newM fields of
-            Nothing -> throwFS $ "Error in " ++ (show path) ++ ": unrecognized field found"
-            Just m -> return m
-        _ -> throwFS $ "Error in " ++ (show path) ++ ": missing required field(s): " ++ (show missing)
+instance FromJSON MigrationYaml where
+    parseJSON = genericParseJSON jsonOptions
 
-getFields :: J.Object -> [(Text, Text)]
-getFields mp = map toPair $ M.toList mp
-    where
-      toPair :: (Text, Value) -> (Text, Text)
-      toPair (k, J.String v) = (cs k, cs v)
-      toPair (k, J.Null) = (cs k, cs ("" :: String))
-      toPair (k, v) = throwFS $ "Error in YAML input; expected string key and string value, got " ++ (show (k, v))
-getFields _ = throwFS "Error in YAML input; expected mapping"
+instance ToJSON MigrationYaml where
+    toJSON = genericToJSON jsonOptions
+    toEncoding = genericToEncoding jsonOptions
 
-missingFields :: [(Text, Text)] -> [Text]
-missingFields fs =
-    [ k | k <- requiredFields, not (k `elem` inputStrings) ]
-    where
-      inputStrings = map fst fs
+jsonOptions :: Options
+jsonOptions = defaultOptions
+    { fieldLabelModifier = drop 2 -- remove "my" prefix
+    , omitNothingFields = True
+    , rejectUnknownFields = True
+    }
 
--- |Given a migration and a list of parsed migration fields, update
--- the migration from the field values for recognized fields.
-migrationFromFields :: Migration -> [(Text, Text)] -> Maybe Migration
-migrationFromFields m [] = Just m
-migrationFromFields m ((name, value):rest) = do
-  processor <- lookup name fieldProcessors
-  newM <- processor value m
-  migrationFromFields newM rest
-
-requiredFields :: [Text]
-requiredFields = [ "Apply"
-                 , "Depends"
-                 ]
-
-fieldProcessors :: [(Text, FieldProcessor)]
-fieldProcessors = [ ("Created", setTimestamp )
-                  , ("Description", setDescription )
-                  , ("Apply", setApply )
-                  , ("Revert", setRevert )
-                  , ("Depends", setDepends )
-                  ]
-
-setTimestamp :: FieldProcessor
-setTimestamp value m = do
-  ts <- case readTimestamp value of
-          [(t, _)] -> return t
-          _ -> fail "expected one valid parse"
-  return $ m { mTimestamp = Just ts }
-
-readTimestamp :: Text -> [(UTCTime, String)]
-readTimestamp = reads . cs
-
-setDescription :: FieldProcessor
-setDescription desc m = Just $ m { mDesc = Just desc }
-
-setApply :: FieldProcessor
-setApply apply m = Just $ m { mApply = apply }
-
-setRevert :: FieldProcessor
-setRevert revert m = Just $ m { mRevert = Just revert }
-
-setDepends :: FieldProcessor
-setDepends depString m = Just $ m { mDeps = T.words depString }
+migrationYamlToMigration :: Text -> MigrationYaml -> Migration
+migrationYamlToMigration theId my = Migration
+    { mTimestamp = myCreated my
+    , mId = theId
+    , mDesc = myDescription my
+    , mApply = myApply my
+    , mRevert = myRevert my
+    , mDeps = T.words $ myDepends my
+    }
