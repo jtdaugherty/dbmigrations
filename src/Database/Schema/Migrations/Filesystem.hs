@@ -159,8 +159,8 @@ utcTimeYamlFormat :: String
 utcTimeYamlFormat = "%F %T UTC"
 
 newtype DependsYaml = DependsYaml
-  { unDependsYaml :: [Text]
-  }
+    { unDependsYaml :: [Text]
+    }
 
 instance FromJSON DependsYaml where
     parseJSON = \case
