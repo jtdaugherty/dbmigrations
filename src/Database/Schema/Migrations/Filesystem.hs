@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, ScopedTypeVariables, OverloadedStrings #-}
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, LambdaCase, ScopedTypeVariables, OverloadedStrings #-}
 -- |This module provides a type for interacting with a
 -- filesystem-backed 'MigrationStore'.
 module Database.Schema.Migrations.Filesystem
@@ -28,6 +28,7 @@ import Control.Monad ( filterM )
 import Control.Exception ( Exception(..), throw, catch )
 
 import Data.Aeson
+import Data.Aeson.Types (typeMismatch)
 import Data.HashMap.Strict as M (toList)
 import qualified Data.Yaml as Yaml
 import GHC.Generics (Generic)
@@ -113,8 +114,7 @@ data MigrationYaml = MigrationYaml
     , myDescription :: Maybe Text
     , myApply :: Text
     , myRevert :: Maybe Text
-    , myDepends :: Maybe Text
-    -- ^ White-space separated names
+    , myDepends :: DependsYaml
     }
     deriving Generic
 
@@ -139,7 +139,7 @@ migrationYamlToMigration theId my = Migration
     , mDesc = myDescription my
     , mApply = myApply my
     , mRevert = myRevert my
-    , mDeps = maybe [] T.words $ myDepends my
+    , mDeps = unDependsYaml $ myDepends my
     }
 
 newtype UTCTimeYaml = UTCTimeYaml
@@ -159,3 +159,21 @@ instance ToJSON UTCTimeYaml where
 -- Keeps things as the old Show/Read-based format, e.g "2009-04-15 10:02:06 UTC"
 utcTimeYamlFormat :: String
 utcTimeYamlFormat = "%F %T UTC"
+
+newtype DependsYaml = DependsYaml
+  { unDependsYaml :: [Text]
+  }
+
+instance FromJSON DependsYaml where
+    parseJSON = \case
+        Null -> pure $ DependsYaml []
+        String t -> pure $ DependsYaml $ T.words t
+        x -> typeMismatch "Null or whitespace-separated String" x
+
+instance ToJSON DependsYaml where
+    toJSON (DependsYaml ts) = case ts of
+        [] -> toJSON Null
+        _ -> toJSON $ T.unwords ts
+    toEncoding (DependsYaml ts) = case ts of
+        [] -> toEncoding Null
+        _ -> toEncoding $ T.unwords ts
