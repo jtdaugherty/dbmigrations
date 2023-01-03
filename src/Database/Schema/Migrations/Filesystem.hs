@@ -20,10 +20,10 @@ import Data.String.Conversions ( cs, (<>) )
 
 import Data.Typeable ( Typeable )
 import Data.Time.Clock ( UTCTime )
-import Data.Time () -- for UTCTime Show instance
+import Data.Time ( defaultTimeLocale, formatTime, parseTimeM )
 import qualified Data.Map as Map
 
-import Control.Applicative ( (<$>) )
+import Control.Applicative ( (<$>), (<|>) )
 import Control.Monad ( filterM )
 import Control.Exception ( Exception(..), throw, catch )
 
@@ -109,7 +109,7 @@ migrationFromPath path = do
 
 -- | TODO: re-use this for the generation side too
 data MigrationYaml = MigrationYaml
-    { myCreated :: Maybe UTCTime
+    { myCreated :: Maybe UTCTimeYaml
     , myDescription :: Maybe Text
     , myApply :: Text
     , myRevert :: Maybe Text
@@ -134,10 +134,28 @@ jsonOptions = defaultOptions
 
 migrationYamlToMigration :: Text -> MigrationYaml -> Migration
 migrationYamlToMigration theId my = Migration
-    { mTimestamp = myCreated my
+    { mTimestamp = unUTCTimeYaml <$> myCreated my
     , mId = theId
     , mDesc = myDescription my
     , mApply = myApply my
     , mRevert = myRevert my
     , mDeps = T.words $ myDepends my
     }
+
+newtype UTCTimeYaml = UTCTimeYaml
+    { unUTCTimeYaml :: UTCTime
+    }
+
+instance FromJSON UTCTimeYaml where
+    parseJSON = withText "UTCTime"
+        $ maybe (fail "Unable to parse UTCTime") (pure . UTCTimeYaml)
+        . parseTimeM True defaultTimeLocale utcTimeYamlFormat
+        . cs
+
+instance ToJSON UTCTimeYaml where
+    toJSON = toJSON . formatTime defaultTimeLocale utcTimeYamlFormat . unUTCTimeYaml
+    toEncoding = toEncoding . formatTime defaultTimeLocale utcTimeYamlFormat . unUTCTimeYaml
+
+-- Keeps things as the old Show/Read-based format, e.g "2009-04-15 10:02:06 UTC"
+utcTimeYamlFormat :: String
+utcTimeYamlFormat = "%F %T UTC"
