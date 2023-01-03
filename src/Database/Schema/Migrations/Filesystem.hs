@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, ScopedTypeVariables, OverloadedStrings #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, ScopedTypeVariables, OverloadedStrings #-}
 -- |This module provides a type for interacting with a
 -- filesystem-backed 'MigrationStore'.
 module Database.Schema.Migrations.Filesystem
@@ -28,7 +28,6 @@ import Control.Monad ( filterM )
 import Control.Exception ( Exception(..), throw, catch )
 
 import Data.Aeson as J (Object, Value(String, Null))
-import Data.HashMap.Strict as M (toList)
 import Data.Yaml
 
 import Database.Schema.Migrations.Migration
@@ -37,6 +36,18 @@ import Database.Schema.Migrations.Migration
     )
 import Database.Schema.Migrations.Filesystem.Serialize
 import Database.Schema.Migrations.Store
+
+#if MIN_VERSION_aeson(2, 0, 0)
+import Data.Aeson.Key (Key, toText)
+import Data.Aeson.KeyMap as M (toList)
+#else
+import Data.HashMap.Strict as M (toList)
+
+type Key = Text
+
+toText :: Key -> Text
+toText = id
+#endif
 
 type FieldProcessor = Text -> Migration -> Maybe Migration
 
@@ -127,9 +138,9 @@ migrationFromPath path = do
 getFields :: J.Object -> [(Text, Text)]
 getFields mp = map toPair $ M.toList mp
     where
-      toPair :: (Text, Value) -> (Text, Text)
-      toPair (k, J.String v) = (cs k, cs v)
-      toPair (k, J.Null) = (cs k, cs ("" :: String))
+      toPair :: (Key, Value) -> (Text, Text)
+      toPair (k, J.String v) = (toText k, cs v)
+      toPair (k, J.Null) = (toText k, cs ("" :: String))
       toPair (k, v) = throwFS $ "Error in YAML input; expected string key and string value, got " ++ (show (k, v))
 getFields _ = throwFS "Error in YAML input; expected mapping"
 
