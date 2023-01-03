@@ -23,13 +23,11 @@ import Data.Time.Clock ( UTCTime )
 import Data.Time ( defaultTimeLocale, formatTime, parseTimeM )
 import qualified Data.Map as Map
 
-import Control.Applicative ( (<$>), (<|>) )
 import Control.Monad ( filterM )
 import Control.Exception ( Exception(..), throw, catch )
 
 import Data.Aeson
 import Data.Aeson.Types (typeMismatch)
-import Data.HashMap.Strict as M (toList)
 import qualified Data.Yaml as Yaml
 import GHC.Generics (Generic)
 
