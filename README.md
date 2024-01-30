@@ -8,8 +8,10 @@ is very old; in fact, it's the first Haskell package I published, and
 it shows in many ways. I also don't use it nowadays, which doesn't
 help when it comes to maintenance. If you are using this library in
 production, just keep this in mind and I encourage you to consider
-alternatives. If you would like to take over maintenance, please open a
-ticket and let's discuss!
+alternatives. If you would like to take over maintenance, please
+consider forking this and letting me know at `cygnus AT foobox DOT com`
+so I can update the Hackage deprecation status in favor of your new
+package.
 
 dbmigrations
 ------------
